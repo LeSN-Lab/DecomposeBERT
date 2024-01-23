@@ -8,3 +8,5 @@ vocab.txt
 trainDataset.csv
 testDataset.csv
 .ipynb_checkpoints
+pytorch_model.bin
+deployment.xml

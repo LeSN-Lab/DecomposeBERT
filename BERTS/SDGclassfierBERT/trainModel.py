@@ -23,6 +23,7 @@ model = model.to(device)
 
 # In[]: Train model
 def train_model(model, tokenizer):
+    # In[] : Load model
     train_dataloader, validation_dataloader = load_sgd(tokenizer)
 
     # In[] : Set optimizer
@@ -63,8 +64,21 @@ def train_model(model, tokenizer):
 
             # Update loss
             total_loss += loss.item()
-    test_model(model, tokenizer)
+    # In[]: Save model
+    save_path = os.path.join(root, "pretrained")
+    torch.save({
+        "model_state_dict": model.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+        "scheduler_state_dict": scheduler.state_dict(),
+        "loss": total_loss / len(train_dataloader),
+         "hyperparameters": {
+            "learning_rate": 2e-5,
+            "batch_size": train_dataloader.batch_size,
+            "epochs": epochs
+        },
+    }, os.path.join(save_path, "model.pt"))
 
+# In[]: Test model
 def test_model(model, tokenizer):
     train_dataloader, validation_dataloader = load_sgd(tokenizer)
 
@@ -98,7 +112,7 @@ def test_model(model, tokenizer):
     avg_val_loss = total_eval_loss / len(validation_dataloader)
     print("  Validation Loss: {0:.2f}".format(avg_val_loss))
 
-
+# Calculate accuracy
 def flat_accuracy(preds, labels):
     pred_flat = np.argmax(preds, axis=1).flatten()
     labels_flat = labels.flatten()
@@ -107,3 +121,4 @@ def flat_accuracy(preds, labels):
 
 if __name__ == '__main__':
     train_model(model, tokenizer)
+    test_model(model, tokenizer)
