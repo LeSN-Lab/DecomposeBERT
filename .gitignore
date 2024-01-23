@@ -7,3 +7,4 @@ tokenizer_config.json
 vocab.txt
 trainDataset.csv
 testDataset.csv
+.ipynb_checkpoints
