@@ -9,5 +9,5 @@ Dataset.csv
 prepData.csv
 .ipynb_checkpoints
 pytorch_model.bin
-**/.idea/
+.idea/**
 .uuid
