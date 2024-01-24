@@ -141,7 +141,7 @@ def evaluate_model(model, testDataloader, device):
 
         logits = logits.detach().cpu().numpy()
         labels_ids = b_labels.cpu().numpy()
-        preds = np.argmax(logits, axis=1)
+        preds = np.argmax(logits, axis=1) + 1
         total_correct += np.sum(preds == labels_ids)
         total_count += labels_ids.shape[0]
 
@@ -161,5 +161,5 @@ if __name__ == '__main__':
     load_path = os.path.join(root, "SDGclassfierModelConfig")
     device = torch.device('cuda:0' if not torch.cuda.is_available() else 'cpu')
     epochs = 10
-    check_point_path = 'epoch_1.pt'
+    check_point_path = 'epoch_2.pt'
     train_model(model_name, load_path, device, epochs=epochs, checkpoint_path=check_point_path, test=True)
