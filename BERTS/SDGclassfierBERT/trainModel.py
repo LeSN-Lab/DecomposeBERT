@@ -11,12 +11,12 @@ from tqdm import tqdm
 
 
 # In[]: Train model
-def train_model(model_name, load_path, device, epochs=3, checkpoint_path=None, test=True):
+def train_model(model_name, load_path, device, epochs=3, batch_size=32, checkpoint_path=None, test=True):
     model, tokenizer = load_model(model_name, load_path)
     model = model.to(device)
 
     # In[] : Load model
-    trainDataloader, valDataloader, testDataloader = load_sdg(tokenizer, test_size=0.25, batch_size=128)
+    trainDataloader, valDataloader, testDataloader = load_sdg(tokenizer, test_size=0.25, batch_size=batch_size)
 
     # In[] : Set optimizer and scheduler
     optimizer = AdamW(model.parameters(), lr=2e-5, eps=1e-8)
@@ -106,7 +106,8 @@ if __name__ == '__main__':
     root = os.path.dirname(file)
     model_name = "sadickam/sdg-classification-bert"
     load_path = os.path.join(root, "SDGclassfierModelConfig")
-    device = torch.device('cuda:0' if not torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
     epochs = 10
     check_point_path = 'epoch_2.pt'
     train_model(model_name, load_path, device, epochs=epochs, checkpoint_path=check_point_path, test=True)

@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
+
 # In[]: Test model
 # Calculate accuracy
 def flat_accuracy(preds, label_indices, label_list):
@@ -15,6 +16,7 @@ def flat_accuracy(preds, label_indices, label_list):
             correct_predictions += 1
 
     return correct_predictions / len(labels_flat)
+
 
 # In[]
 def evaluate_model(model, testDataloader, device):

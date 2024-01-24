@@ -76,7 +76,7 @@ def collate_fn(batch):
 
 # In[]: Load preprocessed data
 
-def load_sdg(tokenizer, test_size=0.3, val_size=0.1, batch_size=128):
+def load_sdg(tokenizer, test_size=0.3, val_size=0.1, batch_size=32):
     if not os.path.isdir('./data'):
         os.mkdir('./data')
     if not os.path.isdir('./data/SDG'):
