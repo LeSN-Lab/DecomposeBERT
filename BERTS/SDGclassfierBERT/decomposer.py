@@ -19,17 +19,14 @@ def decompose_position_FCN():
 
 # In[]
 if __name__ == '__main__':
-    import os
-    file = os.getcwd()
+    file = os.path.realpath('__file__')
     root = os.path.dirname(file)
     model_name = "sadickam/sdg-classification-bert"
-    save_path = os.path.join(root, "SDGclassfierModelConfig")
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    if os.path.isdir(save_path):
-        model, tokenizer = load_model(model_name, save_path)
-    else:
-        model, tokenizer = save_model(model_name, save_path)
+    load_path = os.path.join(root, "SDGclassfierModelConfig")
+
+    model, tokenizer = load_model(model_name, load_path)
     model = model.to(device)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # In[]:
-    print(model.parameters())
+    print(model.bert.encoder.layer[0].attention)

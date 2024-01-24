@@ -20,6 +20,5 @@ def load_model(model_name, load_path):
     else:
         model = AutoModelForSequenceClassification.from_pretrained(model_name)
         tokenizer = AutoTokenizer.from_pretrained(model_name)
-    print(model)
 
     return model, tokenizer
