@@ -1,8 +1,8 @@
 # DecomposeBERT
 
-# To-do: 
+## To-do: 
 - Write codes for decomposing multihead-attention-layer.
 - Write codes for position-wise fully connected layer.
 
-# Done:
+## Done:
 - Write codes for training and test accuracy.
