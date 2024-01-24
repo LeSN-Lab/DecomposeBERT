@@ -106,8 +106,14 @@ if __name__ == '__main__':
     root = os.path.dirname(file)
     model_name = "sadickam/sdg-classification-bert"
     load_path = os.path.join(root, "SDGclassfierModelConfig")
+    checkpoint_path = os.path.join(root, 'Models', 'epoch_6.pt')
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-    epochs = 10
-    check_point_path = 'epoch_2.pt'
-    train_model(model_name, load_path, device, epochs=epochs, checkpoint_path=check_point_path, test=True)
+    model, tokenizer = load_model(model_name, load_path)
+    model.load_state_dict(torch.load(checkpoint_path)['model_state_dict'])
+    model = model.to(device)
+
+    _, _, testDataloader = load_sdg(tokenizer, test_size=0.25, batch_size=32)
+    evaluate_model(model, testDataloader, device)
+
+    # train_model(model_name, load_path, device, epochs=epochs, checkpoint_path=check_point_path, test=True)

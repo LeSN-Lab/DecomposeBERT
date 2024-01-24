@@ -45,9 +45,9 @@ def evaluate_model(model, testDataloader, device):
         loss = outputs.loss
         total_eval_loss += loss.item()
 
-        logits = logits.detach().cpu().numpy()
+        logits = logits.detach().cpu().numpy() + 1
         labels_ids = b_labels.cpu().numpy()
-        preds = np.argmax(logits, axis=1) + 1
+        preds = np.argmax(logits, axis=1)
         total_correct += np.sum(preds == labels_ids)
         total_count += labels_ids.shape[0]
 
