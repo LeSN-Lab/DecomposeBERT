@@ -11,7 +11,6 @@ def save_model(model_name, save_path):
     model.save_pretrained(save_path)
     tokenizer.save_pretrained(save_path)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    model.to(device)
     return model, tokenizer
 
 
@@ -21,8 +20,6 @@ def load_model(model_name, load_path):
     else:
         model = AutoModelForSequenceClassification.from_pretrained(model_name)
         tokenizer = AutoTokenizer.from_pretrained(model_name)
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    model.to(device)
     print(model)
 
     return model, tokenizer

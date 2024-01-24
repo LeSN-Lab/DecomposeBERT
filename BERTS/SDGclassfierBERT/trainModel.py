@@ -12,6 +12,7 @@ from tqdm import tqdm
 # In[]: Train model
 def train_model(model_name, load_path, device, epochs=3, checkpoint_path=None, test=True):
     model, tokenizer = load_model(model_name, load_path)
+    model = model.to(device)
 
     # In[] : Load model
     trainDataloader, valDataloader, testDataloader = load_sdg(tokenizer, test_size=0.25, batch_size=128)
