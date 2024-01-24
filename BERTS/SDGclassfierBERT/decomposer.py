@@ -14,8 +14,10 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def decompose_multi_head_attention_layer():
     pass
 
+
 def decompose_position_FCN():
     pass
+
 
 # In[]
 if __name__ == '__main__':

@@ -1,6 +1,13 @@
 import torch
 import torch.nn as nn
+import numpy as np
+import math
+import torch
+import torch.nn as nn
+import torch.nn.functional as fn
+from torch.nn.init import normal_
 
-class NeuralNetwork(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
-        pass
+
+class MLPlayers(nn.Module):
+    def __init__(self, layers):
+        self.layers = layers
