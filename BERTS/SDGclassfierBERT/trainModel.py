@@ -25,9 +25,9 @@ def train_model(model_name, load_path, device, epochs=3, checkpoint_path=None, t
 
     if not os.path.isdir('Models'):
         os.mkdir('Models')
-
-    if checkpoint_path and os.path.isfile(os.path.join('Models', checkpoint_path)):
-        checkpoint = torch.load(checkpoint_path)
+    model_path = (os.path.join('Models', checkpoint_path))
+    if checkpoint_path and os.path.isfile(model_path):
+        checkpoint = torch.load(model_path)
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
         start_epoch = checkpoint['epoch']
@@ -160,4 +160,6 @@ if __name__ == '__main__':
     model_name = "sadickam/sdg-classification-bert"
     load_path = os.path.join(root, "SDGclassfierModelConfig")
     device = torch.device('cuda:0' if not torch.cuda.is_available() else 'cpu')
-    train_model(model_name, load_path, device, epochs=10, checkpoint_path=None, test=True)
+    epochs = 10
+    check_point_path = 'epoch_1.pt'
+    train_model(model_name, load_path, device, epochs=epochs, checkpoint_path=check_point_path, test=True)
