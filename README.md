@@ -5,4 +5,4 @@
 - Write codes for position-wise fully connected layer.
 
 ## Done:
-- Write codes for training and test accuracy.
+- Write codes for training SDG model and test accuracy.
