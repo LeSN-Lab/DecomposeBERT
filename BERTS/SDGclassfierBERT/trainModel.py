@@ -92,8 +92,8 @@ def train_model(model_name, load_path, device, epochs=3, checkpoint_path=None, t
                 "scheduler_state_dict": scheduler.state_dict(),
             }, os.path.join('Models', f"epoch_{epoch + 1}.pt"))
 
-            if test:
-                evaluate_model(model, testDataloader, device)
+        if test:
+            evaluate_model(model, testDataloader, device)
     except Exception as e:
         print(f"An error occurred: {e}")
     return model
