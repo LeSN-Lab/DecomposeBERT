@@ -14,3 +14,5 @@ pytorch_model.bin
 .uuid
 .cache
 .cache/*
+*.pt
+__pycache__
