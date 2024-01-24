@@ -33,7 +33,8 @@ class SDGDataset(Dataset):
         label = self.labels[idx]
         encoding = self.tokenizer(text, truncation=True, max_length=512)
         input_ids = encoding['input_ids']
-        return text, input_ids, label
+        attention_mask = encoding['attention_mask']
+        return text, input_ids, attention_mask, label
 
 
 # In[]: Preprocessing
@@ -47,27 +48,35 @@ def prep_text(text, lemmatizer, stop_words):
 
     return ' '.join(words)
 
+
 def parallel_prep_texts(texts, stop_words, n_jobs=4):
     lemmatizer = WordNetLemmatizer()
     with multiprocessing.Pool(n_jobs) as pool:
         clean_texts = pool.map(partial(prep_text, lemmatizer=lemmatizer, stop_words=stop_words), texts)
     return clean_texts
 
+
 def collate_fn(batch):
     # Separate source and target elements in the batch
-    texts, input_ids, labels = zip(*batch)
+    texts, input_ids, attention_masks, labels = zip(*batch)
 
-    # Pad the sequences
-    input_ids_tensors = [torch.tensor(ids) for ids in input_ids]
+    input_ids_tensors = [torch.tensor(ids, dtype=torch.long) for ids in input_ids]
+    labels_tensors = torch.tensor(labels, dtype=torch.long)
+
+    if not input_ids_tensors:  # Check if all sequences are empty
+        return None
+
+    attention_masks_tensors = [torch.tensor(mask, dtype=torch.long) for mask in attention_masks if isinstance(mask, (list, torch.Tensor)) and len(mask) > 0]
+
     input_ids_padded = pad_sequence(input_ids_tensors, batch_first=True, padding_value=0)
-    labels_tensors = torch.tensor(labels)
+    attention_masks_padded = pad_sequence(attention_masks_tensors, batch_first=True, padding_value=0)
 
-    return texts, input_ids_padded, labels_tensors
+    return texts, input_ids_padded, attention_masks_padded, labels_tensors
 
 
 # In[]: Load preprocessed data
 
-def load_sdg(tokenizer, test_size=0.3, batch_size=128):
+def load_sdg(tokenizer, test_size=0.3, val_size=0.1, batch_size=128):
     if not os.path.isdir('./data'):
         os.mkdir('./data')
     if not os.path.isdir('./data/SDG'):
@@ -93,13 +102,17 @@ def load_sdg(tokenizer, test_size=0.3, batch_size=128):
     train_size = int(len(dataset) * (1 - test_size))
     test_size = len(dataset) - train_size
     print(f"train size: {train_size} test size: {test_size}")
-    train_dataset, test_dataset = train_test_split(dataset, test_size=test_size, random_state=2021)
-
-    train_dataloader = DataLoader(
+    train_val_dataset, test_dataset = train_test_split(dataset, test_size=test_size, random_state=2021)
+    train_dataset, val_dataset = train_test_split(train_val_dataset, test_size=val_size,
+                                                  random_state=2021)
+    trainDataloader = DataLoader(
         train_dataset, sampler=RandomSampler(train_dataset), batch_size=batch_size, collate_fn=collate_fn
     )
-    test_dataloader = DataLoader(
+    valDataloader = DataLoader(
+        val_dataset, sampler=SequentialSampler(val_dataset), batch_size=batch_size, collate_fn=collate_fn
+    )
+    testDataloader = DataLoader(
         test_dataset, sampler=SequentialSampler(test_dataset), batch_size=batch_size, collate_fn=collate_fn
     )
 
-    return train_dataloader, test_dataloader
+    return trainDataloader, valDataloader, testDataloader
