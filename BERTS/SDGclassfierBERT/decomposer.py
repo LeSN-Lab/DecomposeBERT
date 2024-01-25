@@ -30,5 +30,11 @@ if __name__ == '__main__':
     model = model.to(device)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# In[]:
-    print(model.bert.encoder.layer[0].attention)
+    print(model)
+    # positiveConcern = initModularLayers(model)
+    # negativeConcern = initModularLayers(model)
+
+    # positiveConcern = initModularLayers(model.layers)
+    # labs = range(0, 16)
+    # for j in labs:
+    #     model
