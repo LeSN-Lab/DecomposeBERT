@@ -1,6 +1,6 @@
 # In[]
 import os
-from utils.model_utils.modelConfig import load_model
+from utils.model_utils.model_config import load_model
 import torch
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

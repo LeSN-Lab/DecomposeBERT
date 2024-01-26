@@ -6,20 +6,20 @@ from tqdm import tqdm
 
 # In[]: Test model
 # Calculate accuracy
-def flat_accuracy(preds, label_indices, label_list):
-    pred_flat = np.argmax(preds, axis=1).flatten()
+def flat_accuracy(pred, label_indices, label_list):
+    pred_flat = np.argmax(pred, axis=1).flatten()
     labels_flat = [label_list[index] for index in label_indices.flatten()]
 
     correct_predictions = 0
-    for pred, true_label in zip(pred_flat, labels_flat):
-        if label_list[pred] == true_label:
+    for _pred, true_label in zip(pred_flat, labels_flat):
+        if label_list[_pred] == true_label:
             correct_predictions += 1
 
     return correct_predictions / len(labels_flat)
 
 
 # In[]
-def evaluate_model(model, testDataloader, device):
+def evaluate_model(model, test_dataloader, device):
     model.eval()
 
     # Initialize accuracy variables
@@ -29,7 +29,7 @@ def evaluate_model(model, testDataloader, device):
     print("Start testing")
 
     # Use the test_dataloader for evaluation
-    for batch in tqdm(testDataloader, desc="Evaluating"):
+    for batch in tqdm(test_dataloader, desc="Evaluating"):
 
         b_input_ids = batch['input_ids'].to(device)
         b_attention_mask = batch['attention_mask'].to(device)
@@ -44,13 +44,13 @@ def evaluate_model(model, testDataloader, device):
 
         logits = logits.detach().cpu().numpy()
         labels_ids = b_labels.cpu().numpy()
-        preds = np.argmax(logits, axis=1)
-        total_correct += np.sum(preds == labels_ids)
+        pred = np.argmax(logits, axis=1)
+        total_correct += np.sum(pred == labels_ids)
         total_count += labels_ids.shape[0]
 
     avg_accuracy = total_correct / total_count
-    avg_loss = total_eval_loss / len(testDataloader)
+    avg_loss = total_eval_loss / len(test_dataloader)
 
-    print(f"Accuracy: {avg_accuracy:.2f}")
-    print(f"Validation Loss: {avg_loss:.2f}")
+    print(f"Accuracy: {avg_accuracy:.4f}")
+    print(f"Validation Loss: {avg_loss:.4f}")
     return avg_accuracy, avg_loss

@@ -4,15 +4,8 @@ import pandas as pd
 import tensorflow_datasets as tfds
 from keras.preprocessing.text import Tokenizer
 from sklearn.model_selection import train_test_split
-import torch
 import numpy as np
-from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
-import re
-from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
-from functools import partial
 
 
 # In[]: Define Dataset class
@@ -84,38 +77,43 @@ def load_sdg(tokenizer, batch_size=32):
 # In[]: Math dataset loader
 def load_math_dataset(tokenizer, batch_size=32, max_length=20):
     # Load the dataset
-    data = tfds.as_numpy(tfds.load('math_qa', batch_size=-1))
+    data, info = tfds.load('math_qa', split=['train', 'test', 'validation'], batch_size=-1, with_info=True)
+    train_data, test_data, validation_data = data
 
     # Initialize lists
-    x_train, y_train, x_test, y_test = [], [], [], []
+    x_train, y_train = [], []
+    x_valid, y_valid = [], []
+    x_test, y_test = [], []
 
     # Define classes
     list_classes = {'gain': 0, 'general': 1, 'geometry': 2, 'other': 3, 'physics': 4, 'probability': 5}
 
     # Process test data
-    for i in range(len(data['test']['category'])):
-        y_test.append(list_classes[data['test']['category'][i].decode('utf-8')])
-        x_test.append(data['test']['Problem'][i].decode('utf-8'))
+    for i in range(len(test_data['category'])):
+        category = test_data['category'][i].numpy().decode('utf-8')
+        y_test.append(list_classes[category])
+        x_test.append(test_data['Problem'][i].numpy().decode('utf-8'))
 
     # Process train data
-    for i in range(len(data['train']['category'])):
-        y_train.append(list_classes[data['train']['category'][i].decode('utf-8')])
-        x_train.append(data['train']['Problem'][i].decode('utf-8'))
+    for i in range(len(train_data['category'])):
+        category = train_data['category'][i].numpy().decode('utf-8')
+        y_train.append(list_classes[category])
+        x_train.append(train_data['Problem'][i].numpy().decode('utf-8'))
 
-    # Convert to numpy arrays
-    y_train = np.asarray(y_train)
-    y_test = np.asarray(y_test)
+    # Process valid data
+    for i in range(len(validation_data['category'])):
+        category = validation_data['category'][i].numpy().decode('utf-8')
+        y_valid.append(list_classes[category])
+        x_valid.append(validation_data['Problem'][i].numpy().decode('utf-8'))
 
-    # Create pandas dataFrames
+    # Convert to pandas DataFrame
     train_df = pd.DataFrame({'Problem': x_train, 'Category': y_train})
     test_df = pd.DataFrame({'Problem': x_test, 'Category': y_test})
+    valid_df = pd.DataFrame({'Problem': x_valid, 'Category': y_valid})
 
-    # Splint train data into train and validation data
-    train_df, valid_df = train_test_split(train_df, random_state=2018, test_size=0.1, stratify=train_df['Category'])
-
+    # Create dataloader
     train_dataloader = load_dataloader(train_df, 'Problem', 'Category', tokenizer, batch_size, max_length)
     valid_dataloader = load_dataloader(valid_df, 'Problem', 'Category', tokenizer, batch_size, max_length)
     test_dataloader = load_dataloader(test_df, 'Problem', 'Category', tokenizer, batch_size, max_length)
 
     return train_dataloader, valid_dataloader, test_dataloader
-
