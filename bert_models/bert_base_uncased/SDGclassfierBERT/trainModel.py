@@ -3,9 +3,9 @@ import os
 import numpy as np
 from torch.optim import AdamW
 from transformers import get_linear_schedule_with_warmup
-from utils.modelConfig import load_model
-from utils.evaluate import evaluate_model
-from utils.load_dataset import load_sdg
+from utils.model_utils.modelConfig import load_model
+from utils.model_utils.evaluate import evaluate_model
+from utils.data_utils.load_dataset import load_sdg
 import torch
 from tqdm import tqdm
 

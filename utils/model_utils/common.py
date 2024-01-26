@@ -1,5 +1,5 @@
 import torch.nn as nn
-from layers import LayerType
+from utils.model_utils.layers import LayerType
 from transformers import BertModel
 from transformers.activations import get_activation
 

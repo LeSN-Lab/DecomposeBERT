@@ -1,6 +1,7 @@
 # In[]: Import Libraries
 import os
 import pandas as pd
+import tensorflow_datasets as tfds
 from sklearn.model_selection import train_test_split
 import torch
 from torch.nn.utils.rnn import pad_sequence
@@ -9,13 +10,9 @@ import re
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-import nltk
-import multiprocessing
 from functools import partial
+from utils.data_utils.nltk_util import text_processing, lemmatization, stem
 
-# nltk.download('punkt')
-# nltk.download('stopwords')
-# nltk.download('wordnet')
 
 
 # In[]: Define Dataset class
@@ -37,23 +34,7 @@ class SDGDataset(Dataset):
         return text, input_ids, attention_mask, label
 
 
-# In[]: Preprocessing
-def prep_text(text, lemmatizer, stop_words):
-    text = text.lower()
-    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
 
-    words = word_tokenize(text)
-    words = [word for word in words if word.isalpha() and word not in stop_words]
-    words = [lemmatizer.lemmatize(word) for word in words]
-
-    return ' '.join(words)
-
-
-def parallel_prep_texts(texts, stop_words, n_jobs=4):
-    lemmatizer = WordNetLemmatizer()
-    with multiprocessing.Pool(n_jobs) as pool:
-        clean_texts = pool.map(partial(prep_text, lemmatizer=lemmatizer, stop_words=stop_words), texts)
-    return clean_texts
 
 
 def collate_fn(batch):
@@ -116,3 +97,92 @@ def load_sdg(tokenizer, test_size=0.3, val_size=0.1, batch_size=32):
     )
 
     return trainDataloader, valDataloader, testDataloader
+
+def load_math_dataset(hot_encode=True, inputTimestep=20):
+    data = \
+        tfds.as_numpy(tfds.load('math_qa',
+                                batch_size=-1))
+    x_train = []
+    y_train = []
+    x_test = []
+    y_test = []
+
+    list_classes = {'gain': 0, 'general': 1, 'geometry': 2, 'other': 3,
+                    'physics': 4, 'probability': 5}
+    for i in range(len(data['test']['category'])):
+        y_test.append(list_classes[data['test']['category'][i].decode('utf-8')])
+        x_test.append(data['test']['Problem'][i].decode('utf-8'))
+    for i in range(len(data['train']['category'])):
+        y_train.append(list_classes[data['train']['category'][i].decode('utf-8')])
+        x_train.append(data['train']['Problem'][i].decode('utf-8'))
+
+    y_train = np.asarray(y_train)
+    y_test = np.asarray(y_test)
+
+    if hot_encode:
+        y_train = to_categorical(y_train)
+        y_test = to_categorical(y_test)
+        num_tags = y_train.shape[1]
+    else:
+        num_tags = 6
+
+    vocab_size = 5000
+    # inputTimestep = 20
+    oov_tok = "<OOV>"
+
+    tokenizer = Tokenizer(num_words=vocab_size, oov_token=oov_tok)
+    tokenizer.fit_on_texts(x_train)
+    tokenizer.fit_on_texts(x_test)
+
+    x_train = tokenizer.texts_to_sequences(x_train)
+    x_train = pad_sequences(x_train, maxlen=inputTimestep, padding="pre", truncating="post")
+
+    x_test = tokenizer.texts_to_sequences(x_test)
+    x_test = pad_sequences(x_test, maxlen=inputTimestep, padding="pre", truncating="post")
+
+    return x_train, x_test, y_train, y_test, vocab_size, inputTimestep, num_tags
+
+def load_math_dataset2(hot_encode=True, inputTimestep=20):
+    data = \
+        tfds.as_numpy(tfds.load('math_qa',
+                                batch_size=-1))
+    x_train = []
+    y_train = []
+    x_test = []
+    y_test = []
+
+    list_classes = {'gain': 0, 'general': 1, 'geometry': 2, 'other': 3,
+                    'physics': 4, 'probability': 5}
+    for i in range(len(data['test']['category'])):
+        y_test.append(list_classes[data['test']['category'][i].decode('utf-8')])
+        x_test.append(data['test']['Problem'][i].decode('utf-8'))
+    for i in range(len(data['train']['category'])):
+        y_train.append(list_classes[data['train']['category'][i].decode('utf-8')])
+        x_train.append(data['train']['Problem'][i].decode('utf-8'))
+
+    y_train = np.asarray(y_train)
+    y_test = np.asarray(y_test)
+
+    if hot_encode:
+        y_train = to_categorical(y_train)
+        y_test = to_categorical(y_test)
+        num_tags = y_train.shape[1]
+    else:
+        num_tags = 6
+
+    vocab_size = 5000
+    # inputTimestep = 20
+    oov_tok = "<OOV>"
+
+    tokenizer = Tokenizer(num_words=vocab_size, oov_token=oov_tok)
+    tokenizer.fit_on_texts(x_train)
+    tokenizer.fit_on_texts(x_test)
+
+    x_train = tokenizer.texts_to_sequences(x_train)
+    x_train = pad_sequences(x_train, maxlen=inputTimestep, padding="pre", truncating="post")
+
+    x_test = tokenizer.texts_to_sequences(x_test)
+    x_test = pad_sequences(x_test, maxlen=inputTimestep, padding="pre", truncating="post")
+
+    return x_train, x_test, y_train, y_test, vocab_size, inputTimestep, num_tags
+
