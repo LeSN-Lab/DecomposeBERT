@@ -33,7 +33,7 @@ def prep_text(text):
 
 # In[]
 import os
-os.chdir('/BERTS/SDGclassfierBERT/MultilingualModelConfig/')
+os.chdir('/bert_models/SDGclassfierBERT/MultilingualModelConfig/')
 model_checkpoint = "./"
 model_id = "sadickam/sdg-classification-MultilingualModelConfig"
 label_list = ['sdg_1', 'sdg_2', 'sdg_3', 'sdg_4', 'sdg_5', 'sdg_6', 'sdg_7', 'sdg_8', 'sdg_9', 'sdg_10', 'sdg_11',
