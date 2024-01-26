@@ -4,6 +4,7 @@ import pandas as pd
 import tensorflow_datasets as tfds
 from sklearn.model_selection import train_test_split
 import torch
+import numpy as np
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
 import re
@@ -11,53 +12,83 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from functools import partial
-from utils.data_utils.nltk_util import text_processing, lemmatization, stem
-
 
 
 # In[]: Define Dataset class
-class SDGDataset(Dataset):
-    def __init__(self, text_data, labels, tokenizer):
-        self.text_data = text_data
+class TextDataset(Dataset):
+    def __init__(self, encodings, labels):
+        self.encodings = encodings
         self.labels = labels
-        self.tokenizer = tokenizer
-
-    def __len__(self):
-        return len(self.text_data)
 
     def __getitem__(self, idx):
-        text = self.text_data[idx]
-        label = self.labels[idx]
-        encoding = self.tokenizer(text, truncation=True, max_length=512)
-        input_ids = encoding['input_ids']
-        attention_mask = encoding['attention_mask']
-        return text, input_ids, attention_mask, label
+        item = {key: torch.tensor(val[idx]) for key, val in self.encodings.items()}
+        item['labels'] = torch.tensor(self.labels[idx])
+        return item
+
+    def __len__(self):
+        return len(self.labels)
 
 
+# In[]: Define one-hot-encoding function
+def one_hot_encode(labels, num_classes):
+    return np.eye(num_classes)[labels]
 
 
+# In[]: Define load datasets for pretrained
+def load_pretrained(df, text_column, label_column, tokenizer, batch_size, _one_hot_encode=True):
+    # split train dataset into train, validation and test sets
+    train_text, temp_text, train_labels, temp_labels = train_test_split(df[text_column], df[label_column],
+                                                                        random_state=2018,
+                                                                        test_size=0.3,
+                                                                        stratify=df[label_column])
 
-def collate_fn(batch):
-    # Separate source and target elements in the batch
-    texts, input_ids, attention_masks, labels = zip(*batch)
+    valid_text, test_text, valid_labels, test_labels = train_test_split(temp_text, temp_labels,
+                                                                    random_state=2018,
+                                                                    test_size=0.5,
+                                                                    stratify=temp_labels)
 
-    input_ids_tensors = [torch.tensor(ids, dtype=torch.long) for ids in input_ids]
-    labels_tensors = torch.tensor(labels, dtype=torch.long)
+    # get a number of classified labels
+    num_classes = len(np.unique(df[label_column]))
 
-    if not input_ids_tensors:  # Check if all sequences are empty
-        return None
+    if _one_hot_encode:
+        train_labels = one_hot_encode(train_labels, num_classes)
+        valid_labels = one_hot_encode(valid_labels, num_classes)
+        test_labels = one_hot_encode(test_labels, num_classes)
 
-    attention_masks_tensors = [torch.tensor(mask, dtype=torch.long) for mask in attention_masks if isinstance(mask, (list, torch.Tensor)) and len(mask) > 0]
+    # tokenize and encode sequences in the training set
+    tokens_train = tokenizer.batch_encode_plus(
+        train_text.tolist(), padding=True, truncation=True, return_tensors='pt', max_length=512,
+    )
+    # tokenize and encode sequences in the validation set
+    tokens_valid = tokenizer.batch_encode_plus(
+        valid_text.tolist(), padding=True, truncation=True, return_tensors='pt', max_length=512,
+    )
+    # tokenize and encode sequences in the test set
+    tokens_test = tokenizer.batch_encode_plus(
+        test_text.tolist(), padding=True, truncation=True, return_tensors='pt', max_length=512,
+    )
 
-    input_ids_padded = pad_sequence(input_ids_tensors, batch_first=True, padding_value=0)
-    attention_masks_padded = pad_sequence(attention_masks_tensors, batch_first=True, padding_value=0)
+    # define datasets
+    train_data = TextDataset(tokens_train, train_labels)
+    valid_data = TextDataset(tokens_valid, valid_labels)
+    test_data = TextDataset(tokens_test, test_labels)
 
-    return texts, input_ids_padded, attention_masks_padded, labels_tensors
+    # define dataloaders for datasets
+    train_dataloader = DataLoader(
+        train_data, sampler=RandomSampler(train_data), batch_size=batch_size
+    )
+    valid_dataloader = DataLoader(
+        valid_data, sampler=SequentialSampler(valid_data), batch_size=batch_size
+    )
+    test_dataloader = DataLoader(
+        test_data, sampler=SequentialSampler(test_data), batch_size=batch_size
+    )
+
+    return train_dataloader, valid_dataloader, test_dataloader
 
 
-# In[]: Load preprocessed data
-
-def load_sdg(tokenizer, test_size=0.3, val_size=0.1, batch_size=32):
+# In[]: Define sdg dataset loader
+def load_sdg(tokenizer, batch_size=32):
     if not os.path.isdir('./data'):
         os.mkdir('./data')
     if not os.path.isdir('./data/SDG'):
@@ -69,35 +100,11 @@ def load_sdg(tokenizer, test_size=0.3, val_size=0.1, batch_size=32):
         df.to_csv('./data/SDG/Dataset.csv')
         print("Download has been completed")
 
-    if not os.path.isfile('./data/SDG/prepData.csv'):
-        df = pd.read_csv('./data/SDG/Dataset.csv')
-        stop_words = set(stopwords.words('english'))
-        print("Preprocessing texts...")
-        df['clean_text'] = parallel_prep_texts(df['text'].tolist(), stop_words, n_jobs=4)
-        df.to_csv('./data/SDG/prepData.csv', index=False)
-        print("Processing texts has been completed")
+    df = pd.read_csv('./data/SDG/Dataset.csv')
+    return load_pretrained(df, 'text', 'sdg', tokenizer, batch_size)
 
-    df = pd.read_csv('./data/SDG/prepData.csv')
 
-    dataset = SDGDataset(df['clean_text'], df['sdg'], tokenizer)
-    train_size = int(len(dataset) * (1 - test_size))
-    test_size = len(dataset) - train_size
-    print(f"train size: {train_size} test size: {test_size}")
-    train_val_dataset, test_dataset = train_test_split(dataset, test_size=test_size, random_state=2021)
-    train_dataset, val_dataset = train_test_split(train_val_dataset, test_size=val_size,
-                                                  random_state=2021)
-    trainDataloader = DataLoader(
-        train_dataset, sampler=RandomSampler(train_dataset), batch_size=batch_size, collate_fn=collate_fn
-    )
-    valDataloader = DataLoader(
-        val_dataset, sampler=SequentialSampler(val_dataset), batch_size=batch_size, collate_fn=collate_fn
-    )
-    testDataloader = DataLoader(
-        test_dataset, sampler=SequentialSampler(test_dataset), batch_size=batch_size, collate_fn=collate_fn
-    )
-
-    return trainDataloader, valDataloader, testDataloader
-
+# In[]: Define math dataset loader
 def load_math_dataset(hot_encode=True, inputTimestep=20):
     data = \
         tfds.as_numpy(tfds.load('math_qa',
