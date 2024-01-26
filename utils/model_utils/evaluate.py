@@ -30,13 +30,10 @@ def evaluate_model(model, testDataloader, device):
 
     # Use the test_dataloader for evaluation
     for batch in tqdm(testDataloader, desc="Evaluating"):
-        if batch is None:
-            continue
 
-        b_texts, b_input_ids, b_attention_mask, b_labels = batch  # Extract only the necessary tensors
-        b_input_ids = b_input_ids.to(device)
-        b_attention_mask = b_attention_mask.to(device)
-        b_labels = b_labels.to(device)
+        b_input_ids = batch['input_ids'].to(device)
+        b_attention_mask = batch['attention_mask'].to(device)
+        b_labels = batch['labels'].to(device)
 
         with torch.no_grad():
             outputs = model(b_input_ids, attention_mask=b_attention_mask, labels=b_labels)
@@ -45,7 +42,7 @@ def evaluate_model(model, testDataloader, device):
         loss = outputs.loss
         total_eval_loss += loss.item()
 
-        logits = logits.detach().cpu().numpy() + 1
+        logits = logits.detach().cpu().numpy()
         labels_ids = b_labels.cpu().numpy()
         preds = np.argmax(logits, axis=1)
         total_correct += np.sum(preds == labels_ids)

@@ -22,30 +22,18 @@ class TextDataset(Dataset):
         self.labels = labels
 
     def __getitem__(self, idx):
-        item = {key: torch.tensor(val[idx]) for key, val in self.encodings.items()}
-        item['labels'] = torch.tensor(self.labels[idx])
+        item = {key: val[idx].clone().detach() for key, val in self.encodings.items()}
+        item['labels'] = self.labels[idx]
         return item
 
     def __len__(self):
         return len(self.labels)
 
 
-# In[]: Define one-hot-encoding function
-def one_hot_encode(labels, num_classes):
-    return np.eye(num_classes)[labels]
-
-
 # In[]: Define load datasets for pretrained
-def load_dataloader(df, text_column, label_column, tokenizer, batch_size, max_length, _one_hot_encode=True, test=False):
+def load_dataloader(df, text_column, label_column, tokenizer, batch_size, max_length, test=False):
     df_x = df[text_column]
-    df_y = df[label_column]
-
-    # Get the number of unique labels
-    num_classes = len(np.unique(df_y))
-
-    if _one_hot_encode:
-        df_y = one_hot_encode(df_y, num_classes)
-
+    df_y = df[label_column].values
     # Tokenize and encode sequences
     tokens_df = tokenizer.batch_encode_plus(
         df_x.tolist(), padding=True, truncation=True, return_tensors='pt', max_length=max_length,
@@ -81,6 +69,7 @@ def load_sdg(tokenizer, batch_size=32):
         print("Download has been completed")
 
     df = pd.read_csv('./data/SDG/Dataset.csv')
+    df['sdg'] = df['sdg'] - 1
     train_df, temp_df = train_test_split(df, random_state=2018, test_size=0.3, stratify=df["sdg"])
 
     valid_df, test_df = train_test_split(temp_df, random_state=2018, test_size=0.5, stratify=temp_df["sdg"])
@@ -93,7 +82,7 @@ def load_sdg(tokenizer, batch_size=32):
 
 
 # In[]: Math dataset loader
-def load_math_dataset(batch_size=32, max_length=20):
+def load_math_dataset(tokenizer, batch_size=32, max_length=20):
     # Load the dataset
     data = tfds.as_numpy(tfds.load('math_qa', batch_size=-1))
 
@@ -124,9 +113,9 @@ def load_math_dataset(batch_size=32, max_length=20):
     # Splint train data into train and validation data
     train_df, valid_df = train_test_split(train_df, random_state=2018, test_size=0.1, stratify=train_df['Category'])
 
-    train_dataloader = load_dataloader(train_df, 'Problem', 'Category', tokenizer, batch_size, 20)
-    valid_dataloader = load_dataloader(valid_df, 'Problem', 'Category', tokenizer, batch_size, 20)
-    test_dataloader = load_dataloader(test_df, 'Problem', 'Category', tokenizer, batch_size, 20)
+    train_dataloader = load_dataloader(train_df, 'Problem', 'Category', tokenizer, batch_size, max_length)
+    valid_dataloader = load_dataloader(valid_df, 'Problem', 'Category', tokenizer, batch_size, max_length)
+    test_dataloader = load_dataloader(test_df, 'Problem', 'Category', tokenizer, batch_size, max_length)
 
     return train_dataloader, valid_dataloader, test_dataloader
 

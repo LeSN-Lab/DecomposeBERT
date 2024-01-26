@@ -14,11 +14,20 @@ def save_model(model_name, save_path):
     return model, tokenizer
 
 
-def load_model(model_name, load_path):
+def load_model(model_name, load_path, checkpoint_path=None):
     if not os.path.isdir(load_path):
         model, tokenizer = save_model(model_name, load_path)
     else:
         model = AutoModelForSequenceClassification.from_pretrained(model_name)
         tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-    return model, tokenizer
+    checkpoint = None
+    if not os.path.isdir('Models'):
+        os.mkdir('Models')
+    if checkpoint_path:
+        model_path = (os.path.join('Models', checkpoint_path))
+        if os.path.isfile(model_path):
+            checkpoint = torch.load(model_path)
+            model.load_state_dict(checkpoint['model_state_dict'])
+
+    return model, tokenizer, checkpoint
