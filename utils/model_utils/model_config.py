@@ -10,7 +10,7 @@ def save_model(model_name, save_path):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model.save_pretrained(save_path)
     tokenizer.save_pretrained(save_path)
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     return model, tokenizer
 
 
@@ -22,12 +22,12 @@ def load_model(model_name, load_path, checkpoint_path=None):
         tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     checkpoint = None
-    if not os.path.isdir('Models'):
-        os.mkdir('Models')
+    if not os.path.isdir("Models"):
+        os.mkdir("Models")
     if checkpoint_path:
-        model_path = (os.path.join('Models', checkpoint_path))
+        model_path = os.path.join("Models", checkpoint_path)
         if os.path.isfile(model_path):
             checkpoint = torch.load(model_path)
-            model.load_state_dict(checkpoint['model_state_dict'])
+            model.load_state_dict(checkpoint["model_state_dict"])
 
     return model, tokenizer, checkpoint

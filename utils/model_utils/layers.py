@@ -9,6 +9,7 @@ from torch.nn.init import normal_
 import enum
 from common import getLayerType
 
+
 class LayerType(enum.Enum):
     Embedding = 1
     Linear = 2
@@ -25,8 +26,8 @@ class LayerType(enum.Enum):
 
 class ActivationType(enum.Enum):
     Tanh = 1
-    Softmax = 2,
-    GeLU = 3,
+    Softmax = (2,)
+    GeLU = (3,)
     ReLU = 4
 
 
@@ -49,7 +50,6 @@ class MLPlayers(nn.Module):
         self.type = getLayerType()
         self.num_node = layer.output_shape[len(layer.output_shape) - 1]
         self.layers = nn.ModuleList(layers)
-
 
     def forward(self, input_feature):
         return self.mlp
