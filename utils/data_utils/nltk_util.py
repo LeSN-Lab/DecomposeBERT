@@ -12,8 +12,8 @@ def saveTFDataset(datasetName, trainSize=100):
                                 batch_size=-1,
                                 as_supervised=True))
 
-    out = open('cleaned_sentiment140.csv', 'w')
-    out.write('Twwet,Sentiment\n')
+    out = open("cleaned_sentiment140.csv", "w")
+    out.write("Twwet,Sentiment\n")
 
     taken = np.array([0] * 5)
     for index, tweet in enumerate(X_train):
@@ -25,9 +25,9 @@ def saveTFDataset(datasetName, trainSize=100):
         taken[y_train[index]] += 1
 
         tweet = lemmatization(text_processing(tweet))
-        tweet = ' '.join(tweet)
-        tweet = tweet.replace('.', ' ')
-        tweet = tweet.replace('\\', '')
-        tweet = tweet.replace('\'', '')
-        tweet = tweet.replace('"', '')
-        out.write('"' + tweet + '",' + str(y_train[index]) + '\n')
+        tweet = " ".join(tweet)
+        tweet = tweet.replace(".", " ")
+        tweet = tweet.replace("\\", "")
+        tweet = tweet.replace("'", "")
+        tweet = tweet.replace('"', "")
+        out.write('"' + tweet + '",' + str(y_train[index]) + "\n")

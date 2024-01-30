@@ -16,7 +16,7 @@ class TextDataset(Dataset):
 
     def __getitem__(self, idx):
         item = {key: val[idx].clone().detach() for key, val in self.encodings.items()}
-        item['labels'] = self.labels[idx]
+        item["labels"] = self.labels[idx]
         return item
 
     def __len__(self):
@@ -50,12 +50,12 @@ def load_dataloader(df, text_column, label_column, tokenizer, batch_size, max_le
 
 # In[]: SDG dataset loader
 def load_sdg(tokenizer, batch_size=32):
-    if not os.path.isdir('./data'):
-        os.mkdir('./data')
-    if not os.path.isdir('./data/SDG'):
-        os.mkdir('./data/SDG')
+    if not os.path.isdir("./data"):
+        os.mkdir("./data")
+    if not os.path.isdir("./data/SDG"):
+        os.mkdir("./data/SDG")
 
-    if not os.path.isfile('./data/SDG/Dataset.csv'):
+    if not os.path.isfile("./data/SDG/Dataset.csv"):
         print("Downloading SDG dataset...")
         df = pd.read_csv('https://zenodo.org/record/5550238/files/osdg-community-dataset-v21-09-30.csv?download=1', sep='\t')
         df.to_csv('./data/SDG/Dataset.csv')
@@ -86,34 +86,47 @@ def load_math_dataset(tokenizer, batch_size=32, max_length=20):
     x_test, y_test = [], []
 
     # Define classes
-    list_classes = {'gain': 0, 'general': 1, 'geometry': 2, 'other': 3, 'physics': 4, 'probability': 5}
+    list_classes = {
+        "gain": 0,
+        "general": 1,
+        "geometry": 2,
+        "other": 3,
+        "physics": 4,
+        "probability": 5,
+    }
 
     # Process test data
-    for i in range(len(test_data['category'])):
-        category = test_data['category'][i].numpy().decode('utf-8')
+    for i in range(len(test_data["category"])):
+        category = test_data["category"][i].numpy().decode("utf-8")
         y_test.append(list_classes[category])
-        x_test.append(test_data['Problem'][i].numpy().decode('utf-8'))
+        x_test.append(test_data["Problem"][i].numpy().decode("utf-8"))
 
     # Process train data
-    for i in range(len(train_data['category'])):
-        category = train_data['category'][i].numpy().decode('utf-8')
+    for i in range(len(train_data["category"])):
+        category = train_data["category"][i].numpy().decode("utf-8")
         y_train.append(list_classes[category])
-        x_train.append(train_data['Problem'][i].numpy().decode('utf-8'))
+        x_train.append(train_data["Problem"][i].numpy().decode("utf-8"))
 
     # Process valid data
-    for i in range(len(validation_data['category'])):
-        category = validation_data['category'][i].numpy().decode('utf-8')
+    for i in range(len(validation_data["category"])):
+        category = validation_data["category"][i].numpy().decode("utf-8")
         y_valid.append(list_classes[category])
-        x_valid.append(validation_data['Problem'][i].numpy().decode('utf-8'))
+        x_valid.append(validation_data["Problem"][i].numpy().decode("utf-8"))
 
     # Convert to pandas DataFrame
-    train_df = pd.DataFrame({'Problem': x_train, 'Category': y_train})
-    test_df = pd.DataFrame({'Problem': x_test, 'Category': y_test})
-    valid_df = pd.DataFrame({'Problem': x_valid, 'Category': y_valid})
+    train_df = pd.DataFrame({"Problem": x_train, "Category": y_train})
+    test_df = pd.DataFrame({"Problem": x_test, "Category": y_test})
+    valid_df = pd.DataFrame({"Problem": x_valid, "Category": y_valid})
 
     # Create dataloader
-    train_dataloader = load_dataloader(train_df, 'Problem', 'Category', tokenizer, batch_size, max_length)
-    valid_dataloader = load_dataloader(valid_df, 'Problem', 'Category', tokenizer, batch_size, max_length)
-    test_dataloader = load_dataloader(test_df, 'Problem', 'Category', tokenizer, batch_size, max_length)
+    train_dataloader = load_dataloader(
+        train_df, "Problem", "Category", tokenizer, batch_size, max_length
+    )
+    valid_dataloader = load_dataloader(
+        valid_df, "Problem", "Category", tokenizer, batch_size, max_length
+    )
+    test_dataloader = load_dataloader(
+        test_df, "Problem", "Category", tokenizer, batch_size, max_length
+    )
 
     return train_dataloader, valid_dataloader, test_dataloader

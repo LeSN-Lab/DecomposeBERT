@@ -25,9 +25,9 @@ def train_model(model_name, load_path, device, epochs=3, batch_size=32, checkpoi
     start_epoch = 0
 
     if checkpoint is not None:
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
-        start_epoch = checkpoint['epoch']
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+        start_epoch = checkpoint["epoch"]
         print(f"Resuming training from epoch {start_epoch}")
 
     best_val_loss = np.inf
@@ -99,30 +99,30 @@ def train_model(model_name, load_path, device, epochs=3, batch_size=32, checkpoi
 
 
 # In[]: Train model Examples
-if __name__ == '__main__':
-    file = os.path.realpath('__file__')
+if __name__ == "__main__":
+    file = os.path.realpath("__file__")
     root = os.path.dirname(file)
     model_name = "sadickam/sdg-classification-bert"
     load_path = os.path.join(root, "SDGclassfierModelConfig")
 
     checkpoint_path = None
-    '''
+    """
     checkpoint_path = ['epoch_1.pt', 'epoch_2.pt', 'epoch_3.pt','epoch_4.pt']
-    '''
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    """
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    '''
+    """
     # Train model
     epochs = 10
     model, tokenizer, checkpoint = load_model(model_name, load_path, checkpoint_path)
     model = model.to(device)
     train_model(model_name, load_path, device, epochs=epochs, checkpoint_path=checkpoint_path, test=True)
-    '''
+    """
 
-    '''
+    """
     # Evaluate model
     model, tokenizer, checkpoint = load_model(model_name, load_path, i)
     model = model.to(device)
     train_dataloader, valid_dataloader, test_dataloader = load_sdg(tokenizer, batch_size=32)
     evaluate_model(model, test_dataloader, device)
-    '''
+    """
