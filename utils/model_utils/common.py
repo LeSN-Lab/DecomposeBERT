@@ -5,24 +5,28 @@ from transformers.activations import get_activation
 
 
 def sigmoid(x):
-    return get_activation('sigmoid')(x)
+    return get_activation("sigmoid")(x)
 
 
 def tanh(x):
-    return get_activation('tanh')(x)
+    return get_activation("tanh")(x)
 
 
 def relu(x):
-    return get_activation('relu')(x)
+    return get_activation("relu")(x)
+
 
 def linear(x):
-    return get_activation('linear')(x)
+    return get_activation("linear")(x)
+
 
 def gelu(x):
-    return get_activation('gelu')(x)
+    return get_activation("gelu")(x)
+
 
 def initModularLayers(layers):
     pass
+
 
 def getLayerType(layer):
     if isinstance(layer, nn.Embedding):

@@ -13,16 +13,21 @@ from torch.utils.data import TensorDataset, DataLoader, RandomSampler, Sequentia
 
 # In[]: Preprocessing
 
+
 def token_embeddings():
-    '''A [CLS] token is added to the input word tokens at the beginning of the first sentence and a [SEP] token is inserted at the end of each sentence.'''
+    """A [CLS] token is added to the input word tokens at the beginning of the first sentence and a [SEP] token is inserted at the end of each sentence."""
     pass
+
 
 def segment_embeddings():
-    '''A marker indicating Sentence A or Sentence B is added to each token. This allows the encoder to distinguish between sentences.'''
+    """A marker indicating Sentence A or Sentence B is added to each token. This allows the encoder to distinguish between sentences."""
     pass
 
+
 def positional_embeddings():
-    '''A positional embedding is added to each token to indicate its position in the sentence.'''
+    """A positional embedding is added to each token to indicate its position in the sentence."""
+
+
 pass
 
 
@@ -34,7 +39,7 @@ def prep_text(text, lemmatizer, stop_words):
     words = [word for word in words if word.isalpha() and word not in stop_words]
     words = [lemmatizer.lemmatize(word) for word in words]
 
-    return ' '.join(words)
+    return " ".join(words)
 
 
 def parallel_prep_texts(texts, stop_words, n_jobs=4):
@@ -51,18 +56,20 @@ def text_processing(tweet, decode=True):
     clean_tweet = re.sub(r'http\S+', '', tweet)
     # remove punctuation marks
     punctuation = '!"#$%&()*+-/:;<=>?@[\\]^_`{|}~'
-    clean_tweet = ''.join(ch for ch in clean_tweet if ch not in set(punctuation))
+    clean_tweet = "".join(ch for ch in clean_tweet if ch not in set(punctuation))
     # convert text to lowercase
     clean_tweet = clean_tweet.lower()
     # remove numbers
     clean_tweet = re.sub('\d', ' ', clean_tweet)
     # remove whitespaces
-    clean_tweet = ' '.join(clean_tweet.split())
+    clean_tweet = " ".join(clean_tweet.split())
     clean_tweet = nltk.word_tokenize(clean_tweet)
     return clean_tweet
+
+
 def lemmatization(tweet):
     # python -m spacy download en
-    nlp = spacy.load('en_core_web_sm', disable=['parser', 'ner'])
+    nlp = spacy.load("en_core_web_sm", disable=["parser", "ner"])
 
     # lemma_tweet = []
     # for i in tweets:
@@ -72,7 +79,7 @@ def lemmatization(tweet):
 
 
 def stem(tweet):
-    tokenizer = nltk.RegexpTokenizer('[a-zA-Z0-9@]+')
+    tokenizer = nltk.RegexpTokenizer("[a-zA-Z0-9@]+")
     stemmer = nltk.LancasterStemmer()
 
     return [stemmer.stem(token) if not token.startswith('@') else token
