@@ -30,14 +30,13 @@ def evaluate_model(model, test_dataloader, device):
 
     # Use the test_dataloader for evaluation
     for batch in tqdm(test_dataloader, desc="Evaluating"):
-        b_input_ids = batch["input_ids"].to(device)
-        b_attention_mask = batch["attention_mask"].to(device)
-        b_labels = batch["labels"].to(device)
+
+        b_input_ids = batch['input_ids'].to(device)
+        b_attention_mask = batch['attention_mask'].to(device)
+        b_labels = batch['labels'].to(device)
 
         with torch.no_grad():
-            outputs = model(
-                b_input_ids, attention_mask=b_attention_mask, labels=b_labels
-            )
+            outputs = model(b_input_ids, attention_mask=b_attention_mask, labels=b_labels)
 
         logits = outputs.logits
         loss = outputs.loss
