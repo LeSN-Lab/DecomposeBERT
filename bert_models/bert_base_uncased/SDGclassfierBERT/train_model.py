@@ -14,6 +14,7 @@ from tqdm import tqdm
 def train_model(model_name, load_path, device, epochs=3, batch_size=32, checkpoint_path=None, test=True):
     model, tokenizer, checkpoint = load_model(model_name, load_path, checkpoint_path)
     model = model.to(device)
+    best_model_path = None
 
     # In[] : Load model
     train_dataloader, valid_dataloader, test_dataloader = load_sdg(tokenizer, batch_size=batch_size)
@@ -32,7 +33,7 @@ def train_model(model_name, load_path, device, epochs=3, batch_size=32, checkpoi
 
     best_val_loss = np.inf
     no_improve_epochs = 0
-    early_stopping_threshold = 3
+    early_stopping_threshold = 5
 
     # In[]: Training loop
     try:
@@ -69,30 +70,35 @@ def train_model(model_name, load_path, device, epochs=3, batch_size=32, checkpoi
                 total_loss += loss.item()
                 avg_loss = total_loss / (len(train_dataloader))
                 progress_bar.set_description(f"Epoch {epoch + 1}/{epochs} - Loss: {avg_loss:.4f}")
+
             # In[]: Validation
             val_accuracy, val_loss = evaluate_model(model, valid_dataloader, device)
             print(f"Validation Accuracy: {val_accuracy:.4f}, Validation Loss: {val_loss:.4f}")
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
-                no_improve_epochs = 0
-            else:
-                no_improve_epochs += 1
-                if no_improve_epochs >= early_stopping_threshold:
-                    print("Early stopping triggered.")
-                    flag = False
-                    break
 
-            # In[]: Save model
-            if flag:
+                # Save model
+                best_model_path = os.path.join('Models', f"epoch_{epoch + 1}.pt")
                 torch.save({
                     "epoch": epoch + 1,
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "scheduler_state_dict": scheduler.state_dict(),
-                }, os.path.join('Models', f"epoch_{epoch + 1}.pt"))
+                }, best_model_path)
 
-        if test:
+                no_improve_epochs = 0
+            else:
+                no_improve_epochs += 1
+                if no_improve_epochs >= early_stopping_threshold:
+                    print("Early stopping triggered.")
+                    break
+
+        if test and best_model_path:
+            print(f"Loading best model from {best_model_path} for testing")
+            checkpoint = torch.load(best_model_path)
+            model.load_state_dict(checkpoint["model_state_dict"])
             evaluate_model(model, test_dataloader, device)
+
     except Exception as e:
         print(f"An error occurred: {e}")
     return model

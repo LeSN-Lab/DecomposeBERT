@@ -33,7 +33,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class SimpleBert(nn.Module):5467321
+class SimpleBert(nn.Module):
     def __init__(self, vocab_size, hidden_size, num_attention_heads, num_hidden_layers, num_classes):
         super(SimpleBert, self).__init__()
 

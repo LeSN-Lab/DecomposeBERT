@@ -10,6 +10,7 @@ Multi-head attention
 Scaled dot product attention
 Position-wise feed-forward network
 BERT (assembling all the components)"""
+
 class SingleHeadBertModel(nn.Module):
     def __init__(self, original_bert_model):
         super().__init__()
