@@ -1,86 +1,45 @@
-# In[]: Import libraries
-import numpy as np
-import pandas as pd
-import torch
-from sklearn.model_selection import train_test_split
-from torch.utils.data import Dataset, DataLoader
-
-from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
+import re
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords
+from spacy.lang.en import English
+import multiprocessing as mp
 
 
+lemmatizer = WordNetLemmatizer()
+stop_words = set(stopwords.words("english"))
+nlp = English()
 
 
+def clean_text(text):
+  """Cleans text by removing special characters, URLs, email addresses, and extra whitespace."""
+  text = re.sub(r'\s+', ' ', text).strip()
+  text = re.sub(r'<.*?>', '', text)
+  text = re.sub(r'http\S+', '', text)
+  text = re.sub(r'\S+@\S+\s?', '', text)
+  return text
 
-# In[]: Preprocessing
+def lemmatization(sentences):
+  """Lemmatizes words in the sentences."""
+  lemmatized_sentences = []
+  with mp.Pool() as pool:
+    lemmatized_sentences = pool.map(lemmatizer, sentences)
+  return lemmatized_sentences
 
-
-def token_embeddings():
-    """A [CLS] token is added to the input word tokens at the beginning of the first sentence and a [SEP] token is inserted at the end of each sentence."""
-    pass
-
-
-def segment_embeddings():
-    """A marker indicating Sentence A or Sentence B is added to each token. This allows the encoder to distinguish between sentences."""
-    pass
-
-
-def positional_embeddings():
-    """A positional embedding is added to each token to indicate its position in the sentence."""
-
-
-pass
-
-
-def prep_text(text, lemmatizer, stop_words):
-    text = text.lower()
-    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
-
-    words = word_tokenize(text)
-    words = [word for word in words if word.isalpha() and word not in stop_words]
-    words = [lemmatizer.lemmatize(word) for word in words]
-
-    return " ".join(words)
+def remove_stopwords(sentences):
+  """Removes stopwords from the sentences."""
+  filtered_sentences = []
+  for sentence in sentences:
+    filtered_words = [token for token in nlp(sentence) if token.is_stop == False]
+    filtered_sentence = ' '.join(filtered_words)
+    filtered_sentences.append(filtered_sentence)
+  return filtered_sentences
 
 
-def parallel_prep_texts(texts, stop_words, n_jobs=4):
-    lemmatizer = WordNetLemmatizer()
-    with multiprocessing.Pool(n_jobs) as pool:
-        clean_texts = pool.map(partial(prep_text, lemmatizer=lemmatizer, stop_words=stop_words), texts)
-    return clean_texts
+def pre_processing(text):
+  """Preprocesses text by cleaning, lemmatizing, and removing stopwords."""
+  sentences = clean_text(text)
+  lemmatized_sentences = lemmatization(sentences)
+  processed_sentences = remove_stopwords(lemmatized_sentences)
 
-
-def text_processing(tweet, decode=True):
-    # remove https links
-    if decode:
-        tweet = tweet.decode('utf-8')
-    clean_tweet = re.sub(r'http\S+', '', tweet)
-    # remove punctuation marks
-    punctuation = '!"#$%&()*+-/:;<=>?@[\\]^_`{|}~'
-    clean_tweet = "".join(ch for ch in clean_tweet if ch not in set(punctuation))
-    # convert text to lowercase
-    clean_tweet = clean_tweet.lower()
-    # remove numbers
-    clean_tweet = re.sub('\d', ' ', clean_tweet)
-    # remove whitespaces
-    clean_tweet = " ".join(clean_tweet.split())
-    clean_tweet = nltk.word_tokenize(clean_tweet)
-    return clean_tweet
-
-
-def lemmatization(tweet):
-    # python -m spacy download en
-    nlp = spacy.load("en_core_web_sm", disable=["parser", "ner"])
-
-    # lemma_tweet = []
-    # for i in tweets:
-    #     t = [token.lemma_ for token in nlp(i)]
-    #     lemma_tweet.append(' '.join(t))
-    return [token.lemma_.lower() for token in nlp(tweet)]
-
-
-def stem(tweet):
-    tokenizer = nltk.RegexpTokenizer("[a-zA-Z0-9@]+")
-    stemmer = nltk.LancasterStemmer()
-
-    return [stemmer.stem(token) if not token.startswith('@') else token
-            for token in tokenizer.tokenize(tweet)]
+  unique_words = set(" ".join(processed_sentences).split())
+  return unique_words

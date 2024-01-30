@@ -31,3 +31,4 @@ def load_model(model_name, load_path, checkpoint_path=None):
             model.load_state_dict(checkpoint["model_state_dict"])
 
     return model, tokenizer, checkpoint
+

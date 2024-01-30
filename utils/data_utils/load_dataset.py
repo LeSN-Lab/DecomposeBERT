@@ -2,10 +2,10 @@
 import os
 import pandas as pd
 import tensorflow_datasets as tfds
-from keras.preprocessing.text import Tokenizer
 from sklearn.model_selection import train_test_split
-import numpy as np
+from transformers import BertTokenizer
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
+from text_preprocessing import pre_processing
 
 
 # In[]: Define Dataset class
@@ -25,7 +25,7 @@ class TextDataset(Dataset):
 
 # In[]: Define load datasets for pretrained
 def load_dataloader(df, text_column, label_column, tokenizer, batch_size, max_length, test=False):
-    df_x = df[text_column]
+    df_x = df[text_column].apply(lambda x: pre_processing(x))
     df_y = df[label_column].values
     # Tokenize and encode sequences
     tokens_df = tokenizer.batch_encode_plus(
@@ -49,7 +49,7 @@ def load_dataloader(df, text_column, label_column, tokenizer, batch_size, max_le
 
 
 # In[]: SDG dataset loader
-def load_sdg(tokenizer, batch_size=32):
+def load_sdg(tokenizer=None, batch_size=32):
     if not os.path.isdir("./data"):
         os.mkdir("./data")
     if not os.path.isdir("./data/SDG"):
@@ -57,7 +57,7 @@ def load_sdg(tokenizer, batch_size=32):
 
     if not os.path.isfile("./data/SDG/Dataset.csv"):
         print("Downloading SDG dataset...")
-        df = pd.read_csv('https://zenodo.org/record/5550238/files/osdg-community-dataset-v21-09-30.csv?download=1', sep='\t')
+        df = pd.read_csv('https://zenodo.org/record/10579179/files/osdg-community-data-v2024-01-01.csv?download=1', sep='\t')
         df.to_csv('./data/SDG/Dataset.csv')
         print("Download has been completed")
 
@@ -66,10 +66,12 @@ def load_sdg(tokenizer, batch_size=32):
     train_df, temp_df = train_test_split(df, random_state=2018, test_size=0.3, stratify=df["sdg"])
 
     valid_df, test_df = train_test_split(temp_df, random_state=2018, test_size=0.5, stratify=temp_df["sdg"])
-
-    train_dataloader = load_dataloader(train_df, 'text', 'sdg', tokenizer, batch_size, 512)
-    valid_dataloader = load_dataloader(valid_df, 'text', 'sdg', tokenizer, batch_size, 512)
-    test_dataloader = load_dataloader(test_df, 'text', 'sdg', tokenizer, batch_size, 512)
+    if tokenizer is not None:
+        train_dataloader = load_dataloader(train_df, 'text', 'sdg', tokenizer, batch_size, 512)
+        valid_dataloader = load_dataloader(valid_df, 'text', 'sdg', tokenizer, batch_size, 512)
+        test_dataloader = load_dataloader(test_df, 'text', 'sdg', tokenizer, batch_size, 512)
+    else:
+        tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
 
     return train_dataloader, valid_dataloader, test_dataloader
 

@@ -33,11 +33,10 @@ def train_model(model_name, load_path, device, epochs=3, batch_size=32, checkpoi
 
     best_val_loss = np.inf
     no_improve_epochs = 0
-    early_stopping_threshold = 5
+    early_stopping_threshold = 3
 
     # In[]: Training loop
     try:
-        flag = True
         for epoch in range(start_epoch, epochs):
             model.train()
             total_loss = 0
