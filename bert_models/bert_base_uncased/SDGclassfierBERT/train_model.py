@@ -3,7 +3,7 @@ import os
 import numpy as np
 from torch.optim import AdamW
 from transformers import get_linear_schedule_with_warmup
-from utils.model_utils.model_config import load_model
+from utils.model_utils.load_model import load_model
 from utils.model_utils.evaluate import evaluate_model
 from utils.data_utils.load_dataset import load_sdg
 import torch
