@@ -1,45 +1,27 @@
 import re
-from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
-from spacy.lang.en import English
 import multiprocessing as mp
+import spacy
 
-
-lemmatizer = WordNetLemmatizer()
+# Initialize lemmatizer and stop words
 stop_words = set(stopwords.words("english"))
-nlp = English()
+pool = mp.Pool(mp.cpu_count())
+nlp = spacy.load("en_core_web_sm")
+
+from spacy.lang.en.stop_words import STOP_WORDS as spacy_stop_words
 
 
 def clean_text(text):
-  """Cleans text by removing special characters, URLs, email addresses, and extra whitespace."""
   text = re.sub(r'\s+', ' ', text).strip()
   text = re.sub(r'<.*?>', '', text)
   text = re.sub(r'http\S+', '', text)
   text = re.sub(r'\S+@\S+\s?', '', text)
-  return text
-
-def lemmatization(sentences):
-  """Lemmatizes words in the sentences."""
-  lemmatized_sentences = []
-  with mp.Pool() as pool:
-    lemmatized_sentences = pool.map(lemmatizer, sentences)
-  return lemmatized_sentences
-
-def remove_stopwords(sentences):
-  """Removes stopwords from the sentences."""
-  filtered_sentences = []
-  for sentence in sentences:
-    filtered_words = [token for token in nlp(sentence) if token.is_stop == False]
-    filtered_sentence = ' '.join(filtered_words)
-    filtered_sentences.append(filtered_sentence)
-  return filtered_sentences
+  return text.lower()
 
 
 def pre_processing(text):
-  """Preprocesses text by cleaning, lemmatizing, and removing stopwords."""
-  sentences = clean_text(text)
-  lemmatized_sentences = lemmatization(sentences)
-  processed_sentences = remove_stopwords(lemmatized_sentences)
-
-  unique_words = set(" ".join(processed_sentences).split())
-  return unique_words
+  # Clean the text first
+  cleaned_text = clean_text(text)
+  doc = nlp(cleaned_text)
+  lemmatized_text = ' '.join([token.lemma_ for token in doc if token.lemma_ not in spacy_stop_words])
+  return lemmatized_text

@@ -116,13 +116,13 @@ if __name__ == "__main__":
     """
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    """
+
     # Train model
-    epochs = 10
+    epochs = 50
     model, tokenizer, checkpoint = load_model(model_name, load_path, checkpoint_path)
     model = model.to(device)
-    train_model(model_name, load_path, device, epochs=epochs, checkpoint_path=checkpoint_path, test=True)
-    """
+    train_model(model_name, load_path, device, epochs=epochs, batch_size=32, checkpoint_path=checkpoint_path, test=True)
+
 
     """
     # Evaluate model

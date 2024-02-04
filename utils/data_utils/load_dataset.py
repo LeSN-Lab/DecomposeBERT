@@ -5,7 +5,8 @@ import tensorflow_datasets as tfds
 from sklearn.model_selection import train_test_split
 from transformers import BertTokenizer
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
-from text_preprocessing import pre_processing
+from utils.data_utils.text_preprocessing import pre_processing
+from tqdm.auto import tqdm
 
 
 # In[]: Define Dataset class
@@ -25,7 +26,9 @@ class TextDataset(Dataset):
 
 # In[]: Define load datasets for pretrained
 def load_dataloader(df, text_column, label_column, tokenizer, batch_size, max_length, test=False):
+    tqdm.pandas(desc="Preprocessing texts")
     df_x = df[text_column].apply(lambda x: pre_processing(x))
+    print("Preprocessing has been done.")
     df_y = df[label_column].values
     # Tokenize and encode sequences
     tokens_df = tokenizer.batch_encode_plus(

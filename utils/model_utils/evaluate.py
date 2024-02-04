@@ -26,7 +26,7 @@ def evaluate_model(model, test_dataloader, device):
     total_correct = 0
     total_count = 0
     total_eval_loss = 0
-    print("Start testing")
+    print("\nStart testing")
 
     # Use the test_dataloader for evaluation
     for batch in tqdm(test_dataloader, desc="Evaluating"):
