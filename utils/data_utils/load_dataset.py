@@ -52,7 +52,7 @@ def load_dataloader(df, text_column, label_column, tokenizer, batch_size, max_le
 
 
 # In[]: SDG dataset loader
-def load_sdg(tokenizer=None, batch_size=32):
+def load_sdg(tokenizer=None, batch_size=32, test_size=0.3):
     if not os.path.isdir("./data"):
         os.mkdir("./data")
     if not os.path.isdir("./data/SDG"):
@@ -60,21 +60,39 @@ def load_sdg(tokenizer=None, batch_size=32):
 
     if not os.path.isfile("./data/SDG/Dataset.csv"):
         print("Downloading SDG dataset...")
-        df = pd.read_csv('https://zenodo.org/record/10579179/files/osdg-community-data-v2024-01-01.csv?download=1', sep='\t')
-        df.to_csv('./data/SDG/Dataset.csv')
-        print("Download has been completed")
+        try:
+            df = pd.read_csv(
+                "https://zenodo.org/record/10579179/files/osdg-community-data-v2024-01-01.csv?download=1",
+                sep="\t",
+            )
+            df.to_csv("./data/SDG/Dataset.csv")
+            print("Download has been completed")
+        except:
+            print("Failed to download")
 
-    df = pd.read_csv('./data/SDG/Dataset.csv')
-    df['sdg'] = df['sdg'] - 1
-    train_df, temp_df = train_test_split(df, random_state=2018, test_size=0.3, stratify=df["sdg"])
+    df = pd.read_csv("./data/SDG/Dataset.csv")
+    df["sdg"] = df["sdg"] - 1
+    train_df, temp_df = train_test_split(
+        df, random_state=2018, test_size=test_size, stratify=df["sdg"]
+    )
 
-    valid_df, test_df = train_test_split(temp_df, random_state=2018, test_size=0.5, stratify=temp_df["sdg"])
+    valid_df, test_df = train_test_split(
+        temp_df, random_state=2018, test_size=0.5, stratify=temp_df["sdg"]
+    )
     if tokenizer is not None:
-        train_dataloader = load_dataloader(train_df, 'text', 'sdg', tokenizer, batch_size, 512)
-        valid_dataloader = load_dataloader(valid_df, 'text', 'sdg', tokenizer, batch_size, 512)
-        test_dataloader = load_dataloader(test_df, 'text', 'sdg', tokenizer, batch_size, 512)
+        train_dataloader = load_dataloader(
+            train_df, "text", "sdg", tokenizer, batch_size, 512
+        )
+        valid_dataloader = load_dataloader(
+            valid_df, "text", "sdg", tokenizer, batch_size, 512
+        )
+        test_dataloader = load_dataloader(
+            test_df, "text", "sdg", tokenizer, batch_size, 512
+        )
     else:
-        tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+        tokenizer = BertTokenizer.from_pretrained(
+            "bert-base-uncased", do_lower_case=True
+        )
 
     return train_dataloader, valid_dataloader, test_dataloader
 
@@ -82,7 +100,9 @@ def load_sdg(tokenizer=None, batch_size=32):
 # In[]: Math dataset loader
 def load_math_dataset(tokenizer, batch_size=32, max_length=20):
     # Load the dataset
-    data, info = tfds.load('math_qa', split=['train', 'test', 'validation'], batch_size=-1, with_info=True)
+    data, info = tfds.load(
+        "math_qa", split=["train", "test", "validation"], batch_size=-1, with_info=True
+    )
     train_data, test_data, validation_data = data
 
     # Initialize lists
