@@ -4,16 +4,20 @@ from nltk.corpus import stopwords
 import multiprocessing as mp
 import spacy
 
+
 # Initialize Spacy and stop words
 nlp = spacy.load("en_core_web_sm", disable=["parser", "ner"])
 stop_words = set(stopwords.words("english"))
 
 
 def clean_text(text):
+    text = text.replace('[^a-zA-Z ]', '')
+    text = text.replace('^ +', "")
     text = re.sub(r"\s+", " ", text).strip()  # Remove extra spaces
     text = re.sub(r"<.*?>", "", text)  # Remove HTML tags
     text = re.sub(r"http\S+", "", text)  # Remove URLs
     text = re.sub(r"\S+@\S+\s?", "", text)  # Remove emails
+
     return text.lower()
 
 

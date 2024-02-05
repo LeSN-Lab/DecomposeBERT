@@ -19,8 +19,11 @@ def train_model(
     batch_size=32,
     checkpoint_path=None,
     test=True,
+    num_labels=None,
 ):
-    model, tokenizer, checkpoint = load_model(model_name, load_path, checkpoint_path)
+    model, tokenizer, checkpoint = load_model(
+        model_name, load_path, checkpoint_path, num_labels
+    )
     model = model.to(device)
     best_model_path = None
 
@@ -127,39 +130,3 @@ def train_model(
     except Exception as e:
         print(f"An error occurred: {e}")
     return model
-
-
-# In[]: Train model Examples
-if __name__ == "__main__":
-    file = os.path.realpath("__file__")
-    root = os.path.dirname(file)
-    model_name = "sadickam/sdg-classification-bert"
-    load_path = os.path.join(root, "SDGclassfierModelConfig")
-
-    checkpoint_path = None
-    """
-    checkpoint_path = ['epoch_1.pt', 'epoch_2.pt', 'epoch_3.pt','epoch_4.pt']
-    """
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-    # Train model
-    epochs = 50
-    model, tokenizer, checkpoint = load_model(model_name, load_path, checkpoint_path)
-    model = model.to(device)
-    train_model(
-        model_name,
-        load_path,
-        device,
-        epochs=epochs,
-        batch_size=32,
-        checkpoint_path=checkpoint_path,
-        test=True,
-    )
-
-    """
-    # Evaluate model
-    model, tokenizer, checkpoint = load_model(model_name, load_path, i)
-    model = model.to(device)
-    train_dataloader, valid_dataloader, test_dataloader = load_sdg(tokenizer, batch_size=32)
-    evaluate_model(model, test_dataloader, device)
-    """

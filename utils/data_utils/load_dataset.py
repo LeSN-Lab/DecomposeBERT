@@ -7,6 +7,7 @@ from transformers import BertTokenizer
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
 from utils.data_utils.text_preprocessing import preprocess_texts
 from tqdm.auto import tqdm
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 # In[]: Define Dataset class
@@ -25,34 +26,43 @@ class TextDataset(Dataset):
 
 
 # In[]: Define load datasets for pretrained
-def load_dataloader(df, text_column, label_column, tokenizer, batch_size, max_length, test=False):
+def load_dataloader(
+    df, text_column, label_column, tokenizer, batch_size, max_length, test=False
+):
     tqdm.pandas(desc="Preprocessing texts")
-    df_x = df[text_column].apply(lambda x: preprocess_texts(x))
+    text_list = df[text_column].to_list()
+    preprocessed_texts = preprocess_texts(text_list)
+
     print("Preprocessing has been done.")
-    df_y = df[label_column].values
+
     # Tokenize and encode sequences
     tokens_df = tokenizer.batch_encode_plus(
-        df_x.tolist(), padding=True, truncation=True, return_tensors='pt', max_length=max_length,
+        preprocessed_texts,
+        padding=True,
+        truncation=True,
+        return_tensors="pt",
+        max_length=max_length,
     )
+
+    # Extract labels
+    df_y = df[label_column].values
 
     # Create the TextDataset
     data = TextDataset(tokens_df, df_y)
 
     # Define the dataloader
-    if test:
-        dataloader = DataLoader(
-            data, sampler=SequentialSampler(data), batch_size=batch_size
-        )
-    else:
-        dataloader = DataLoader(
-            data, sampler=RandomSampler(data), batch_size=batch_size
-        )
+    dataloader = DataLoader(
+        data,
+        batch_size=batch_size,
+        sampler=SequentialSampler(data) if test else RandomSampler(data),
+    )
 
     return dataloader
 
 
 # In[]: SDG dataset loader
 def load_sdg(tokenizer=None, batch_size=32, test_size=0.3):
+    print("Loading dataset")
     if not os.path.isdir("./data"):
         os.mkdir("./data")
     if not os.path.isdir("./data/SDG"):
@@ -81,13 +91,13 @@ def load_sdg(tokenizer=None, batch_size=32, test_size=0.3):
     )
     if tokenizer is not None:
         train_dataloader = load_dataloader(
-            train_df, "text", "sdg", tokenizer, batch_size, 512
+            train_df, "text", "sdg", tokenizer, batch_size, 128
         )
         valid_dataloader = load_dataloader(
-            valid_df, "text", "sdg", tokenizer, batch_size, 512
+            valid_df, "text", "sdg", tokenizer, batch_size, 128
         )
         test_dataloader = load_dataloader(
-            test_df, "text", "sdg", tokenizer, batch_size, 512
+            test_df, "text", "sdg", tokenizer, batch_size, 128
         )
     else:
         tokenizer = BertTokenizer.from_pretrained(
@@ -155,3 +165,4 @@ def load_math_dataset(tokenizer, batch_size=32, max_length=20):
     )
 
     return train_dataloader, valid_dataloader, test_dataloader
+
