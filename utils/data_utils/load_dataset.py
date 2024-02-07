@@ -91,13 +91,13 @@ def load_sdg(tokenizer=None, batch_size=32, test_size=0.3):
     )
     if tokenizer is not None:
         train_dataloader = load_dataloader(
-            train_df, "text", "sdg", tokenizer, batch_size, 128
+            train_df, "text", "sdg", tokenizer, batch_size, 256
         )
         valid_dataloader = load_dataloader(
-            valid_df, "text", "sdg", tokenizer, batch_size, 128
+            valid_df, "text", "sdg", tokenizer, batch_size, 256
         )
         test_dataloader = load_dataloader(
-            test_df, "text", "sdg", tokenizer, batch_size, 128
+            test_df, "text", "sdg", tokenizer, batch_size, 256
         )
     else:
         tokenizer = BertTokenizer.from_pretrained(

@@ -1,5 +1,6 @@
 import enum
 
+
 class LayerType(enum.Enum):
     # token embedding
     word_embeddings = 1
@@ -17,11 +18,19 @@ class LayerType(enum.Enum):
     dense = 9
     activation = 10
     intermediate_act_fn = 11
+    NotRecognize = 12
+
 
 class ActivationType(enum.Enum):
     Tanh = 1
     GeLU = 2
 
+
 def getLayerType(layer):
     layer_name = type(layer).__name__
     return layer_name
+
+
+def getActivationType(layer):
+    pass
+

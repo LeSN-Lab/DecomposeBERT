@@ -29,6 +29,7 @@ if __name__ == "__main__":
         batch_size=16,
         checkpoint_path=checkpoint_path,
         test=True,
+        num_labels=16
     )
 
     """

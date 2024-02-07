@@ -6,7 +6,6 @@ tokenizer.json
 tokenizer_config.json
 vocab.txt
 Dataset.csv
-prepData.csv
 .ipynb_checkpoints
 pytorch_model.bin
 .idea/*
