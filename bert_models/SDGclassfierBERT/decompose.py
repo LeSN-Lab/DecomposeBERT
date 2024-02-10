@@ -3,7 +3,7 @@ if __name__ == '__main__':
     import torch
     from utils.model_utils.load_model import load_model
     from utils.model_utils.layers import initEncoderLayers, initEmbeddingLayers
-    from utils.common import getLayerType
+    from utils.model_utils.constants import getLayerType
 
     file = os.path.realpath("__file__")
     root = os.path.dirname(file)
