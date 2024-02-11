@@ -2,28 +2,20 @@ import enum
 
 
 class LayerType(enum.Enum):
-    # token embedding
-    word_embeddings = 1
-    # position embedding
-    position_embeddings = 2
-    # segment embedding
-    token_type_embeddings = 3
-    # LyayerNorm
-    LayerNorm = 4
-
-    Dropout = 5
-    query = 6
-    key = 7
-    value = 8
-    dense = 9
-    activation = 10
-    intermediate_act_fn = 11
-    NotRecognize = 12
+    Dense = 1
+    Embedding = 2
+    LayerNorm = 3
+    PositionalEncoding = 4
+    MultiHeadAttention = 5
+    PositionwiseFeedforward = 6
+    NotRecognize = 7
 
 
 class ActivationType(enum.Enum):
+    Linear = 0
     Tanh = 1
     GeLU = 2
+    Softmax = 3
 
 
 def getLayerType(layer):

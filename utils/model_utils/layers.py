@@ -38,7 +38,10 @@ class ModularLayer(nn.Moudle):
             self.layer = nn.Linear()
         elif self.type == LayerType.Embedding:
             self.layer = nn.Embedding()
+        elif self.type == LayerType.LayerNorm:
+            self.layer = nn.LayerNorm()
             pass
+
     def forward(self, x):
         x = self.alyer(x)
         if self.activation:
@@ -54,6 +57,14 @@ class ModularLayer(nn.Moudle):
         
     def get_weight(self):
         weights = {}
+        for name, param in self.named_parameters():
+            weights[name] = param.data
+        return weights
+    
+    def set_weight(self, weights):
+        for name, param in self.named_parameters():
+            if name in weights:
+                param.data = weights[name]
 
 
 class PositionalEncoding(nn.Module):
@@ -124,7 +135,3 @@ class PositionwiseFeedforward(nn.Module):
     
 
     
-
-
-
-# training: Masked Language Model or Next Sentence Prediction
