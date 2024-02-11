@@ -2,28 +2,28 @@
 import os
 import torch
 from utils.model_utils.train_model import train_model
+from utils.paths import p
 
 
 # In[]: Train model Examples
 if __name__ == "__main__":
-    file = os.path.realpath("__file__")
-    root = os.path.dirname(file)
+    model_path = "SDGclassfier"
     model_name = "sadickam/sdg-classification-bert"
-    load_path = os.path.join(root, "SDGclassfierModelConfig")
+    p.set(model_path=model_path, model_name=model_name)
+
+    load_path = p.get_model_path()
+    train_path = p.get_train_path()
     checkpoint_path = None
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    """
-    checkpoint_path = ['epoch_1.pt', 'epoch_2.pt', 'epoch_3.pt','epoch_4.pt']
-    model, tokenizer, checkpoint = load_model(model_name, load_path, checkpoint_path)
-    model = model.to(device)
-    """
-
+    # """
+    # checkpoint_path = ['epoch_1.pt', 'epoch_2.pt', 'epoch_3.pt','epoch_4.pt']
+    # model, tokenizer, checkpoint = load_model(model_name, load_path, checkpoint_path)
+    # model = model.to(device)
+    # """
     # Train model
     epochs = 50
 
     train_model(
-        model_name,
-        load_path,
         device,
         epochs=epochs,
         batch_size=32,

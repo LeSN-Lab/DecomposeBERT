@@ -7,6 +7,7 @@ from transformers import BertTokenizer
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
 from utils.data_utils.text_preprocessing import preprocess_texts
 from tqdm.auto import tqdm
+from utils.paths import p
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
@@ -63,24 +64,21 @@ def load_dataloader(
 # In[]: SDG dataset loader
 def load_sdg(tokenizer=None, batch_size=32, test_size=0.3):
     print("Loading dataset")
-    if not os.path.isdir("./data"):
-        os.mkdir("./data")
-    if not os.path.isdir("./data/SDG"):
-        os.mkdir("./data/SDG")
-
-    if not os.path.isfile("./data/SDG/Dataset.csv"):
+    data_dir = p.get_data_dir()
+    file_path = os.path.join(data_dir, "Dataset.csv")
+    if not p.check_dir(data_dir):
         print("Downloading SDG dataset...")
         try:
             df = pd.read_csv(
                 "https://zenodo.org/record/10579179/files/osdg-community-data-v2024-01-01.csv?download=1",
                 sep="\t",
             )
-            df.to_csv("./data/SDG/Dataset.csv")
+            df.to_csv(file_path)
             print("Download has been completed")
         except:
             print("Failed to download")
 
-    df = pd.read_csv("./data/SDG/Dataset.csv")
+    df = pd.read_csv(file_path)
     df["sdg"] = df["sdg"] - 1
     train_df, temp_df = train_test_split(
         df, random_state=2018, test_size=test_size, stratify=df["sdg"]

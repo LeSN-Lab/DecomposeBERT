@@ -8,12 +8,11 @@ from utils.model_utils.evaluate import evaluate_model
 from utils.data_utils.load_dataset import load_sdg
 import torch
 from tqdm import tqdm
+from utils.paths import p
 
 
 # In[]: Train model
 def train_model(
-    model_name,
-    load_path,
     device,
     epochs=3,
     batch_size=32,
@@ -21,8 +20,9 @@ def train_model(
     test=True,
     num_labels=None,
 ):
+    train_path = p.get_train_path()
     model, tokenizer, checkpoint = load_model(
-        model_name, load_path, checkpoint_path, num_labels
+        checkpoint_path, num_labels
     )
     model = model.to(device)
     best_model_path = None
@@ -103,7 +103,7 @@ def train_model(
                 best_val_loss = val_loss
 
                 # Save model
-                best_model_path = os.path.join("Models", f"epoch_{epoch + 1}.pt")
+                best_model_path = os.path.join(train_path, f"epoch_{epoch + 1}.pt")
                 torch.save(
                     {
                         "epoch": epoch + 1,
