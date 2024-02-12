@@ -48,6 +48,7 @@ def train_model(
         print(f"Resuming training from epoch {start_epoch}")
 
     best_val_loss = np.inf
+    best_epochs = 0
     no_improve_epochs = 0
     early_stopping_threshold = 3
 
@@ -102,12 +103,13 @@ def train_model(
             )
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
+                best_epochs = epoch + 1
 
                 # Save model
-                best_model_path = os.path.join(train_path, f"epoch_{epoch + 1}.pt")
+                best_model_path = os.path.join(train_path, f"epoch_{best_epochs}.pt")
                 torch.save(
                     {
-                        "epoch": epoch + 1,
+                        "epoch": best_epochs,
                         "model_state_dict": model.state_dict(),
                         "optimizer_state_dict": optimizer.state_dict(),
                         "scheduler_state_dict": scheduler.state_dict(),
@@ -120,12 +122,19 @@ def train_model(
                 no_improve_epochs += 1
                 if no_improve_epochs >= early_stopping_threshold:
                     print("Early stopping triggered.")
+                    torch.save(
+                        {
+                            "model_state_dict": model.state_dict(),
+                        },
+                        os.path.join(train_path, "best_model.pt"),
+                    )
                     break
-
-        if test and best_model_path:
-            print(f"Loading best model from {best_model_path} for testing")
-            checkpoint = torch.load(best_model_path)
-            model.load_state_dict(checkpoint["model_state_dict"])
+        best_model_path = os.path.join(train_path, "best_model.pt")
+        if test and os.path.isfile(best_model_path):
+            print(f"Loading best model for testing")
+            checkpoint_path = "best_model.pt"
+            model, _, _ = load_model(checkpoint_path)
+            model = model.to(device)
             evaluate_model(model, test_dataloader, device)
 
     except Exception as e:

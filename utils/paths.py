@@ -1,4 +1,5 @@
 import os
+from utils.model_utils.constants import ArchitectureType
 
 
 class Paths:
@@ -29,6 +30,7 @@ class Paths:
 
         # others
         self.model_name = None
+        self.model_type = None
 
     def check_dir(self, dir):
         flag = True
@@ -60,6 +62,14 @@ class Paths:
     def set_model_name(self, name):
         self.model_name = name
 
+    def set_model_type(self, type):
+        if type == ArchitectureType.GPT:
+            self.model_type = "GPT"
+        elif type == ArchitectureType.Bert:
+            self.model_type = "Bert"
+        elif type == ArchitectureType.Transformer:
+            self.model_type = "Transformer"
+
     def set(self, model_path, model_name):
         self.set_model_dir(model_path)
         self.set_train_dir(model_path)
@@ -72,13 +82,18 @@ class Paths:
 
     # Get path of the current model
     def get_model_dir(self):
+        self.check_dir(self.model_dir)
         return self.model_dir
 
     def get_train_dir(self):
+        self.check_dir(self.train_dir)
         return self.train_dir
 
     def get_data_dir(self):
+        self.check_dir(self.data_dir)
         return self.data_dir
 
+    def get_model_type(self):
+        return self.model_type
 
 p = Paths()

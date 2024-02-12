@@ -1,46 +1,31 @@
-from utils.model_utils.constants import LayerType, getLayerType, getActivationType
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
+from utils.model_utils.constants import LayerType, get_layer_type, get_activation_type
 
-from data_type.constants import Constants
-from data_type.enums import LayerType, getLayerType, getActivationType
 
-class ModularLayer(nn.Moudle):
-    name = None
-    type = None
-    W = None
-    B = None
+class ModularLayer(nn.Module):
 
-    activation = None
-    num_node = None
-    is_first = False
-    is_last = False
-
-    active_node = None
-    inactive_node = None
-    node_sum = None
-
-    next_layer = None
-
-    def __init__(self, layer_config):
+    def __init__(self, layer):
         super(ModularLayer, self).__init__()
-        self.name = layer_config.name
-        self.type = getLayerType(layer_config.type)
-        
-        self.next_layer = None
+        self.type = get_layer_type(layer)
+        self.num_node
+        self.activation = get_activation_type(layer)
+        self.setInputShape(layer)
 
+        if self.type != LayerType.Activation:
 
-        if self.type in []:
-            pass
-        elif self.type == LayerType.Dense:
-            self.layer = nn.Linear()
-        elif self.type == LayerType.Embedding:
-            self.layer = nn.Embedding()
-        elif self.type == LayerType.LayerNorm:
-            self.layer = nn.LayerNorm()
-            pass
+            if self.type in []:
+                pass
+            elif self.type == LayerType.Dense:
+                self.layer = nn.Linear()
+            elif self.type == LayerType.Embedding:
+                self.layer = nn.Embedding()
+            elif self.type == LayerType.LayerNorm:
+                self.layer = nn.LayerNorm()
+                pass
 
     def forward(self, x):
         x = self.alyer(x)
@@ -65,6 +50,14 @@ class ModularLayer(nn.Moudle):
         for name, param in self.named_parameters():
             if name in weights:
                 param.data = weights[name]
+
+    def set_input_shape(self, layer):
+        if self.type == LayerType.Embedding:
+            pass
+        elif self.type == LayerType.Linear:
+            pass
+        elif self.type == LayerType.LayerNorm:
+            pass
 
 
 class PositionalEncoding(nn.Module):

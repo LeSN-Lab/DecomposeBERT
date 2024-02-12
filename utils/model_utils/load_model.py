@@ -4,6 +4,8 @@ from transformers import (
     AutoModelForSequenceClassification,
     BertForSequenceClassification,
     BertConfig,
+    GPT2Model,
+    GPT2Tokenizer,
 )
 import torch
 import os
@@ -24,7 +26,7 @@ def save_model(num_labels=None):
 
 
 def load_model(checkpoint_path=None, num_labels=None):
-    load_path = p.get_model_dir()
+    load_path = p.model_dir
     if not p.check_dir(load_path):
         print(f"Directory {load_path} does not exist. Saving a new model there.")
         model, tokenizer = save_model(num_labels)
@@ -34,6 +36,8 @@ def load_model(checkpoint_path=None, num_labels=None):
             model = BertForSequenceClassification.from_pretrained(
                 load_path, config=config, ignore_mismatched_sizes=True
             )
+        elif p.model_name == "gpt2":
+
         else:
             model = AutoModelForSequenceClassification.from_pretrained(load_path)
         tokenizer = AutoTokenizer.from_pretrained(load_path)

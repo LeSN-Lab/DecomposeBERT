@@ -1,28 +1,50 @@
 import enum
 
 
+class ArchitectureType(enum.Enum):
+    Transformer = 0
+    Bert = 1
+    GPT = 2
+
+
 class LayerType(enum.Enum):
-    Dense = 1
-    Embedding = 2
-    LayerNorm = 3
-    PositionalEncoding = 4
-    MultiHeadAttention = 5
-    PositionwiseFeedforward = 6
-    NotRecognize = 7
+    Activation = 0
+    Linear = 1
+    Dropout = 2
+    Embedding = 3
+    ModuleList = 4
+    MultiheadAttention = 5
+
+    TransformerEncoder = 4
+    TransformerDecoder = 5
+    # NotRecognize = 7
 
 
 class ActivationType(enum.Enum):
+    # Linear Activations
     Linear = 0
-    Tanh = 1
-    GeLU = 2
-    Softmax = 3
+    # Non-linear Activations
+    ReLU = 1
+    Tanh = 2
+    GELU = 3
+    Softmax = 4
+    # Norm
+    LayerNorm = 5
 
+def get_architecture_type(model):
+    model_name = type(model).__name__
+    if "Bert" in model_name:
+        return ArchitectureType.Bert
+    elif "Transformer" in model_name:
+        return ArchitectureType.Transformer
+    else:
+        return ArchitectureType.GPT
 
-def getLayerType(layer):
+def get_layer_type(layer):
     layer_name = type(layer).__name__
     return layer_name
 
 
-def getActivationType(layer):
+def get_activation_type(layer):
     pass
 

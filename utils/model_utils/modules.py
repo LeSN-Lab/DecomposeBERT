@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import math
 from utils.model_utils.layers import MultiHeadAttention, PositionwiseFeedforward, PositionalEncoding
+
 class EncoderLayer(nn.Module):
     def __init__(self, d_model, num_heads, d_ff, dropout=0.1):
         super(EncoderLayer, self).__init__()
@@ -49,6 +50,7 @@ class DecoderLayer(nn.Module):
         tgt = self.layer_norm3(tgt)
         return tgt
 
+# custom transformer
 class Transformer(nn.Module):
     def __init__(self, num_tokens, d_model, N, num_heads, d_ff, dropout=0.1):
         super(Transformer, self).__init__()
@@ -149,6 +151,7 @@ class BertModel(nn.Module):
         pooled_output = self.pooler_activation(pooled_output)
         return encoder_output, pooled_output
 
+# custom gpt
 class GPTDecoderLayer(nn.Module):
     def __init__(self, d_model, num_heads, d_ff, dropout=0.1):
         super(GPTDecoderLayer, self).__init__()

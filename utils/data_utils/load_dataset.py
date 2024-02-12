@@ -66,7 +66,7 @@ def load_sdg(tokenizer=None, batch_size=32, test_size=0.3):
     print("Loading dataset")
     data_dir = p.get_data_dir()
     file_path = os.path.join(data_dir, "Dataset.csv")
-    if not p.check_dir(data_dir):
+    if not os.path.isfile(file_path):
         print("Downloading SDG dataset...")
         try:
             df = pd.read_csv(

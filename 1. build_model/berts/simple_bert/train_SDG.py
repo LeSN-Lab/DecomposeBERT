@@ -2,15 +2,15 @@
 import torch
 from utils.model_utils.train_model import train_model
 from utils.model_utils.evaluate import evaluate_model
-from utils.model_utils.load_model import load_model
+from utils.model_utils.modules import BertModel
 from utils.data_utils.load_dataset import load_sdg
 from utils.paths import p
 
 
 # In[]: Train model Examples
 if __name__ == "__main__":
-    model_path = "SDGclassfier(bert_base_uncased)"
-    model_name = "bert-base-uncased"
+    model_path = "SDGclassfier(pre_trained)"
+    model_name = "sadickam/sdg-classification-bert"
     p.set(model_path=model_path, model_name=model_name)
 
     load_path = p.model_dir
@@ -20,20 +20,19 @@ if __name__ == "__main__":
 
     # If you have a checkpoint, uncomment this
     """
-    checkpoint_path = 'epoch_1.pt'
+    checkpoint_path = 'epoch_4.pt'
     """
 
     # Train model
-    model, tokenizer, checkpoint = load_model(checkpoint_path, 16)
+    model, tokenizer, checkpoint = load_model(checkpoint_path)
     model = model.to(device)
     train_model(
-        device=device,
+        device,
         epochs=20,
-        batch_size=16,
+        batch_size=32,
         lr=5e-5,
         checkpoint_path=checkpoint_path,
         test=True,
-        num_labels=16
     )
 
     # If you want to evaluate an accuracy of the model, uncomment this
@@ -45,4 +44,3 @@ if __name__ == "__main__":
     train_dataloader, valid_dataloader, test_dataloader = load_sdg(tokenizer, batch_size=32)
     evaluate_model(model, test_dataloader, device)
     """
-
