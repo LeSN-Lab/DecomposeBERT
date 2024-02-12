@@ -24,7 +24,7 @@ def save_model(num_labels=None):
 
 
 def load_model(checkpoint_path=None, num_labels=None):
-    load_path = p.get_model_path()
+    load_path = p.get_model_dir()
     if not p.check_dir(load_path):
         print(f"Directory {load_path} does not exist. Saving a new model there.")
         model, tokenizer = save_model(num_labels)
@@ -39,7 +39,7 @@ def load_model(checkpoint_path=None, num_labels=None):
         tokenizer = AutoTokenizer.from_pretrained(load_path)
 
     checkpoint = None
-    train_path = p.get_train_path()
+    train_path = p.get_train_dir()
     if checkpoint_path:
         model_path = os.path.join(train_path, checkpoint_path)
         if os.path.isfile(model_path):

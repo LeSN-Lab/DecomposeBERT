@@ -16,11 +16,12 @@ def train_model(
     device,
     epochs=3,
     batch_size=32,
+    lr=2e-5,
     checkpoint_path=None,
     test=True,
     num_labels=None,
 ):
-    train_path = p.get_train_path()
+    train_path = p.get_train_dir()
     model, tokenizer, checkpoint = load_model(
         checkpoint_path, num_labels
     )
@@ -33,7 +34,7 @@ def train_model(
     )
 
     # In[] : Set optimizer and scheduler
-    optimizer = AdamW(model.parameters(), lr=2e-5, eps=1e-8)
+    optimizer = AdamW(model.parameters(), lr=lr, eps=1e-8)
     total_steps = len(train_dataloader) * epochs
     scheduler = get_linear_schedule_with_warmup(
         optimizer, num_warmup_steps=0, num_training_steps=total_steps

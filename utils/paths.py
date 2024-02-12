@@ -48,10 +48,10 @@ class Paths:
             self.cur_dir = par_dir
 
     # Set path of the current model
-    def set_model_path(self, dirname):
+    def set_model_dir(self, dirname):
         self.model_dir = os.path.join(self.model_config, dirname)
 
-    def set_train_path(self, dirname):
+    def set_train_dir(self, dirname):
         self.train_dir = os.path.join(self.train_path, dirname)
 
     def set_data_dir(self, dirname):
@@ -61,8 +61,8 @@ class Paths:
         self.model_name = name
 
     def set(self, model_path, model_name):
-        self.set_model_path(model_path)
-        self.set_train_path(model_path)
+        self.set_model_dir(model_path)
+        self.set_train_dir(model_path)
         self.set_data_dir(model_path)
         self.set_model_name(model_name)
 
@@ -71,11 +71,11 @@ class Paths:
         return self.root_dir
 
     # Get path of the current model
-    def get_model_path(self):
+    def get_model_dir(self):
         return self.model_dir
 
-    def get_train_path(self):
-        return self.train_path
+    def get_train_dir(self):
+        return self.train_dir
 
     def get_data_dir(self):
         return self.data_dir

@@ -1,5 +1,4 @@
 # In[]: Import Libraries
-import os
 import torch
 from utils.model_utils.train_model import train_model
 from utils.paths import p
@@ -7,33 +6,37 @@ from utils.paths import p
 
 # In[]: Train model Examples
 if __name__ == "__main__":
-    model_path = "SDGclassfier"
-    model_name = "sadickam/sdg-classification-bert"
+    model_path = "SDGclassfier(bert_base_uncased)"
+    model_name = "bert-base-uncased"
     p.set(model_path=model_path, model_name=model_name)
 
-    load_path = p.get_model_path()
-    train_path = p.get_train_path()
+    load_path = p.get_model_dir()
+    train_path = p.get_train_dir()
     checkpoint_path = None
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    # """
-    # checkpoint_path = ['epoch_1.pt', 'epoch_2.pt', 'epoch_3.pt','epoch_4.pt']
-    # model, tokenizer, checkpoint = load_model(model_name, load_path, checkpoint_path)
-    # model = model.to(device)
-    # """
-    # Train model
-    epochs = 50
 
+    # If you have a checkpoint, uncomment this
+    """
+    checkpoint_path = 'epoch_4.pt'
+    model, tokenizer, checkpoint = load_model(checkpoint_path)
+    model = model.to(device)
+    """
+
+    # Train model
     train_model(
         device,
-        epochs=epochs,
-        batch_size=32,
+        epochs=20,
+        batch_size=16,
+        lr=5e-5,
         checkpoint_path=checkpoint_path,
         test=True,
+        num_labels=16
     )
 
+    # If you want to evaluate an accuracy of the model, uncomment this
     """
     # Evaluate model
-    model, tokenizer, checkpoint = load_model(model_name, load_path, i)
+    model, tokenizer, checkpoint = load_model(checkpoint_path)
     model = model.to(device)
     train_dataloader, valid_dataloader, test_dataloader = load_sdg(tokenizer, batch_size=32)
     evaluate_model(model, test_dataloader, device)
