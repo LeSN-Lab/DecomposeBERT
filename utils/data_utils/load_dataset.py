@@ -3,11 +3,9 @@ import os
 import pandas as pd
 import tensorflow_datasets as tfds
 from sklearn.model_selection import train_test_split
-from transformers import BertTokenizer
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
 from utils.data_utils.text_preprocessing import preprocess_texts
 from tqdm.auto import tqdm
-from utils.paths import p
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
@@ -62,11 +60,11 @@ def load_dataloader(
 
 
 # In[]: SDG dataset loader
-def load_sdg(tokenizer=None, batch_size=32, test_size=0.3):
+def load_sdg(model_config, tokenizer, batch_size=32, test_size=0.3):
     print("Loading dataset")
-    data_dir = p.get_data_dir()
-    file_path = os.path.join(data_dir, "Dataset.csv")
-    if not p.check_dir(data_dir):
+
+    file_path = os.path.join(model_config.data_dir, "Dataset.csv")
+    if not os.path.isfile(file_path):
         print("Downloading SDG dataset...")
         try:
             df = pd.read_csv(
@@ -87,20 +85,15 @@ def load_sdg(tokenizer=None, batch_size=32, test_size=0.3):
     valid_df, test_df = train_test_split(
         temp_df, random_state=2018, test_size=0.5, stratify=temp_df["sdg"]
     )
-    if tokenizer is not None:
-        train_dataloader = load_dataloader(
-            train_df, "text", "sdg", tokenizer, batch_size, 256
-        )
-        valid_dataloader = load_dataloader(
-            valid_df, "text", "sdg", tokenizer, batch_size, 256
-        )
-        test_dataloader = load_dataloader(
-            test_df, "text", "sdg", tokenizer, batch_size, 256
-        )
-    else:
-        tokenizer = BertTokenizer.from_pretrained(
-            "bert-base-uncased", do_lower_case=True
-        )
+    train_dataloader = load_dataloader(
+        train_df, "text", "sdg", tokenizer, batch_size, 256
+    )
+    valid_dataloader = load_dataloader(
+        valid_df, "text", "sdg", tokenizer, batch_size, 256
+    )
+    test_dataloader = load_dataloader(
+        test_df, "text", "sdg", tokenizer, batch_size, 256
+    )
 
     return train_dataloader, valid_dataloader, test_dataloader
 
@@ -164,3 +157,6 @@ def load_math_dataset(tokenizer, batch_size=32, max_length=20):
 
     return train_dataloader, valid_dataloader, test_dataloader
 
+
+def load_dataset():
+    pass

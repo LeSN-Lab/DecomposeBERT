@@ -1,52 +1,72 @@
 # in[] Library
 from transformers import (
+    AutoConfig,
     AutoTokenizer,
     AutoModelForSequenceClassification,
-    BertForSequenceClassification,
-    BertConfig,
+    GPT2Model,
+    GPT2Tokenizer,
 )
 import torch
 import os
-from utils.paths import p
+from utils.model_utils.constants import ArchitectureType
 
 
-# In[] Load/Save MultilingualModelConfig
-def save_model(num_labels=None):
-    if p.model_name == "bert-base-uncased":
-        config = BertConfig.from_pretrained(p.model_name, num_labels=num_labels)
-        model = BertForSequenceClassification(config)
-    else:
-        model = AutoModelForSequenceClassification.from_pretrained(p.model_name)
-    tokenizer = AutoTokenizer.from_pretrained(p.model_name)
-    model.save_pretrained(p.model_dir)
-    tokenizer.save_pretrained(p.model_dir)
+# In[] Load/Save ModelConfig
+def save_classification_model(model_config):
+    model = None
+    tokenizer = None
+    model_name = model_config.model_name
+    model_dir = model_config.model_dir
+
+    if model_config.model_type == ArchitectureType.Bert:
+        config = AutoConfig.from_pretrained(model_name, num_labels=model_config.num_labels)
+        model = AutoModelForSequenceClassification.from_pretrained(
+            model_name, config=config
+        )
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+        # Save model and tokenizer
+        model.save_pretrained(model_dir)
+        tokenizer.save_pretrained(model_dir)
+    elif model_config.model_type == ArchitectureType.Transformer:
+        pass
+    elif model_config.model_type == ArchitectureType.GPT:
+        pass
     return model, tokenizer
 
 
-def load_model(checkpoint_path=None, num_labels=None):
-    load_path = p.get_model_dir()
-    if not p.check_dir(load_path):
-        print(f"Directory {load_path} does not exist. Saving a new model there.")
-        model, tokenizer = save_model(num_labels)
-    else:
-        if p.model_name == "bert-base-uncased" and num_labels is not None:
-            config = BertConfig.from_pretrained(load_path, num_labels=num_labels)
-            model = BertForSequenceClassification.from_pretrained(
-                load_path, config=config, ignore_mismatched_sizes=True
-            )
-        else:
-            model = AutoModelForSequenceClassification.from_pretrained(load_path)
+def load_classification_model(model_config):
+    load_path = model_config.model_dir
+    model = None
+    tokenizer = None
+
+    # Check if the model exists
+    if not model_config.is_downloaded:
+        print(f"Directory {load_path} does not exist. Saving a new model here.")
+        model, tokenizer = save_classification_model(model_config)
+
+    # load model
+    if model_config.model_type == ArchitectureType.Bert:
+        model = AutoModelForSequenceClassification.from_pretrained(load_path)
         tokenizer = AutoTokenizer.from_pretrained(load_path)
+    elif model_config.model_type == ArchitectureType.Transformer:
+        pass
+    elif model_config.model_type == ArchitectureType.GPT:
+        pass
 
+    # load check point
     checkpoint = None
-    train_path = p.get_train_dir()
-    if checkpoint_path:
-        model_path = os.path.join(train_path, checkpoint_path)
-        if os.path.isfile(model_path):
-            checkpoint = torch.load(model_path)
-            if 'model_state_dict' in checkpoint:
-                if num_labels is not None:
-                    model.classifier = torch.nn.Linear(model.config.hidden_size, num_labels)
-                model.load_state_dict(checkpoint['model_state_dict'], strict=False)
-
+    if model_config.checkpoint_name is not None:
+        checkpoint_path = os.path.join(model_config.train_dir, model_config.checkpoint_name)
+        if os.path.isfile(checkpoint_path):
+            checkpoint = torch.load(checkpoint_path, map_location=model_config.device)
+            if "model_state_dict" in checkpoint:
+                model.load_state_dict(checkpoint["model_state_dict"], strict=False)
+            else:
+                print("Checkpoint structure is unrecognized. Check the keys or save format.")
+        else:
+            print(f"Checkpoint path {checkpoint_path} does not exist.")
+            checkpoint = None
+    else:
+        model.to(model_config.device)
     return model, tokenizer, checkpoint
