@@ -20,10 +20,10 @@ if __name__ == "__main__":
     """
 
     # Train model
-    model_config = ModelConfig(
+    """model_config = ModelConfig(
         _model_dir=model_dir,
         _model_name=model_name,
-        _model_type="Bert",
+        _model_type="berts",
         _checkpoint_name=checkpoint_name,
         _num_labels=16,
         _device=device,
@@ -34,15 +34,15 @@ if __name__ == "__main__":
         batch_size=16,
         lr=5e-5,
         test=True,
-    )
+    )"""
 
     # If you want to evaluate an accuracy of the model, uncomment this
     # Evaluate model
-    """checkpoint_name = "best_model.pt"
+    checkpoint_name = "best_model.pt"
     model_config = ModelConfig(
         _model_dir=model_dir,
         _model_name=model_name,
-        _model_type="Bert",
+        _model_type="berts",
         _checkpoint_name=checkpoint_name,
         _num_labels=16,
         _device=device,
@@ -51,4 +51,4 @@ if __name__ == "__main__":
     train_dataloader, valid_dataloader, test_dataloader = load_sdg(
         model_config, tokenizer, batch_size=32
     )
-    evaluate_model(model, model_config, test_dataloader)"""
+    evaluate_model(model, model_config, test_dataloader)

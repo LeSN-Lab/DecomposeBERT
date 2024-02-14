@@ -3,12 +3,10 @@ from transformers import (
     AutoConfig,
     AutoTokenizer,
     AutoModelForSequenceClassification,
-    GPT2Model,
-    GPT2Tokenizer,
 )
 import torch
 import os
-from utils.model_utils.constants import ArchitectureType
+from utils.decompose_utils.constants import ArchitectureType
 
 
 # In[] Load/Save ModelConfig
@@ -61,7 +59,8 @@ def load_classification_model(model_config):
         if os.path.isfile(checkpoint_path):
             checkpoint = torch.load(checkpoint_path, map_location=model_config.device)
             if "model_state_dict" in checkpoint:
-                model.load_state_dict(checkpoint["model_state_dict"], strict=False)
+                model.load_state_dict(checkpoint["model_state_dict"], strict=True)
+                model.to(model_config.device)
             else:
                 print("Checkpoint structure is unrecognized. Check the keys or save format.")
         else:

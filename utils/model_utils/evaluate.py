@@ -19,7 +19,7 @@ def flat_accuracy(pred, label_indices, label_list):
 
 
 # In[]
-def evaluate_model(model_config, model, test_dataloader):
+def evaluate_model(model, model_config, test_dataloader):
     model.eval()
 
     # Initialize accuracy variables

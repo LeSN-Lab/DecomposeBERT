@@ -1,4 +1,4 @@
-from utils.model_utils.constants import LayerType, ActivationType
+from utils.decompose_utils.constants import LayerType, ActivationType
 import torch.nn as nn
 
 class ConcernIdentification:

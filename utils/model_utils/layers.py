@@ -3,61 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
-from utils.model_utils.constants import LayerType, get_layer_type, get_activation_type
-
-
-class ModularLayer(nn.Module):
-
-    def __init__(self, layer):
-        super(ModularLayer, self).__init__()
-        self.type = get_layer_type(layer)
-        self.num_node
-        self.activation = get_activation_type(layer)
-        self.setInputShape(layer)
-
-        if self.type != LayerType.Activation:
-
-            if self.type in []:
-                pass
-            elif self.type == LayerType.Dense:
-                self.layer = nn.Linear()
-            elif self.type == LayerType.Embedding:
-                self.layer = nn.Embedding()
-            elif self.type == LayerType.LayerNorm:
-                self.layer = nn.LayerNorm()
-                pass
-
-    def forward(self, x):
-        x = self.alyer(x)
-        if self.activation:
-            if self.activation == 'relu':
-                x = F.relu(x)
-            elif self.activation == 'sigmoid':
-                x = torch.sigmoid(x)
-            elif self.activation == 'gelu':
-                x = torch.gelu(x)
-            elif self.activation == 'tanh':
-                x = torch.tanh(x)
-        return x
-        
-    def get_weight(self):
-        weights = {}
-        for name, param in self.named_parameters():
-            weights[name] = param.data
-        return weights
-    
-    def set_weight(self, weights):
-        for name, param in self.named_parameters():
-            if name in weights:
-                param.data = weights[name]
-
-    def set_input_shape(self, layer):
-        if self.type == LayerType.Embedding:
-            pass
-        elif self.type == LayerType.Linear:
-            pass
-        elif self.type == LayerType.LayerNorm:
-            pass
+from utils.decompose_utils.constants import LayerType
+from utils.decompose_utils.common import get_layer_type, get_activation_type
 
 
 class PositionalEncoding(nn.Module):

@@ -23,7 +23,7 @@ if __name__ == "__main__":
     model_config = ModelConfig(
         _model_dir=model_dir,
         _model_name=model_name,
-        _model_type="Bert",
+        _model_type="berts",
         _checkpoint_name=checkpoint_name,
         _num_labels=16,
         _device=device,
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     model_config = ModelConfig(
         _model_dir=model_dir,
         _model_name=model_name,
-        _model_type="Bert",
+        _model_type="berts",
         _checkpoint_name=checkpoint_name,
         _num_labels=16,
         _device=device,

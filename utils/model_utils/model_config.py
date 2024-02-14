@@ -1,4 +1,4 @@
-from utils.model_utils.constants import get_architecture_type
+from utils.decompose_utils.common import get_architecture_type
 import os
 from utils.paths import p
 
@@ -8,7 +8,7 @@ class ModelConfig:
         self,
         _model_dir,
         _model_name,
-        _model_type="Bert",
+        _model_type="berts",
         _checkpoint_name=None,
         _num_labels=None,
         _device="cuda:0"
