@@ -12,39 +12,42 @@ class ModularLayer(nn.Module):
         super(ModularLayer, self).__init__()
         self.name = name
         self.layer = layer
-        self.layer_type = self.set_layer_type()
         self.active_node = None
-        self.weight, self.bias = get_parameters(self)
+        self.weight, self.bias = get_parameters(layer)
         self.num_node = None
-        self.shape = get_layer_shape(self)
+        self.layer_type = None
+        self.shape = None
+        self.act_fcn = get_act_fcn_type(layer)
 
-        self.act_fcn = None         # if layer type is LayerType.Activation
-        self.dropout_rate = None    # if layer type is LayerType.Dropout
         self.padding_idx = None     # if layer type is LayerType.Embedding
+        self.eps = None             # if layer type is LayerType.LayerNorm
+        self.dropout_rate = None    # if layer type is LayerType.Dropout
 
-
-        if self.layer_type is not LayerType.Activation:
-            if self.layer_type in [LayerType.Linear]:
-                self.weight = nn.Parameter(layer.weight)
-                if layer.bias is not None:
-                    self.bias = nn.Parameter(layer.bias)
-                else:
-                    self.register_buffer('bias', torch.zeros(*self.shape[1:]))
-            elif self.layer_type == LayerType.Embedding:
-                self.weight = nn.Parameter(layer.weight)
-                self.register_buffer('bias', None)
-                self.padding_idx = layer.padding_idx
-            elif self.layer_type == LayerType.LayerNorm:
-                self.weight = nn.Parameter(layer.weight)
-                self.bias = nn.Parameter(layer.bias)
-                self.shape = layer.normalized_shape
-            elif self.layer_type == LayerType.Dropout:
-                self.weight = None
-                self.dropout_rate = layer.p
-                self.shape = None
-        else:
-            self.weight = None
+        if self.act_fcn is ActivationType.Not:      # if layer is not activation fcn
+            self.layer_type = get_layer_type(layer)
+            self.shape = get_layer_shape(layer)
+        else:                                       # if layer is activation fcn
+            self.layer_type = LayerType.Activation
             self.shape = None
+
+        if self.layer_type is not LayerType.NotRecognize:
+            if hasattr(layer, 'weight'):
+                self.weight = layer.weight
+            else:
+                self.weight = None
+
+            if hasattr(layer, 'bias'):
+                self.bias = layer.bias
+            else:
+                self.bias = None
+
+            if self.layer_type is LayerType.Embedding:  # if layer type is LayerType.Embedding
+                self.padding_idx = layer.padding_idx
+            elif self.layer_type is LayerType.LayerNorm: # if layer type is LayerType.LayerNorm
+                self.eps = layer.eps
+            elif self.layer_type == LayerType.Dropout:  # if layer type is LayerType.Dropout
+                self.dropout_rate = layer.p
+
 
     # def forward(self, x):
     #     x = self.layer(x)
@@ -57,46 +60,25 @@ class ModularLayer(nn.Module):
     # x = F.layer_norm(x, self.normalized_shape, self.weight, self.bias)
 
     #     return x
-    def set_layer_type(self):
-        if isinstance(self, nn.Linear):
-            return LayerType.Linear
-        elif isinstance(self, nn.LayerNorm):
-            return LayerType.LayerNorm
-        elif isinstance(self, nn.Dropout):
-            return LayerType.Dropout
-        elif isinstance(self, nn.Embedding):
-            return LayerType.Embedding
-        elif isinstance(self, GELUActivation):
-            self.act_fcn = ActivationType.GELU
-            return LayerType.Activation
-        elif isinstance(self, nn.Tanh):
-            self.act_fcn = ActivationType.Tanh
-            return LayerType.Activation
-        else:
-            return LayerType.NotRecognize
 
-    def set_weight(self, weight):
-        if hasattr(self.layer, 'weight'):
-            assert self.weight.shape == weight.shape, f"Weight shapes mismatch: {self.weight.shape} vs {weight.shape}"
-            self.weight.data = weight.data
+    def zero_weight(self):
+        if self.weight is not None:
+            self.weight.data = torch.zeros_like(self.weight.data)
 
-    def set_bias(self, bias):
-        assert self.bias.shape == bias.shape, f"Bias shapes mismatch: {self.bias.shape} vs {bias.shape}"
-        self.bias.data = bias.data
-
+    def zero_bias(self):
+        self.register_buffer('bias', torch.zeros(*self.shape[1:]))
 
     def get_weight(self):
         if self.weight is not None:
-            return self.weight.detach().clone()
+            return nn.Parameter(self.weight)
         else:
             return None
 
     def get_bias(self):
-        if hasattr(self, 'bias'):
-            return self.bias.detach().clone()
+        if self.weight is not None:
+            return nn.Parameter(self.bias)
         else:
             return None
-
 
 
 class ModularLayerList(nn.ModuleList):
@@ -110,7 +92,6 @@ class ModularLayerList(nn.ModuleList):
         """Append a ModularLayer to the list."""
         super().append(module)
         self.size = len(self)
-
 
     def forward(self, x):
         """Optional: Define a custom forward pass if needed."""
@@ -143,15 +124,46 @@ def get_architecture_type(model):
     elif "GPT" in model:
         return ArchitectureType.GPT
 
+
+def get_layer_type(layer):
+    if isinstance(layer, nn.Linear):
+        return LayerType.Linear
+    elif isinstance(layer, nn.LayerNorm):
+        return LayerType.LayerNorm
+    elif isinstance(layer, nn.Dropout):
+        return LayerType.Dropout
+    elif isinstance(layer, nn.Embedding):
+        return LayerType.Embedding
+    else:
+        return LayerType.NotRecognize
+
+
+def get_act_fcn_type(layer):
+    if isinstance(layer, GELUActivation):
+        return ActivationType.GELU
+    elif isinstance(layer, nn.Tanh):
+        return ActivationType.Tanh
+    else:
+        return LayerType.NotRecognize
+
+
 def get_parameters(layer):
-    self.weight = nn.Parameter(layer.weight)
+    weight, bias = None, None
+    if hasattr(layer, 'weight'):
+        weight = layer.weight.detach() if layer.weight is not None else None
+    if hasattr(layer, 'bias'):
+        bias = layer.bias.detach() if layer.bias is not None else None
+    return weight, bias
 
 
 def get_layer_shape(layer):
-    if self.layer_type is LayerType.Activation or self.layer_type is LayerType.Dropout:
+    layer_type = get_layer_type(layer)
+    if layer_type in [LayerType.Activation, LayerType.Dropout]:
         return None
     else:
-        if hasattr(self, 'weight'):
-            return self.weight.shape
+        if hasattr(layer, 'weight'):
+            return layer.weight.shape
+        elif hasattr(layer, 'normalized_shape'):
+            return layer.normalized_shape
         else:
-            return self.out_features
+            return layer.out_features   # [out_features, in_features]
