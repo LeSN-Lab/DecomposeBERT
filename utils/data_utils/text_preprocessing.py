@@ -12,8 +12,8 @@ stop_words = set(stopwords.words("english"))
 
 
 def clean_text(text):
-    text = text.replace('[^a-zA-Z ]', '')
-    text = text.replace('^ +', "")
+    text = text.replace("[^a-zA-Z ]", "")
+    text = text.replace("^ +", "")
     text = re.sub(r"\s+", " ", text).strip()  # Remove extra spaces
     text = re.sub(r"<.*?>", "", text)  # Remove HTML tags
     text = re.sub(r"http\S+", "", text)  # Remove URLs
@@ -26,7 +26,9 @@ def preprocess(text):
     """Cleans and optionally lemmatizes the text, then tokenizes it using BERT tokenizer."""
     cleaned_text = clean_text(text)
     doc = nlp(cleaned_text)
-    cleaned_text = ' '.join([token.lemma_ for token in doc if token.is_alpha and not token.is_stop])
+    cleaned_text = " ".join(
+        [token.lemma_ for token in doc if token.is_alpha and not token.is_stop]
+    )
     return cleaned_text.lower()
 
 

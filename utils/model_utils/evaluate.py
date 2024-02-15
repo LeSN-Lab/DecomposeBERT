@@ -35,7 +35,9 @@ def evaluate_model(model, model_config, test_dataloader):
         b_labels = batch["labels"].to(model_config.device)
 
         with torch.no_grad():
-            outputs = model(b_input_ids, attention_mask=b_attention_mask, labels=b_labels)
+            outputs = model(
+                b_input_ids, attention_mask=b_attention_mask, labels=b_labels
+            )
 
         logits = outputs.logits
         loss = outputs.loss

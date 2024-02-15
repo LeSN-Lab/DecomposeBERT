@@ -1,8 +1,8 @@
-if __name__ == '__main__':
+if __name__ == "__main__":
     import os
     import torch
     from utils.model_utils.load_model import load_model
-    from utils.model_utils.layers import initEncoderLayers
+    from utils.model_utils.custom_layers import initEncoderLayers
 
     file = os.path.realpath("__file__")
     root = os.path.dirname(file)

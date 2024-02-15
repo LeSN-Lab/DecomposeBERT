@@ -7,7 +7,9 @@ def sampling_class(X, y, target_class, n, positive_sample=True):
 
     cnt = 0
     for i in range(0, len(y)):
-        if (positive_sample and y[i] == target_class) or (not positive_sample and y[i] != target_class):
+        if (positive_sample and y[i] == target_class) or (
+            not positive_sample and y[i] != target_class
+        ):
             sample_x.append(X[i])
             sample_y.append(y[i])
             cnt += 1

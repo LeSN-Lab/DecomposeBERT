@@ -1,35 +1,56 @@
-from utils.decompose_utils.constants import LayerType, ActivationType
 import torch.nn as nn
 
-class ConcernIdentification:
-    def feedback_loop(self, layer):
+
+class ConcernIdentificationOutput:
+
+    def feedforward(self, module, previous_state=None):
+        if previous_state is None:
+            previous_state = module.
+
+    def attention(self, module, previous_state=None):
         pass
-    def propagateThroughLayer(self, layer, x_t, activation):
-        if layer.type == LayerType.Dense:
-            layer.hidden_state = self.propagateThroughDense(layer, x_t, activation)
-        elif layer.type == LayerType.Embedding:
-            layer.hidden_state = self.embeddingLookup(self, layer, x_t)
-        elif layer.type == LayerType.MultiHeadAttention:
+    def propagate_through_layer(self, layer, x_t, activation):
+        if layer.layer_type == LayerType.Linear:
+            layer.weight = self.propagate_through_dense(layer, x_t, activation)
+        elif layer.layer_type == LayerType.Embedding:
+            layer.weight = self.embedding_lookup(self, layer, x_t)
+        elif layer.layer_type == LayerType.LayerNorm:
             pass
-        elif layer.type == LayerType.LayerNorm:
+        elif layer.layer_type == LayerType.Dropout:
             pass
-        elif layer.type == LayerType.PositionalEncoding:
-            pass
-        elif layer.type == LayerType.PositionwiseFeedforward:
-            pass
-        
-    def propagateThroughDense(self, layer, x_t, is_active=True):
-        x_t = x_t.dot(layer.W) + layer.B
-        return self.propagateThroughActivation(layer, x_t, is_active)
-    
-    def propagateThroughActivation(self, layer, x_t, is_active):
+
+
+
+class ConcernIdentificationEncoder:
+    def propagateThroughLayer(self, layer, x_t):
+        if layer.act_fcn is ActivationType.Linear:
+            if layer.layer_type is LayerType.Linear:
+                layer.hidden_state = self.propagate_through_dense(layer, x_t=x_t,
+                                                                apply_activation=is_active)
+            elif layer.layer_type is LayerType.Embedding:
+                return self.embedding_lookup(layer, x_t=x_t)
+            elif layer.layer_type is LayerType.Dropout:
+                return x_t
+
+        return layer.hidden_state
+
+    def propagate_through_activation(self, layer, x_t, is_active=True):
         if not is_active or layer.activation == ActivationType.Linear:
             return x_t
         if ActivationType.Softmax == layer.activation:
             x_t = x_t.reshape(layer.num_node)
             x_t = nn.Softmax(x_t)
-        elif ActivationType.GeLU == layer.activation:
+        elif ActivationType.GELU == layer.activation:
             x_t = nn.GELU(x_t)
-        elif ActivationType.tanh == layer.activation:
+        elif ActivationType.Tanh == layer.activation:
             x_t = nn.Tanh(x_t)
         return x_t
+
+    def embedding_lookup(self, layer, x):
+        pass
+
+class ConcernIdentificationDecoder:
+    pass
+
+class ConcernIdentificationEmbedding:
+    pass

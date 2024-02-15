@@ -5,16 +5,15 @@ from utils.model_utils.evaluate import evaluate_model
 from utils.model_utils.load_model import load_classification_model
 from utils.data_utils.load_dataset import load_sdg
 from utils.model_utils.model_config import ModelConfig
-from transformers.models.bert.configuration_bert import BertConfig
 
 
 # In[]: Train model Examples
 if __name__ == "__main__":
     model_dir = "SDGclassfier(bert_base_uncased)"
     model_name = "bert-base-uncased"
+    data = "SDG"
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     checkpoint_name = None
-    BertConfig()
 
     # If you have a checkpoint, uncomment this
     """
@@ -42,6 +41,7 @@ if __name__ == "__main__":
     checkpoint_name = "best_model.pt"
     model_config = ModelConfig(
         _model_name=model_name,
+        _data=data,
         _model_type="berts",
         _checkpoint_name=checkpoint_name,
         _num_labels=16,

@@ -90,7 +90,9 @@ def train_model(
                 )
 
             # In[]: Validation
-            val_accuracy, val_loss = evaluate_model(model, model_config, valid_dataloader)
+            val_accuracy, val_loss = evaluate_model(
+                model, model_config, valid_dataloader
+            )
             print(
                 f"Validation Accuracy: {val_accuracy:.4f}, Validation Loss: {val_loss:.4f}"
             )

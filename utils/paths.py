@@ -12,9 +12,7 @@ class Paths:
             self.root_dir, "Datasets"
         )  # path of the training dataset
         self.Model = self.get_dir(self.root_dir, "Models")
-        self.Train = self.get_dir(
-            self.Model, "Train"
-        )  # path of the trained models
+        self.Train = self.get_dir(self.Model, "Train")  # path of the trained models
         self.Config = self.get_dir(
             self.Model, "Config"
         )  # path of the model configuration files

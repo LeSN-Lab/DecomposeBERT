@@ -3,14 +3,15 @@ import re
 import nltk
 
 
-
-
 def saveTFDataset(datasetName, trainSize=100):
-    X_train, y_train = \
-        tfds.as_numpy(tfds.load(datasetName,
-                                split='train[:' + str(trainSize) + '%]',
-                                batch_size=-1,
-                                as_supervised=True))
+    X_train, y_train = tfds.as_numpy(
+        tfds.load(
+            datasetName,
+            split="train[:" + str(trainSize) + "%]",
+            batch_size=-1,
+            as_supervised=True,
+        )
+    )
 
     out = open("cleaned_sentiment140.csv", "w")
     out.write("Twwet,Sentiment\n")

@@ -11,6 +11,7 @@ from utils.model_utils.model_config import ModelConfig
 if __name__ == "__main__":
     model_dir = "SDGclassfier(pre_trained)"
     model_name = "sadickam/sdg-classification-bert"
+    data = "SDG"
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     checkpoint_name = None
 
@@ -21,8 +22,8 @@ if __name__ == "__main__":
 
     # Train model
     model_config = ModelConfig(
-        _model_dir=model_dir,
         _model_name=model_name,
+        _data=data,
         _model_type="berts",
         _checkpoint_name=checkpoint_name,
         _num_labels=16,
@@ -41,7 +42,6 @@ if __name__ == "__main__":
 
     """checkpoint_name = "best_model.pt"
     model_config = ModelConfig(
-        _model_dir=model_dir,
         _model_name=model_name,
         _model_type="berts",
         _checkpoint_name=checkpoint_name,
