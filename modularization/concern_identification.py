@@ -1,4 +1,5 @@
 import torch.nn as nn
+from utils.type_utils.layer_type import ActivationType, LayerType
 
 
 class ConcernIdentificationOutput:

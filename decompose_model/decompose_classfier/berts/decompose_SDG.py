@@ -6,7 +6,7 @@ from utils.decompose_utils.common import init_modular_layers, recurse_layers
 from tqdm import tqdm
 
 if __name__ == "__main__":
-    model_dir = "SDGclassfier(openai-gpt)"
+    model_dir = "SDGclassfier(gpt2-gpt)"
     model_name = "sadickam/sdg-classification-bert"
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 

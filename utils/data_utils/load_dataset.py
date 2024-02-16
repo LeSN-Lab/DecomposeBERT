@@ -61,7 +61,7 @@ def load_dataloader(
 
 
 # In[]: SDG dataset loader
-def load_sdg(model_config, tokenizer, batch_size=32, test_size=0.3):
+def load_sdg(model_config, tokenizer, batch_size, test_size):
     print("Loading dataset")
 
     file_path = os.path.join(model_config.data_dir, "Dataset.csv")
@@ -159,5 +159,6 @@ def load_math_dataset(tokenizer, batch_size=32, max_length=20):
     return train_dataloader, valid_dataloader, test_dataloader
 
 
-def load_dataset():
-    pass
+def load_dataset(dataset_name, model_config, tokenizer, batch_size=32, test_size=0.3):
+    if dataset_name == "SDG":
+        return load_sdg(model_config, tokenizer, batch_size=batch_size, test_size=test_size)

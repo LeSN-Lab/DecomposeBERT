@@ -5,7 +5,7 @@ from torch.optim import AdamW
 from transformers import get_linear_schedule_with_warmup
 from utils.model_utils.load_model import load_classification_model
 from utils.model_utils.evaluate import evaluate_model
-from utils.data_utils.load_dataset import load_sdg
+from utils.data_utils.load_dataset import load_dataset
 import torch
 from tqdm import tqdm
 from utils.paths import p
@@ -23,8 +23,12 @@ def train_model(
     model, tokenizer, checkpoint = load_classification_model(model_config)
 
     # In[] : Load model
-    train_dataloader, valid_dataloader, test_dataloader = load_sdg(
-        model_config, tokenizer, batch_size=batch_size, test_size=0.2
+    train_dataloader, valid_dataloader, test_dataloader = load_dataset(
+        dataset_name=model_config.data,
+        model_config=model_config,
+        tokenizer=tokenizer,
+        batch_size=batch_size,
+        test_size=0.2,
     )
 
     # In[] : Set optimizer and scheduler

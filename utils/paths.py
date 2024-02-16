@@ -41,8 +41,12 @@ class Paths:
 
     def get_dir(self, _dirname1, _dirname2):
         _path = os.path.join(_dirname1, _dirname2)
-        if not self.is_dir(_path):
-            os.mkdir(_path)
+        segments = _dirname2.split(os.sep)
+        current_path = _dirname1
+        for _dir in segments:
+            current_path = os.path.join(current_path, _dir)
+            if not self.is_dir(current_path):
+                os.mkdir(current_path)
         return _path
 
 

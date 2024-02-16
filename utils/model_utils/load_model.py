@@ -1,9 +1,5 @@
 # in[] Library
-from transformers import (
-    AutoConfig,
-    AutoTokenizer,
-    AutoModelForSequenceClassification,
-)
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 import os
 
@@ -12,15 +8,14 @@ import os
 def save_classification_model(model_config):
     model_name = model_config.model_name
     model_dir = model_config.model_dir
-
-    config = AutoConfig.from_pretrained(
-        model_name, num_labels=model_config.num_labels
-    )
-    model = AutoModelForSequenceClassification.from_pretrained(
-        model_name, config=config
-    )
+    model = None
+    if model_config.is_pretrained:
+        model = AutoModelForSequenceClassification.from_pretrained(
+            model_name, config=model_config.transformer_config
+        )
+    else:
+        pass
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-
     # Save model and tokenizer
     model.save_pretrained(model_dir)
     tokenizer.save_pretrained(model_dir)
@@ -28,7 +23,6 @@ def save_classification_model(model_config):
 
 def load_classification_model(model_config):
     load_path = model_config.model_dir
-
     # Check if the model exists
     if not model_config.is_downloaded:
         print(f"Directory {load_path} does not exist. Saving a new model here.")

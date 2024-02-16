@@ -8,9 +8,9 @@ class ArchitectureType(enum.Enum):
 
     @staticmethod
     def get_architecture_type(arc_type):
-        if arc_type is "only_encoder":
+        if arc_type == "only_encoder":
             return ArchitectureType.only_encoder
-        elif arc_type is "only_decoder":
+        elif arc_type == "only_decoder":
             return ArchitectureType.only_decoder
         else:
             return ArchitectureType.both

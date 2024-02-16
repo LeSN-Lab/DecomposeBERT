@@ -7,19 +7,17 @@ import spacy
 
 
 # Initialize Spacy and stop words
-nlp = spacy.load("en_core_web_sm", disable=["parser", "ner"])
+#python -m spacy download en_core_web_lg
+
+nlp = spacy.load("en_core_web_lg", disable=["parser", "ner"])
 stop_words = set(stopwords.words("english"))
 
 
 def clean_text(text):
-    text = text.replace("[^a-zA-Z ]", "")
-    text = text.replace("^ +", "")
-    text = re.sub(r"\s+", " ", text).strip()  # Remove extra spaces
-    text = re.sub(r"<.*?>", "", text)  # Remove HTML tags
-    text = re.sub(r"http\S+", "", text)  # Remove URLs
-    text = re.sub(r"\S+@\S+\s?", "", text)  # Remove emails
-
-    return text.lower()
+    text = re.sub("[^a-zA-Z ]", "", text)
+    text = re.sub(" +", " ", text)
+    text = text.strip()
+    return text
 
 
 def preprocess(text):
