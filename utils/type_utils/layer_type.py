@@ -1,6 +1,7 @@
 import enum
 import torch.nn as nn
 from transformers.activations import GELUActivation
+from transformers.models.bert.modeling_bert import BertAttention
 
 
 class LayerType(enum.Enum):
@@ -25,6 +26,19 @@ class LayerType(enum.Enum):
         else:
             return LayerType.NotRecognize
 
+    @staticmethod
+    def get_layer_shape(layer):
+        layer_type = LayerType.get_layer_type(layer)
+        if layer_type in [LayerType.Activation, LayerType.Dropout]:
+            return None
+        else:
+            if hasattr(layer, "weight"):
+                return layer.weight.shape
+            elif hasattr(layer, "normalized_shape"):
+                return layer.normalized_shape
+            else:
+                return layer.out_features  # [out_features, in_features]
+
 
 class ActivationType(enum.Enum):
     # Non-linear Activations
@@ -41,16 +55,4 @@ class ActivationType(enum.Enum):
         elif isinstance(layer, nn.Tanh):
             return ActivationType.Tanh
         else:
-            return LayerType.NotRecognize
-
-def get_layer_shape(layer):
-    layer_type = LayerType.get_layer_type(layer)
-    if layer_type in [LayerType.Activation, LayerType.Dropout]:
-        return None
-    else:
-        if hasattr(layer, "weight"):
-            return layer.weight.shape
-        elif hasattr(layer, "normalized_shape"):
-            return layer.normalized_shape
-        else:
-            return layer.out_features  # [out_features, in_features]
+            return ActivationType.Linear

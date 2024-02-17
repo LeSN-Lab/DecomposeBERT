@@ -8,7 +8,6 @@ from utils.model_utils.evaluate import evaluate_model
 from utils.data_utils.load_dataset import load_dataset
 import torch
 from tqdm import tqdm
-from utils.paths import p
 
 
 # In[]: Train model
@@ -24,7 +23,6 @@ def train_model(
 
     # In[] : Load model
     train_dataloader, valid_dataloader, test_dataloader = load_dataset(
-        dataset_name=model_config.data,
         model_config=model_config,
         tokenizer=tokenizer,
         batch_size=batch_size,

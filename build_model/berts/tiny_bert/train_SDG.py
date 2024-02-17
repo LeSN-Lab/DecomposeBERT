@@ -3,7 +3,7 @@ import torch
 from utils.model_utils.train_model import train_model
 from utils.model_utils.evaluate import evaluate_model
 from utils.model_utils.load_model import load_classification_model
-from utils.data_utils.load_dataset import load_sdg
+from utils.data_utils.load_dataset import load_dataset
 from utils.model_utils.model_config import ModelConfig
 from transformers import AutoConfig
 
@@ -27,15 +27,13 @@ if __name__ == "__main__":
         _checkpoint_name=checkpoint_name,
         _device=device,
     )
-    model, tokenizer, checkpoint = load_classification_model(model_config)
-    print(model)
     # If you have a checkpoint, uncomment this
     """
     model_config.checkpoint_name = 'epoch_1.pt'
     """
 
     # Train model
-    """
+
     model, tokenizer, checkpoint = load_classification_model(model_config)
 
     train_model(
@@ -44,14 +42,14 @@ if __name__ == "__main__":
         batch_size=16,
         lr=5e-5,
         test=True,
-    )"""
+    )
 
     # If you want to evaluate an accuracy of the model, uncomment this
     # Evaluate model
     """model_config.checkpoint_name = "best_model.pt"
     
     model, tokenizer, checkpoint = load_classification_model(model_config)
-    train_dataloader, valid_dataloader, test_dataloader = load_sdg(
+    train_dataloader, valid_dataloader, test_dataloader = load_dataset(
         model_config, tokenizer, batch_size=32
     )
     evaluate_model(model, model_config, test_dataloader)"""

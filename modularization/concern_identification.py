@@ -1,57 +1,27 @@
 import torch.nn as nn
-from utils.type_utils.layer_type import ActivationType, LayerType
+from utils.model_utils.modular_layers import ModularLayer, ModularLayerList
 
 
-class ConcernIdentificationOutput:
-
-    def feedforward(self, module, previous_state=None):
-        if previous_state is None:
-            previous_state = module.
-
-    def attention(self, module, previous_state=None):
-        pass
-    def propagate_through_layer(self, layer, x_t, activation):
-        if layer.layer_type == LayerType.Linear:
-            layer.weight = self.propagate_through_dense(layer, x_t, activation)
-        elif layer.layer_type == LayerType.Embedding:
-            layer.weight = self.embedding_lookup(self, layer, x_t)
-        elif layer.layer_type == LayerType.LayerNorm:
-            pass
-        elif layer.layer_type == LayerType.Dropout:
-            pass
+class ConcernIdentificationBert:
+    def __init__(self, model, config):
 
 
+    def forward(self, input_ids, attention_mask=None, token_type_ids=None):
+        # processing through embeddings layer
+        embeddings = self.embeddings(input_ids=input_ids, token_type_ids=token_type_ids)
 
-class ConcernIdentificationEncoder:
-    def propagateThroughLayer(self, layer, x_t):
-        if layer.act_fcn is ActivationType.Linear:
-            if layer.layer_type is LayerType.Linear:
-                layer.hidden_state = self.propagate_through_dense(layer, x_t=x_t,
-                                                                apply_activation=is_active)
-            elif layer.layer_type is LayerType.Embedding:
-                return self.embedding_lookup(layer, x_t=x_t)
-            elif layer.layer_type is LayerType.Dropout:
-                return x_t
+        # processing through encoder layer
+        encoder_output = self.encoder(embeddings, attention_mask=attention_mask)
 
-        return layer.hidden_state
+        # processing through pooler layer
+        pooled_output = self.pooler(encoder_output[0])
 
-    def propagate_through_activation(self, layer, x_t, is_active=True):
-        if not is_active or layer.activation == ActivationType.Linear:
-            return x_t
-        if ActivationType.Softmax == layer.activation:
-            x_t = x_t.reshape(layer.num_node)
-            x_t = nn.Softmax(x_t)
-        elif ActivationType.GELU == layer.activation:
-            x_t = nn.GELU(x_t)
-        elif ActivationType.Tanh == layer.activation:
-            x_t = nn.Tanh(x_t)
-        return x_t
+        # Optionally include dropout and classifier
+        dropout_output = self.dropout(pooled_output)
+        logits = self.classifier(dropout_output)
 
-    def embedding_lookup(self, layer, x):
-        pass
+        return logits
 
-class ConcernIdentificationDecoder:
-    pass
+    def get_classfier_weights(self, prev_hidden_states):
 
-class ConcernIdentificationEmbedding:
-    pass
+        return self.classifier(prev_hidden_states)

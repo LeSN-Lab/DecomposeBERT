@@ -1,7 +1,7 @@
 from utils.type_utils.architecture_type import ArchitectureType
 
 import os
-from utils.paths import p
+from utils.paths import p, Paths
 
 
 class ModelConfig:
@@ -21,6 +21,7 @@ class ModelConfig:
         self.model_dir = p.get_dir(p.Config, t)
         self.train_dir = p.get_dir(p.Train, t)
         self.data_dir = p.get_dir(p.Data, _data)
+        self.prep_dir = p.get_dir(self.data_dir, "Prep_data")
 
         # others
         self.model_name = _model_name
@@ -33,9 +34,9 @@ class ModelConfig:
 
     @staticmethod
     def get_architecture(model_name):
-        if "bert" in model_name.lower():
+        if "BERT" in model_name.lower():
             return ArchitectureType.only_encoder
-        elif "gpt" in model_name.lower():
+        elif "GPT" in model_name.lower():
             return ArchitectureType.only_decoder
         else:
             return ArchitectureType.both

@@ -27,6 +27,7 @@ def load_classification_model(model_config):
     if not model_config.is_downloaded:
         print(f"Directory {load_path} does not exist. Saving a new model here.")
         save_classification_model(model_config)
+        model_config.is_downloaded = True
 
     # load model
     model = AutoModelForSequenceClassification.from_pretrained(load_path)

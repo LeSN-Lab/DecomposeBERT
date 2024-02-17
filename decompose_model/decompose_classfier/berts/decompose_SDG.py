@@ -1,5 +1,5 @@
 from utils.model_utils.load_model import *
-from utils.data_utils.load_dataset import load_sdg
+from utils.data_utils.load_dataset import load_dataset
 from modularization.concern_identification import *
 from utils.model_utils.model_config import ModelConfig
 from utils.decompose_utils.common import init_modular_layers, recurse_layers
@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     ci = ConcernIdentification()
 
-    train_dataloader, valid_dataloader, test_dataloader = load_sdg(
+    train_dataloader, valid_dataloader, test_dataloader = load_dataset(
         model_config, tokenizer, batch_size=32
     )
 

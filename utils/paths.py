@@ -36,8 +36,11 @@ class Paths:
         return os.path.isdir(_dirname)
 
     @staticmethod
-    def is_file(_filename):
-        return os.path.isfile(_filename)
+    def is_file(_filenames):
+        for file in _filenames:
+            if os.path.isfile(file) is False:
+                return False
+        return True
 
     def get_dir(self, _dirname1, _dirname2):
         _path = os.path.join(_dirname1, _dirname2)
