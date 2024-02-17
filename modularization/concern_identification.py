@@ -6,9 +6,9 @@ class ConcernIdentificationBert:
     def __init__(self, model, config):
 
 
-    def forward(self, input_ids, attention_mask=None, token_type_ids=None):
+    def forward(self, input_ids, attention_mask=None):
         # processing through embeddings layer
-        embeddings = self.embeddings(input_ids=input_ids, token_type_ids=token_type_ids)
+        embeddings = self.embeddings(input_ids=input_ids)
 
         # processing through encoder layer
         encoder_output = self.encoder(embeddings, attention_mask=attention_mask)

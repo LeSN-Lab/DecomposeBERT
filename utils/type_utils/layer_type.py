@@ -49,7 +49,7 @@ class ActivationType(enum.Enum):
     Softmax = 4
 
     @staticmethod
-    def get_act_fcn_type(layer):
+    def get_act_fn_type(layer):
         if isinstance(layer, GELUActivation):
             return ActivationType.GELU
         elif isinstance(layer, nn.Tanh):
