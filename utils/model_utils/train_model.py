@@ -5,7 +5,7 @@ from torch.optim import AdamW
 from transformers import get_linear_schedule_with_warmup
 from utils.model_utils.load_model import load_classification_model
 from utils.model_utils.evaluate import evaluate_model
-from utils.data_utils.load_dataset import load_dataset
+from utils.dataset_utils.load_dataset import load_dataset
 import torch
 from tqdm import tqdm
 

@@ -4,7 +4,7 @@ import pandas as pd
 import tensorflow_datasets as tfds
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
-from utils.data_utils.text_preprocessing import preprocess_texts
+from utils.dataset_utils.text_preprocessing import preprocess_texts
 from utils.paths import Paths
 from tqdm.auto import tqdm
 import torch

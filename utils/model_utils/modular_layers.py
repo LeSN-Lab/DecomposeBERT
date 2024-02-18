@@ -1,7 +1,11 @@
 import copy
 import math
+
 import torch
 import torch.nn as nn
+from torch.nn.modules.module import T
+from torch.utils.hooks import RemovableHandle
+
 from utils.type_utils.layer_type import ActivationType, LayerType
 from transformers.modeling_outputs import (
     BaseModelOutputWithPoolingAndCrossAttentions,
@@ -53,11 +57,31 @@ class Layer(nn.Module):
             self.shape = None
 
         if self.layer_type != LayerType.Activation:
-            self.weight, self.bias = get_parameters(self.layer)
+            self.weight, self.bias = self.get_parameters()
 
             self.padding_idx = getattr(self.layer, "padding_idx", None)
             self.eps = getattr(self.layer, "eps", None)
             self.dropout_rate = getattr(self.layer, "p", None)
+
+    def get_parameters(self):
+        """
+        Extracts weight and bias parameters from a given layer, if available.
+
+        Returns:
+            tuple: A tuple containing weight and bias parameters (or None if not available).
+        """
+
+        weight = (
+            self.layer.weight.detach()
+            if hasattr(self.layer, "weight") and self.layer.weight is not None
+            else None
+        )
+        bias = (
+            self.layer.bias.detach()
+            if hasattr(self.layer, "bias") and self.layer.bias is not None
+            else None
+        )
+        return weight, bias
 
     def forward(self, x):
         """
@@ -70,8 +94,11 @@ class Layer(nn.Module):
             torch.Tensor: Output tensor.
 
         """
-        if self.act_fn is ActivationType.Linear:
-            out = self.layer(x)
+        if self.act_fn == ActivationType.Linear:
+            if self.layer_type == LayerType.Dropout:
+                out = x
+            else:
+                out = self.layer(x)
         else:
             act_fn_map = {
                 ActivationType.ReLU: nn.ReLU(),
@@ -656,34 +683,6 @@ class ModularClassificationBERT(ModularLayer):
         self.dropout = Layer("dropout", model.dropout)
         self.classifier = Layer("classifier", model.classifier)
 
-    def get_input_embeddings(self):
-        """
-        Returns the word embedding layer.
-
-        Returns:
-            nn.Module: The word embedding layer.
-        """
-        return self.embeddings.word_embeddings
-
-    def set_input_embeddings(self, value):
-        """
-        Sets the word embedding layer.
-
-        Args:
-            value (nn.Module): The new word embedding layer.
-        """
-        self.embeddings.word_embeddings = value
-
-    def _prune_heads(self, heads_to_prune):
-        """
-        Prunes specific attention heads in the encoder layers.
-
-        Args:
-            heads_to_prune (dict): A dictionary mapping layer indices to lists of head indices to prune.
-        """
-        for layer, heads in heads_to_prune.items():
-            self.encoder[layer].attention.prune_heads(heads)
-
     def forward(
         self,
         input_ids,
@@ -752,6 +751,16 @@ class ModularClassificationBERT(ModularLayer):
             attentions=outputs.attentions,
         )
 
+    def _prune_heads(self, heads_to_prune):
+        """
+        Prunes specific attention heads in the encoder layers.
+
+        Args:
+            heads_to_prune (dict): A dictionary mapping layer indices to lists of head indices to prune.
+        """
+        for layer, heads in heads_to_prune.items():
+            self.encoder[layer].attention.prune_heads(heads)
+
     @staticmethod
     def get_head_mask(head_mask, num_hidden_layers):
         """
@@ -772,30 +781,6 @@ class ModularClassificationBERT(ModularLayer):
         else:
             head_mask = [None] * num_hidden_layers
         return head_mask
-
-
-def get_parameters(layer):
-    """
-    Extracts weight and bias parameters from a given layer, if available.
-
-    Args:
-        layer (nn.Module): The layer to extract parameters from.
-
-    Returns:
-        tuple: A tuple containing weight and bias parameters (or None if not available).
-    """
-
-    weight = (
-        layer.weight.detach()
-        if hasattr(layer, "weight") and layer.weight is not None
-        else None
-    )
-    bias = (
-        layer.bias.detach()
-        if hasattr(layer, "bias") and layer.bias is not None
-        else None
-    )
-    return weight, bias
 
 
 def get_extended_attention_mask(attention_mask, input_shape):
