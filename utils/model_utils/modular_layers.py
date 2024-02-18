@@ -22,9 +22,6 @@ class Layer(nn.Module):
         act_fn (ActivationType): Activation function used in the layer.
         weight (torch.nn.Parameter): Weight parameter of the layer (if applicable).
         bias (torch.nn.Parameter): Bias parameter of the layer (if applicable).
-        padding_idx (int): Padding index for embedding layers (if applicable).
-        eps (float): Epsilon value for LayerNorm layers (if applicable).
-        dropout_rate (float): Dropout rate for Dropout layers (if applicable).
 
     """
 
@@ -50,7 +47,7 @@ class Layer(nn.Module):
             self.layer_type = LayerType.Activation
             self.shape = None
 
-        if self.layer_type != LayerType.Activation and self.layer_type != :
+        if self.layer_type not in [LayerType.Activation, LayerType.Dropout, LayerType.LayerNorm, LayerType.Embedding]:
             self.set_zero()
 
     def get_parameters(self):
@@ -89,37 +86,36 @@ class Layer(nn.Module):
 
         return zero_weight, zero_bias
 
-    def extract_parameters(self, node_pos_list):
-        """
-        Extracts weights for specified nodes, keeping the shape of the original weight matrix.
-
-        Args:
-            node_pos_list (List[int]): List of node positions for which to extract the weights.
-
-        Returns:
-            torch.Tensor: Tensor with the same shape as the original weight matrix, where
-                          weights not corresponding to `node_pos_list` are set to zero.
-        """
-        extracted_weights = self.set_zero()
-
-        for pos in node_pos_list:
-            extracted_weights[pos, :] = self.layer.weight[pos, :]
-
-        return
-
     def disable_node(self, node_pos_list):
         """
         Sets the weights corresponding to specified input nodes to zero,
         keeping the shape of the original weight matrix.
 
         Args:
-            node_pos_list (List[int]): List of input node positions to be zeroed.
+            node_pos_list (List[int]): List of input node positions to be disabled.
         """
         for pos in node_pos_list:
-            self.layer.weight.data[:, pos] = 0.0
+            self.weight.data[:, pos] = 0.0
+            if self.bias is not None:
+                self.bias.data[pos] = 0.0
 
-    def restore_node(self, node_pos_list):
-        self.weight += self.extract_parameters(node_pos_list)
+    def activate_node(self, node_pos_list):
+        """
+        Activates specified nodes if they are inactive. A node is considered inactive if
+        all its weights are zero. This method restores the weights for inactive nodes from
+        a backup or predefined state.
+
+        Args:
+            node_pos_list (List[int]): List of node positions to activate.
+        """
+        if self.layer_type not in [LayerType.Activation, LayerType.Dropout, LayerType.LayerNorm, LayerType.Embedding]:
+            original_weight, original_bias = self.get_parameters()
+            if original_weight is not None:
+                for pos in node_pos_list:
+                    self.weight.data[:, pos] = original_weight[:, pos]
+            if original_bias is not None:
+                for pos in node_pos_list:
+                    self.bias.data[pos] = original_bias[pos]
 
     def forward(self, x):
         """
@@ -177,19 +173,6 @@ class ModularLayer(nn.Module):
             if layer.name == name:
                 return layer
         return None
-
-    def get_copy(self, name):
-        """
-        Creates a deep copy of a layer by its name.
-
-        Args:
-            name (str): The name of the layer to copy.
-
-        Returns:
-            Layer: A deep copy of the layer object if found, otherwise None.
-        """
-        layer = self.get(name)
-        return copy.deepcopy(layer) if layer else None
 
     def get_type(self, name):
         """
@@ -491,7 +474,7 @@ class AttentionModule(ModularLayer):
             return
 
         # Filter and find indices of prunable heads considering already pruned ones
-        heads, index = find_pruneable_heads_and_indices(
+        heads, index = find_prunable_heads_and_indices(
             heads,
             self.self_attention.num_attention_heads,
             self.self_attention.attention_head_size,
@@ -688,13 +671,13 @@ class ModularClassificationBERT(ModularLayer):
         super().__init__("bert")
         self.num_labels = config.num_labels
         self.config = config
+        copied_model = copy.deepcopy(model)
+        self.embeddings = EmbeddingModule(copied_model.bert.embeddings, config)
+        self.encoder = EncoderModule(copied_model.bert.encoder.layer, config)
+        self.pooler = PoolerModule(copied_model.bert.pooler, config)
 
-        self.embeddings = EmbeddingModule(model.bert.embeddings, config)
-        self.encoder = EncoderModule(model.bert.encoder.layer, config)
-        self.pooler = PoolerModule(model.bert.pooler, config)
-
-        self.dropout = Layer("dropout", model.dropout)
-        self.classifier = Layer("classifier", model.classifier)
+        self.dropout = Layer("dropout", copied_model.dropout)
+        self.classifier = Layer("classifier", copied_model.classifier)
 
     def forward(
         self,
@@ -825,7 +808,7 @@ def get_extended_attention_mask(attention_mask, input_shape):
         )
 
 
-def find_pruneable_heads_and_indices(heads, n_heads, head_size, already_pruned_heads):
+def find_prunable_heads_and_indices(heads, n_heads, head_size, already_pruned_heads):
     """
     Finds the heads and their indices taking `already_pruned_heads` into account.
 
