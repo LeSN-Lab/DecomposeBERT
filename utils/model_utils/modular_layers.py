@@ -3,9 +3,6 @@ import math
 
 import torch
 import torch.nn as nn
-from torch.nn.modules.module import T
-from torch.utils.hooks import RemovableHandle
-
 from utils.type_utils.layer_type import ActivationType, LayerType
 from transformers.modeling_outputs import (
     BaseModelOutputWithPoolingAndCrossAttentions,
@@ -32,16 +29,13 @@ class Layer(nn.Module):
     """
 
     def __init__(self, name, layer):
-        super(Layer, self).__init__()
+        super().__init__()
         self.name = name
         self.layer = layer
         self.layer_type = None
         self.shape = None
         self.act_fn = None
         self.weight, self.bias = None, None
-        self.padding_idx = None
-        self.eps = None
-        self.dropout_rate = None
         self.init_states()
 
     def init_states(self):
@@ -56,12 +50,8 @@ class Layer(nn.Module):
             self.layer_type = LayerType.Activation
             self.shape = None
 
-        if self.layer_type != LayerType.Activation:
-            self.weight, self.bias = self.get_parameters()
-
-            self.padding_idx = getattr(self.layer, "padding_idx", None)
-            self.eps = getattr(self.layer, "eps", None)
-            self.dropout_rate = getattr(self.layer, "p", None)
+        if self.layer_type != LayerType.Activation and self.layer_type != :
+            self.set_zero()
 
     def get_parameters(self):
         """
@@ -70,6 +60,8 @@ class Layer(nn.Module):
         Returns:
             tuple: A tuple containing weight and bias parameters (or None if not available).
         """
+        if self.layer_type == LayerType.Activation:
+            return None, None
 
         weight = (
             self.layer.weight.detach()
@@ -83,6 +75,52 @@ class Layer(nn.Module):
         )
         return weight, bias
 
+    def set_zero(self):
+        """
+        Returns new tensors of zeros with the same shape as the layer's weight and bias.
+        """
+        zero_weight, zero_bias = None, None
+
+        if hasattr(self.layer, 'weight') and self.layer.weight is not None:
+            zero_weight = torch.zeros_like(self.layer.weight)
+
+        if hasattr(self.layer, 'bias') and self.layer.bias is not None:
+            zero_bias = torch.zeros_like(self.layer.bias)
+
+        return zero_weight, zero_bias
+
+    def extract_parameters(self, node_pos_list):
+        """
+        Extracts weights for specified nodes, keeping the shape of the original weight matrix.
+
+        Args:
+            node_pos_list (List[int]): List of node positions for which to extract the weights.
+
+        Returns:
+            torch.Tensor: Tensor with the same shape as the original weight matrix, where
+                          weights not corresponding to `node_pos_list` are set to zero.
+        """
+        extracted_weights = self.set_zero()
+
+        for pos in node_pos_list:
+            extracted_weights[pos, :] = self.layer.weight[pos, :]
+
+        return
+
+    def disable_node(self, node_pos_list):
+        """
+        Sets the weights corresponding to specified input nodes to zero,
+        keeping the shape of the original weight matrix.
+
+        Args:
+            node_pos_list (List[int]): List of input node positions to be zeroed.
+        """
+        for pos in node_pos_list:
+            self.layer.weight.data[:, pos] = 0.0
+
+    def restore_node(self, node_pos_list):
+        self.weight += self.extract_parameters(node_pos_list)
+
     def forward(self, x):
         """
         Forward pass through the wrapped layer.
@@ -92,43 +130,26 @@ class Layer(nn.Module):
 
         Returns:
             torch.Tensor: Output tensor.
-
         """
-        if self.act_fn == ActivationType.Linear:
-            if self.layer_type == LayerType.Dropout:
-                out = x
-            else:
-                out = self.layer(x)
-        else:
-            act_fn_map = {
-                ActivationType.ReLU: nn.ReLU(),
-                ActivationType.GELU: nn.GELU(),
-                ActivationType.Tanh: nn.Tanh(),
-            }
-            out = act_fn_map[self.act_fn](x)
-        return out
+        return self.layer(x)
 
 
-class ModularLayer(nn.ModuleList):
+class ModularLayer(nn.Module):
     """
     A container for managing a sequence of layers, allowing for modular construction of neural networks.
 
     Attributes:
         name (str): Name of the modular layer.
-        layers (nn.ModuleList): List of layers contained within this module.
     """
 
     def __init__(self, name):
-        super().__init__()
+        super(ModularLayer, self).__init__()
         self.name = name
-        self.layers = nn.ModuleList()  # List to hold individual layers
+        self.layers = nn.ModuleList()
 
     def append(self, layer):
         """
         Appends a new layer to the modular layer.
-
-        Args:
-            layer (Layer): The layer to be added.
         """
         self.layers.append(layer)
 
@@ -141,11 +162,6 @@ class ModularLayer(nn.ModuleList):
         """
         for name, layer in layers.named_children():
             self.append(Layer(name, layer))
-
-    def forward(self, *args, **kwargs):
-        raise NotImplementedError(
-            "Forward pass not implemented in base ModularLayer class."
-        )
 
     def get(self, name):
         """
@@ -195,7 +211,6 @@ class EmbeddingModule(ModularLayer):
 
     Attributes:
         config (object): Configuration.
-        word_embeddings (Layer): The word embedding layer.
         position_embeddings (Layer): The positional embedding layer.
         token_type_embeddings (Layer): The token type embedding layer.
         position_embedding_type (str): Type of position embeddings ("absolute").
@@ -206,10 +221,12 @@ class EmbeddingModule(ModularLayer):
         self.config = config
         self.append_layers(layers)  # Add embedding layers to this module
 
-        # Retrieve specific embedding layers for convenience
+        # Automatically retrieve and assign embedding layers
         self.word_embeddings = self.get("word_embeddings")
         self.position_embeddings = self.get("position_embeddings")
         self.token_type_embeddings = self.get("token_type_embeddings")
+        self.LayerNorm = self.get("LayerNorm")
+        self.dropout = self.get("dropout")
 
         # Determine position embedding type
         self.position_embedding_type = getattr(
@@ -248,14 +265,10 @@ class EmbeddingModule(ModularLayer):
         # Perform word embeddings and token type embeddings
         inputs_embeds = self.word_embeddings(input_ids)
         token_type_embeddings = self.token_type_embeddings(token_type_ids)
+        position_embeddings = self.position_embeddings(position_ids)
 
-        # Combine word and token type embeddings
-        embeddings = inputs_embeds + token_type_embeddings
-
-        # Add positional embeddings if using "absolute" type
-        if self.position_embedding_type == "absolute":
-            position_embeddings = self.position_embeddings(position_ids)
-            embeddings += position_embeddings
+        # Combine embeddings
+        embeddings = inputs_embeds + position_embeddings + token_type_embeddings
 
         # Apply any additional embedding layers (e.g., LayerNorm)
         for layer in self.layers:
@@ -688,7 +701,6 @@ class ModularClassificationBERT(ModularLayer):
         input_ids,
         attention_mask=None,
         head_mask=None,
-        labels=None,
     ):
         """
         Performs the forward pass of the model.
@@ -697,7 +709,6 @@ class ModularClassificationBERT(ModularLayer):
             input_ids (torch.Tensor): Input token IDs.
             attention_mask (torch.Tensor, optional): Attention mask.
             head_mask (torch.Tensor, optional): Attention head mask.
-            labels (torch.Tensor, optional): Labels for training.
 
         Returns:
             BaseModelOutputWithPoolingAndCrossAttentions: Structured output containing:
@@ -750,6 +761,10 @@ class ModularClassificationBERT(ModularLayer):
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
         )
+
+    def register_hook(self, hook):
+        self.classifier.register_forward_hook(hook)
+        self.pooler.register_forward_hook(hook)
 
     def _prune_heads(self, heads_to_prune):
         """
@@ -840,13 +855,14 @@ def prune_linear_layer(layer, index, dim=0):
     Prune a linear layer to keep only entries in index.
 
     Args:
-        layer (`torch.nn.Linear`): The layer to prune.
+        layer (Layer): The layer to prune.
         index (`torch.LongTensor`): The indices to keep in the layer.
         dim (`int`, *optional*, defaults to 0): The dimension on which to keep the indices.
 
     Returns:
-        nn.Linear: The pruned layer as a new layer with gradients enabled.
+        Layer: The pruned layer as a new layer with gradients enabled.
     """
+    layer = layer.layer
     index = index.to(layer.weight.device)
     # Extract and clone relevant weight and bias portions
     weight = layer.weight.index_select(dim, index).clone().detach()

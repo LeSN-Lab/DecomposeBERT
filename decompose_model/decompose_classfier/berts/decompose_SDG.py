@@ -10,7 +10,6 @@ from tqdm import tqdm
 import torch
 import copy
 from datetime import datetime
-
 if __name__ == "__main__":
     model_name = "bert-base-uncased"
     model_dir = "bert"

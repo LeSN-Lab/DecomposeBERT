@@ -39,6 +39,19 @@ class LayerType(enum.Enum):
             else:
                 return layer.out_features  # [out_features, in_features]
 
+    @staticmethod
+    def get_layer_name(layer):
+        if isinstance(layer, nn.Linear):
+            return "Linear"
+        elif isinstance(layer, nn.LayerNorm):
+            return "LayerNorm"
+        elif isinstance(layer, nn.Dropout):
+            return "Dropout"
+        elif isinstance(layer, nn.Embedding):
+            return "Embedding"
+        else:
+            raise "Not recognized type"
+
 
 class ActivationType(enum.Enum):
     # Non-linear Activations
