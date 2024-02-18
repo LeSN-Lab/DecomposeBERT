@@ -2,9 +2,11 @@ import copy
 import math
 import torch
 import torch.nn as nn
-import inspect
 from utils.type_utils.layer_type import ActivationType, LayerType
-from transformers.modeling_outputs import BaseModelOutputWithPoolingAndCrossAttentions
+from transformers.modeling_outputs import (
+    BaseModelOutputWithPoolingAndCrossAttentions,
+    SequenceClassifierOutput,
+)
 
 
 class Layer(nn.Module):
@@ -209,7 +211,7 @@ class EmbeddingModule(ModularLayer):
         seq_length = input_shape[1]  # Length of input sequences
 
         # Prepare position IDs for the specific sequence length
-        position_ids = self.position_ids[:, 0 : seq_length + 0].to(input_ids.device)
+        position_ids = self.position_ids[:, 0:seq_length].to(input_ids.device)
 
         # Create token type IDs (all zeros for now)
         token_type_ids = torch.zeros(
@@ -602,13 +604,12 @@ class PoolerModule(ModularLayer):
 
     Attributes:
         config (object): Configuration.
-        pooling_layers (nn.ModuleList): List of pooling layers.
     """
 
     def __init__(self, layers, config):
         super().__init__("pooler")
         self.config = config
-        self.pooling_layers = nn.ModuleList(layers)
+        self.append_layers(layers)
 
     def forward(self, input_tensor):
         """
@@ -620,7 +621,7 @@ class PoolerModule(ModularLayer):
         Returns:
             torch.Tensor: The pooled output.
         """
-        for layer in self.pooling_layers:
+        for layer in self.layers:
             input_tensor = layer(input_tensor)
         return input_tensor
 
@@ -647,11 +648,8 @@ class ModularClassificationBERT(ModularLayer):
 
         self.embeddings = EmbeddingModule(model.bert.embeddings, config)
         self.encoder = EncoderModule(model.bert.encoder.layer, config)
-        self.pooler = (
-            PoolerModule(model.bert.pooler, config)
-            if config.pooler_hidden_size
-            else None
-        )
+        self.pooler = PoolerModule(model.bert.pooler, config)
+
         self.dropout = Layer("dropout", model.dropout)
         self.classifier = Layer("classifier", model.classifier)
 
@@ -686,7 +684,6 @@ class ModularClassificationBERT(ModularLayer):
     def forward(
         self,
         input_ids,
-        position_ids=None,
         attention_mask=None,
         head_mask=None,
         labels=None,
@@ -696,7 +693,6 @@ class ModularClassificationBERT(ModularLayer):
 
         Args:
             input_ids (torch.Tensor): Input token IDs.
-            position_ids (torch.Tensor, optional): Token position IDs.
             attention_mask (torch.Tensor, optional): Attention mask.
             head_mask (torch.Tensor, optional): Attention head mask.
             labels (torch.Tensor, optional): Labels for training.
@@ -712,43 +708,44 @@ class ModularClassificationBERT(ModularLayer):
         input_shape = input_ids.size()
 
         if attention_mask is None:
-            attention_mask = torch.ones(input_shape)
-            attention_mask = attention_mask.to(input_ids.device)
+            attention_mask = torch.ones(input_shape, device=input_ids.device)
 
         # Create attention mask if not provided
-        attention_mask = (
-            self.get_extended_attention_mask(attention_mask, input_shape)
-            if attention_mask is None
-            else attention_mask
-        )
+        attention_mask = get_extended_attention_mask(attention_mask, input_shape)
 
         # Prepare head mask if needed
         head_mask = self.get_head_mask(head_mask, self.config.num_hidden_layers)
 
         # Get embeddings (word, positional)
-        embedding_output = self.embeddings(
-            input_ids=input_ids, position_ids=position_ids
-        )
+        embedding_output = self.embeddings(input_ids=input_ids)
 
         # Pass through encoder with attention and head masks
         encoder_outputs = self.encoder(
-            hidden_states=embedding_output,
+            input_tensor=embedding_output,
             attention_mask=attention_mask,
             head_mask=head_mask,
         )
 
-        # Extract sequence output and apply pooling if available
-        pooled_output = (
-            self.pooler(encoder_outputs.last_hidden_state)
-            if self.pooler is not None
-            else None
-        )
+        sequence_output = encoder_outputs[0]
 
-        return BaseModelOutputWithPoolingAndCrossAttentions(
+        # Extract sequence output and apply pooling if available
+        pooled_output = self.pooler(sequence_output)
+
+        outputs = BaseModelOutputWithPoolingAndCrossAttentions(
             last_hidden_state=encoder_outputs.last_hidden_state,
             pooler_output=pooled_output,
             hidden_states=encoder_outputs.hidden_states,
             attentions=encoder_outputs.attentions,
+        )
+
+        pooled_output = outputs.pooler_output
+        pooled_output = self.dropout(pooled_output)
+        logits = self.classifier(pooled_output)
+
+        return SequenceClassifierOutput(
+            logits=logits,
+            hidden_states=outputs.hidden_states,
+            attentions=outputs.attentions,
         )
 
     @staticmethod
