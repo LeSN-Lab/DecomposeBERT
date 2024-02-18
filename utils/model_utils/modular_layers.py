@@ -610,20 +610,23 @@ class PoolerModule(ModularLayer):
         super().__init__("pooler")
         self.config = config
         self.append_layers(layers)
+        self.dense = self.get("dense")
+        self.activation = self.get("activation")
 
-    def forward(self, input_tensor):
+    def forward(self, hidden_states):
         """
         Passes the input through the pooling layers.
 
         Args:
-            input_tensor (torch.Tensor): Input tensor to be pooled.
+            hidden_states (torch.Tensor): Input tensor to be pooled.
 
         Returns:
             torch.Tensor: The pooled output.
         """
-        for layer in self.layers:
-            input_tensor = layer(input_tensor)
-        return input_tensor
+        first_token_tensor = hidden_states[:, 0]
+        pooled_output = self.dense(first_token_tensor)
+        pooled_output = self.activation(pooled_output)
+        return pooled_output
 
 
 class ModularClassificationBERT(ModularLayer):
@@ -706,9 +709,10 @@ class ModularClassificationBERT(ModularLayer):
 
         """
         input_shape = input_ids.size()
+        device = input_ids.device
 
         if attention_mask is None:
-            attention_mask = torch.ones(input_shape, device=input_ids.device)
+            attention_mask = torch.ones(input_shape, device=device)
 
         # Create attention mask if not provided
         attention_mask = get_extended_attention_mask(attention_mask, input_shape)
@@ -726,7 +730,7 @@ class ModularClassificationBERT(ModularLayer):
             head_mask=head_mask,
         )
 
-        sequence_output = encoder_outputs[0]
+        sequence_output = encoder_outputs.last_hidden_state
 
         # Extract sequence output and apply pooling if available
         pooled_output = self.pooler(sequence_output)
