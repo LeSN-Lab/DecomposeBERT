@@ -34,6 +34,7 @@ class Layer(nn.Module):
         self.act_fn = None
         self.weight, self.bias = None, None
         self.init_states()
+        self.node_pos_list = []
 
     def init_states(self):
         self.layer_type = None
@@ -47,7 +48,12 @@ class Layer(nn.Module):
             self.layer_type = LayerType.Activation
             self.shape = None
 
-        if self.layer_type not in [LayerType.Activation, LayerType.Dropout, LayerType.LayerNorm, LayerType.Embedding]:
+        if self.layer_type not in [
+            LayerType.Activation,
+            LayerType.Dropout,
+            LayerType.LayerNorm,
+            LayerType.Embedding,
+        ]:
             self.set_zero()
 
     def get_parameters(self):
@@ -78,10 +84,10 @@ class Layer(nn.Module):
         """
         zero_weight, zero_bias = None, None
 
-        if hasattr(self.layer, 'weight') and self.layer.weight is not None:
+        if hasattr(self.layer, "weight") and self.layer.weight is not None:
             zero_weight = torch.zeros_like(self.layer.weight)
 
-        if hasattr(self.layer, 'bias') and self.layer.bias is not None:
+        if hasattr(self.layer, "bias") and self.layer.bias is not None:
             zero_bias = torch.zeros_like(self.layer.bias)
 
         return zero_weight, zero_bias
@@ -108,7 +114,12 @@ class Layer(nn.Module):
         Args:
             node_pos_list (List[int]): List of node positions to activate.
         """
-        if self.layer_type not in [LayerType.Activation, LayerType.Dropout, LayerType.LayerNorm, LayerType.Embedding]:
+        if self.layer_type not in [
+            LayerType.Activation,
+            LayerType.Dropout,
+            LayerType.LayerNorm,
+            LayerType.Embedding,
+        ]:
             original_weight, original_bias = self.get_parameters()
             if original_weight is not None:
                 for pos in node_pos_list:
@@ -116,6 +127,12 @@ class Layer(nn.Module):
             if original_bias is not None:
                 for pos in node_pos_list:
                     self.bias.data[pos] = original_bias[pos]
+
+    def get(self, name):
+        if self.name == name:
+            return self
+        else:
+            return None
 
     def forward(self, x):
         """
@@ -170,9 +187,17 @@ class ModularLayer(nn.Module):
             Layer: The layer object if found, otherwise None.
         """
         for layer in self.layers:
-            if layer.name == name:
+            if layer.name != name:
+                sub_layer = layer.get(name)
+                if sub_layer is not None:
+                    return sub_layer
+            else:
                 return layer
         return None
+
+    def get_layer(self, name):
+        layer = self.get(name)
+        return layer if layer else None
 
     def get_type(self, name):
         """
@@ -233,7 +258,6 @@ class EmbeddingModule(ModularLayer):
         Returns:
             torch.Tensor: The embedded representation of the input sequences.
         """
-
         input_shape = input_ids.size()
         seq_length = input_shape[1]  # Length of input sequences
 
@@ -246,9 +270,11 @@ class EmbeddingModule(ModularLayer):
         )
 
         # Perform word embeddings and token type embeddings
-        inputs_embeds = self.word_embeddings(input_ids)
-        token_type_embeddings = self.token_type_embeddings(token_type_ids)
-        position_embeddings = self.position_embeddings(position_ids)
+        inputs_embeds = self.word_embeddings.layer(input_ids)
+
+        token_type_embeddings = self.token_type_embeddings.layer(token_type_ids)
+
+        position_embeddings = self.position_embeddings.layer(position_ids)
 
         # Combine embeddings
         embeddings = inputs_embeds + position_embeddings + token_type_embeddings
@@ -260,7 +286,7 @@ class EmbeddingModule(ModularLayer):
                 "position_embeddings",
                 "token_type_embeddings",
             ]:
-                embeddings = layer(embeddings)
+                embeddings = layer.layer(embeddings)
 
         return embeddings
 
@@ -334,10 +360,11 @@ class SelfAttentionModule(ModularLayer):
         Returns:
             tuple: (torch.Tensor, torch.Tensor) representing the context layer and attention probabilities.
         """
-        mixed_query_layer = self.query(hidden_states)
 
-        key_layer = self.transpose_for_scores(self.key(hidden_states))
-        value_layer = self.transpose_for_scores(self.value(hidden_states))
+        mixed_query_layer = self.query.layer(hidden_states)
+
+        key_layer = self.transpose_for_scores(self.key.layer(hidden_states))
+        value_layer = self.transpose_for_scores(self.value.layer(hidden_states))
         query_layer = self.transpose_for_scores(mixed_query_layer)
 
         # Calculate attention scores
@@ -350,7 +377,7 @@ class SelfAttentionModule(ModularLayer):
         attention_probs = nn.functional.softmax(attention_scores, dim=-1)
 
         # Apply dropout and head mask
-        attention_probs = self.dropout(attention_probs)
+        attention_probs = self.dropout.layer(attention_probs)
         if head_mask is not None:
             attention_probs = attention_probs * head_mask
 
@@ -372,9 +399,9 @@ class SelfAttentionModule(ModularLayer):
         """
 
         # Prune each of the query, key, and value linear layers
-        self.query = prune_linear_layer(self.query.layer, index)
-        self.key = prune_linear_layer(self.key.layer, index)
-        self.value = prune_linear_layer(self.value.layer, index)
+        self.query.layer = prune_linear_layer(self.query.layer, index)
+        self.key.layer = prune_linear_layer(self.key.layer, index)
+        self.value.layer = prune_linear_layer(self.value.layer, index)
         self.num_attention_heads = self.num_attention_heads - len(heads)
         self.all_head_size = self.attention_head_size * self.num_attention_heads
 
@@ -419,9 +446,9 @@ class OutputModule(ModularLayer):
         Returns:
             torch.Tensor: Processed and projected output.
         """
-        hidden_states = self.dense(hidden_states)
-        hidden_states = self.dropout(hidden_states)
-        hidden_states = self.LayerNorm(hidden_states + input_tensor)
+        hidden_states = self.dense.layer(hidden_states)
+        hidden_states = self.dropout.layer(hidden_states)
+        hidden_states = self.LayerNorm.layer(hidden_states + input_tensor)
         return hidden_states
 
 
@@ -511,7 +538,7 @@ class FeedforwardModule(ModularLayer):
         """
         output_tensor = input_tensor
         for layer in self.layers:
-            output_tensor = layer(output_tensor)
+            output_tensor = layer.layer(output_tensor)
         return output_tensor
 
 
@@ -597,8 +624,6 @@ class EncoderModule(ModularLayer):
                 - hidden_states: A list of hidden states at each block.
                 - attentions: A list of attention outputs at each block.
         """
-        all_hidden_states = (input_tensor,)  # Include initial input
-        all_attentions = ()
 
         for i, encoder_block in enumerate(self.encoder_blocks):
             # Optionally apply head mask for selective attention
@@ -611,14 +636,8 @@ class EncoderModule(ModularLayer):
                 layer_head_mask,
             )
             input_tensor = block_outputs[0]  # Updated input for next block
-            all_attentions = all_attentions + (block_outputs[1],)
-            all_hidden_states = all_hidden_states + (input_tensor,)
 
-        return BaseModelOutputWithPoolingAndCrossAttentions(
-            last_hidden_state=input_tensor,
-            hidden_states=all_hidden_states,
-            attentions=all_attentions,
-        )
+        return input_tensor
 
 
 class PoolerModule(ModularLayer):
@@ -647,8 +666,8 @@ class PoolerModule(ModularLayer):
             torch.Tensor: The pooled output.
         """
         first_token_tensor = hidden_states[:, 0]
-        pooled_output = self.dense(first_token_tensor)
-        pooled_output = self.activation(pooled_output)
+        pooled_output = self.dense.layer(first_token_tensor)
+        pooled_output = self.activation.layer(pooled_output)
         return pooled_output
 
 
@@ -715,7 +734,6 @@ class ModularClassificationBERT(ModularLayer):
 
         # Get embeddings (word, positional)
         embedding_output = self.embeddings(input_ids=input_ids)
-
         # Pass through encoder with attention and head masks
         encoder_outputs = self.encoder(
             input_tensor=embedding_output,

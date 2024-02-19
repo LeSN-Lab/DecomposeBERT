@@ -60,8 +60,8 @@ if __name__ == "__main__":
         ci = ConcernIdentificationBert(config)
 
         for j in ids[i]:
-            index = ids[i][0]
-            input_tensor = Tensor.to_tensor(index, dtype=torch.long, device=device).unsqueeze(0)
+            x = ids[i][0]
+            input_tensor = Tensor.to_tensor(x, dtype=torch.long, device=device).unsqueeze(0)
 
             # Initialize dominant module
             dominant_module.embeddings = copy.deepcopy(module.embeddings)
@@ -69,21 +69,7 @@ if __name__ == "__main__":
             # Initialize non-dominant module
             non_dominant_module.embeddings = copy.deepcopy(module.embeddings)
 
-            ci.propagate(dominant_module, index)
-
-    #
-    #
-    #     positiveConcern = init_modular_layers(model)
-    #     negativeConcern = init_modular_layers(model)
-    #
-
-        ids_tensor = torch.tensor(ids[label], dtype=torch.long).to(model_config.device)
-        attention_masks_tensor = torch.tensor(attention_masks[label], dtype=torch.long).to(model_config.device)
-        labels_tensor = torch.tensor(labels[label], dtype=torch.long).to(model_config.device)
-
-    #     with torch.no_grad():
-    #         b_input_ids = batch["input_ids"].to(model_config.device)
-    #         b_attention_mask = batch["attention_mask"].to(model_config.device)
-    #         b_labels = batch["labels"].to(model_config.device)
-    #         for batch in tqdm(train_dataloader, desc="Concern Identification"):
-    #             recurse_layers(model, ci.propagateThroughLayer)
+            ci.propagate(dominant_module, x)
+            from utils.decompose_utils.concern_identification import print_active_nodes_count
+            dominant_module.register_hook(print_active_nodes_count)
+            t = dominant_module(input_tensor).logits
