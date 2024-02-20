@@ -1,34 +1,53 @@
-import torch.nn as nn
-import torch
-
 
 class ConcernIdentificationBert:
     def __init__(self, config):
         self.config = config
         self.activations = []
 
-    def hook_fn(self, module, input, output):
-        # 활성화된 노드의 위치를 기록합니다. 여기서는 단순히 값이 0보다 큰 노드를 활성화된 것으로 가정합니다.
-        activated_nodes = output > 0
-        self.activations.append({module.name: activated_nodes.float()})
-
-    def register_hook(self, module):
-        # 모듈에 대한 후크를 등록합니다.
-        module.register_forward_hook(self.hook_fn)
-
     def propagate(self, module, input_tensor):
-        # 모델에 입력을 전달하고, 활성화된 노드의 위치를 반환합니다.
-        output_tensor = module(input_tensor)
+        # propagate input tensor to the module
+        output_tensor = module.embeddings(input_tensor)
+        output_tensor = module.encoder(output_tensor)
+        output_tensor = module.pooler(output_tensor)
+        output_tensor = module.dropout(output_tensor)
+        output_tensor = module.classifier(output_tensor)
         return output_tensor
 
-    def analyze_activations(self):
-        # 활성화된 노드의 분포를 분석합니다. 예를 들어, 평균 활성화율을 계산할 수 있습니다.
-        mean_activation = torch.mean(torch.cat(self.activations, dim=0), dim=0)
-        return mean_activation
+    @staticmethod
+    def propagate_encoder(module, input_tensor):
+        # check heads, concern and prune head
+        # def encoder_hook(module, input, output):
+        #     pass
+        #
+        # def attention_hook(module, input, output):
+        #     pass
+        #
+        # def output_hook(module, input, output):
+        #     pass
+        #
+        # module.register_forward_hook(encoder_hook)
+        # for layer in module.encoder.layers:
+        #     layer.register_forward_hook()
+        output_tensor = module(input_tensor)
+        # module.remove()
+        return output_tensor
 
+    @staticmethod
+    def propagate_pooler(module, input_tensor):
+        def pooler_hook(module, input, output):
+            print(module.dense.shape)
+            pass
+        module.register_forward_hook(pooler_hook)
+        output_tensor = module(input_tensor)
+        module.remove()
+        return output_tensor
 
-def print_active_nodes_count(module, input, output):
-
-    node_count = torch.sum(output > 0).item()
-    print(f"{module.name}0 이상인 노드 개수: {node_count}")
+    @staticmethod
+    def propagate_classifier(module, input_tensor):
+        def classifier_hook(module, input, output):
+            pass
+        module.register_forward_hook(classifier_hook)
+        output_tensor = module(input_tensor)
+        module.remove()
+        return output_tensor
 

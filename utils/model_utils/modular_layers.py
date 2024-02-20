@@ -34,7 +34,6 @@ class Layer(nn.Module):
         self.act_fn = None
         self.weight, self.bias = None, None
         self.init_states()
-        self.node_pos_list = []
 
     def init_states(self):
         self.layer_type = None
@@ -54,7 +53,7 @@ class Layer(nn.Module):
             LayerType.LayerNorm,
             LayerType.Embedding,
         ]:
-            self.set_zero()
+            self.weight, self.bias = self.get_parameters()
 
     def get_parameters(self):
         """
@@ -144,7 +143,8 @@ class Layer(nn.Module):
         Returns:
             torch.Tensor: Output tensor.
         """
-        return self.layer(x)
+        if self.layer_type != LayerType.Activation:
+            return self.layer(x)
 
 
 class ModularLayer(nn.Module):
@@ -446,9 +446,11 @@ class OutputModule(ModularLayer):
         Returns:
             torch.Tensor: Processed and projected output.
         """
+
         hidden_states = self.dense.layer(hidden_states)
         hidden_states = self.dropout.layer(hidden_states)
         hidden_states = self.LayerNorm.layer(hidden_states + input_tensor)
+
         return hidden_states
 
 
@@ -488,7 +490,7 @@ class AttentionModule(ModularLayer):
         self_outputs = self.self_attention(hidden_states, attention_mask, head_mask)
         attention_output = self.output(self_outputs[0], hidden_states)
         outputs = (attention_output,) + self_outputs[1:]
-        return outputs
+        return outputs  # output tensor, other output tensors
 
     def prune_heads(self, heads):
         """
@@ -526,6 +528,9 @@ class FeedforwardModule(ModularLayer):
         self.config = config
         self.append_layers(layers)
 
+        self.dense = self.get("dense")
+        self.intermediate_act_fn = self.get("intermediate_act_fn")
+
     def forward(self, input_tensor):
         """
         Passes the input through each layer in the sequence.
@@ -536,9 +541,9 @@ class FeedforwardModule(ModularLayer):
         Returns:
             torch.Tensor: The output tensor after processing through all layers.
         """
-        output_tensor = input_tensor
-        for layer in self.layers:
-            output_tensor = layer.layer(output_tensor)
+        output_tensor = self.dense.layer(input_tensor)
+        output_tensor = self.intermediate_act_fn.layer(output_tensor)
+
         return output_tensor
 
 
@@ -582,7 +587,6 @@ class EncoderBlock(ModularLayer):
 
         # First feed-forward pass
         intermediate_output = self.feed_forward1(attention_output)
-
         # Second feed-forward pass with output projection
         layer_output = self.feed_forward2(
             intermediate_output, attention_output
@@ -624,7 +628,6 @@ class EncoderModule(ModularLayer):
                 - hidden_states: A list of hidden states at each block.
                 - attentions: A list of attention outputs at each block.
         """
-
         for i, encoder_block in enumerate(self.encoder_blocks):
             # Optionally apply head mask for selective attention
             layer_head_mask = head_mask[i] if head_mask is not None else None
@@ -741,27 +744,16 @@ class ModularClassificationBERT(ModularLayer):
             head_mask=head_mask,
         )
 
-        sequence_output = encoder_outputs.last_hidden_state
+        sequence_output = encoder_outputs
 
         # Extract sequence output and apply pooling if available
         pooled_output = self.pooler(sequence_output)
 
-        outputs = BaseModelOutputWithPoolingAndCrossAttentions(
-            last_hidden_state=encoder_outputs.last_hidden_state,
-            pooler_output=pooled_output,
-            hidden_states=encoder_outputs.hidden_states,
-            attentions=encoder_outputs.attentions,
-        )
-
-        pooled_output = outputs.pooler_output
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
 
-        return SequenceClassifierOutput(
-            logits=logits,
-            hidden_states=outputs.hidden_states,
-            attentions=outputs.attentions,
-        )
+        return logits
+
 
     def register_hook(self, hook):
         self.classifier.register_forward_hook(hook)
