@@ -3,6 +3,7 @@ import math
 
 import torch
 import torch.nn as nn
+from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 from utils.type_utils.layer_type import ActivationType, LayerType
 from transformers.modeling_outputs import (
     BaseModelOutputWithPoolingAndCrossAttentions,
@@ -77,56 +78,16 @@ class Layer(nn.Module):
         )
         return weight, bias
 
-    def set_zero(self):
-        """
-        Returns new tensors of zeros with the same shape as the layer's weight and bias.
-        """
-        zero_weight, zero_bias = None, None
-
-        if hasattr(self.layer, "weight") and self.layer.weight is not None:
-            zero_weight = torch.zeros_like(self.layer.weight)
-
-        if hasattr(self.layer, "bias") and self.layer.bias is not None:
-            zero_bias = torch.zeros_like(self.layer.bias)
-
-        return zero_weight, zero_bias
-
-    def disable_node(self, node_pos_list):
-        """
-        Sets the weights corresponding to specified input nodes to zero,
-        keeping the shape of the original weight matrix.
-
-        Args:
-            node_pos_list (List[int]): List of input node positions to be disabled.
-        """
-        for pos in node_pos_list:
-            self.weight.data[:, pos] = 0.0
-            if self.bias is not None:
-                self.bias.data[pos] = 0.0
-
-    def activate_node(self, node_pos_list):
-        """
-        Activates specified nodes if they are inactive. A node is considered inactive if
-        all its weights are zero. This method restores the weights for inactive nodes from
-        a backup or predefined state.
-
-        Args:
-            node_pos_list (List[int]): List of node positions to activate.
-        """
+    def set_parameters(self):
         if self.layer_type not in [
             LayerType.Activation,
             LayerType.Dropout,
             LayerType.LayerNorm,
             LayerType.Embedding,
         ]:
-            original_weight, original_bias = self.get_parameters()
-            if original_weight is not None:
-                for pos in node_pos_list:
-                    self.weight.data[:, pos] = original_weight[:, pos]
-            if original_bias is not None:
-                for pos in node_pos_list:
-                    self.bias.data[pos] = original_bias[pos]
-
+            self.layer.weight = torch.nn.Parameter(self.weight)
+            if self.bias is not None:
+                self.layer.bias = torch.nn.Parameter(self.bias)
     def get(self, name):
         if self.name == name:
             return self
@@ -705,6 +666,7 @@ class ModularClassificationBERT(ModularLayer):
         self,
         input_ids,
         attention_mask=None,
+        labels=None,
         head_mask=None,
     ):
         """
@@ -713,6 +675,7 @@ class ModularClassificationBERT(ModularLayer):
         Args:
             input_ids (torch.Tensor): Input token IDs.
             attention_mask (torch.Tensor, optional): Attention mask.
+            labels
             head_mask (torch.Tensor, optional): Attention head mask.
 
         Returns:
@@ -752,8 +715,33 @@ class ModularClassificationBERT(ModularLayer):
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
 
-        return logits
+        loss = None
+        if labels is not None:
+            if self.config.problem_type is None:
+                if self.num_labels == 1:
+                    self.config.problem_type = "regression"
+                elif self.num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
+                    self.config.problem_type = "single_label_classification"
+                else:
+                    self.config.problem_type = "multi_label_classification"
 
+            if self.config.problem_type == "regression":
+                loss_fct = MSELoss()
+                if self.num_labels == 1:
+                    loss = loss_fct(logits.squeeze(), labels.squeeze())
+                else:
+                    loss = loss_fct(logits, labels)
+            elif self.config.problem_type == "single_label_classification":
+                loss_fct = CrossEntropyLoss()
+                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+            elif self.config.problem_type == "multi_label_classification":
+                loss_fct = BCEWithLogitsLoss()
+                loss = loss_fct(logits, labels)
+
+        return SequenceClassifierOutput(
+            loss=loss,
+            logits=logits
+        )
 
     def register_hook(self, hook):
         self.classifier.register_forward_hook(hook)
