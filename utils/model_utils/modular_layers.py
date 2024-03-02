@@ -344,11 +344,9 @@ class SelfAttentionModule(ModularLayer):
             torch.Tensor: representing the context layer.
         """
 
-        mixed_query_layer = self.query(hidden_states)
-
         key_layer = self.transpose_for_scores(self.key(hidden_states))
         value_layer = self.transpose_for_scores(self.value(hidden_states))
-        query_layer = self.transpose_for_scores(mixed_query_layer)
+        query_layer = self.transpose_for_scores(self.query(hidden_states))
 
         # Calculate attention scores
         attention_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))
@@ -370,7 +368,8 @@ class SelfAttentionModule(ModularLayer):
         new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
         context_layer = context_layer.view(new_context_layer_shape)
 
-        return context_layer
+        outputs = (context_layer,)
+        return outputs
 
     def prune(self, heads, index):
         """
@@ -471,7 +470,8 @@ class AttentionModule(ModularLayer):
         """
 
         self_outputs = self.self_attention(hidden_states, attention_mask, head_mask)
-        attention_output = self.output(self_outputs, hidden_states)
+
+        attention_output = self.output(self_outputs[0], hidden_states)
         return attention_output
 
     def prune_heads(self, heads):
@@ -573,7 +573,7 @@ class EncoderBlock(ModularLayer):
         )  # Add residual
 
         # Combine processed output with original states for skip connections
-        return layer_output
+        return (layer_output,)
 
 
 class EncoderModule(ModularLayer):
@@ -602,12 +602,11 @@ class EncoderModule(ModularLayer):
             head_mask (torch.Tensor, optional): Attention head mask.
 
         Returns:
-            block_outputs: A structured output containing:
+            input_tensor: A structured output containing:
                 - last_hidden_state: The final output of the encoder.
         """
         # Create attention mask if not provided
         attention_mask = get_extended_attention_mask(attention_mask)
-        block_outputs = None
         for i, encoder_block in enumerate(self.encoder_blocks):
             # Optionally apply head mask for selective attention
             layer_head_mask = head_mask[i] if head_mask is not None else None
@@ -618,8 +617,9 @@ class EncoderModule(ModularLayer):
                 attention_mask,
                 layer_head_mask,
             )
+            input_tensor = block_outputs[0]
 
-        return block_outputs
+        return input_tensor
 
 
 class PoolerModule(ModularLayer):

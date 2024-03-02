@@ -1,5 +1,5 @@
 import torch
-
+from utils.model_utils.modular_layers import get_extended_attention_mask
 
 class ConcernIdentificationBert:
     def __init__(self):
@@ -26,27 +26,27 @@ class ConcernIdentificationBert:
         return output_tensor
 
     def propagate_encoder(self, module, input_tensor, attention_mask):
-        # output_tensor = input_tensor
-        # for i, encoder_block in enumerate(module.encoder_blocks):
-        #     block_outputs = self.propagate_encoder_block(
-        #         encoder_block,
-        #         output_tensor,
-        #         attention_mask,
-        #         None
-        #     )
-        #     output_tensor = block_outputs
+        attention_mask = get_extended_attention_mask(attention_mask)
+        for i, encoder_block in enumerate(module.encoder_blocks):
+            block_outputs = self.propagate_encoder_block(
+                encoder_block,
+                input_tensor,
+                attention_mask,
+                None
+            )
+            input_tensor = block_outputs[0]
         def encoder_hook(module, input, output):
             output_features, input_features = module.shape
             current_weight, current_bias = module.weight, module.bias
             original_weight, original_bias = module.get_parameters()
             temp = output[:,0,:].squeeze(0)
             for i in range(output_features):
-                if temp[i] < 0:
-                    current_weight[i, :] = 0
-                    current_bias[i] = 0
-                else:
-                    if self.positive_sample:
-                        if self.positive_sample:
+                if self.positive_sample:
+                    if temp[i] <= 0:
+                        current_weight[i, :] = 0
+                        current_bias[i] = 0
+                    else:
+                        if self.remove_flag:
                             current_weight[i, :] = original_weight[i, :]
                             current_bias[i] = original_bias[i]
                         else:
@@ -62,17 +62,26 @@ class ConcernIdentificationBert:
                             )
                             current_weight[i] = updated_row
                             current_bias[i] = original_bias[i]
+                else:
+                    if temp[i] > 0:
+                        current_weight[i,:] = original_weight[i,:]
+                        current_bias[i] = original_bias[i]
 
-                    module.set_parameters(current_weight, current_bias)
+                module.set_parameters(current_weight, current_bias)
+                if torch.sum(current_weight != 0) < 0.9:
+                    self.remove_flag = False
+                else:
+                    self.remove_flag = True
 
-        handle = module.encoder_blocks[-1].feed_forward2.dense.register_forward_hook(encoder_hook)
-        output_tensor = module(input_tensor, attention_mask, None)
-        handle.remove()
 
-        return output_tensor
+
+        # handle = module.encoder_blocks[-1].feed_forward2.dense.register_forward_hook(encoder_hook)
+        # output_tensor = module(input_tensor, attention_mask, None)
+        # handle.remove()
+
+        return input_tensor
     def propagate_encoder_block(self, module, input_tensor, attention_mask, head_mask=None):
         attn_outputs = self.propagate_attention_module(module.attention, input_tensor, attention_mask, head_mask)
-
         def ff1_hook(module, input, output):
             pass
 
@@ -92,7 +101,7 @@ class ConcernIdentificationBert:
         # handle = module.feed_forward2.dense.register_forward_hook(ff2_hook)
         layer_output = module.feed_forward2(intermediate_output, attn_outputs)
         # handle.remove()
-        return layer_output
+        return (layer_output,)
 
     def propagate_attention_module(self, module, input_tensor, attention_mask, head_mask):
         # def attention_hook(module, input, output):
@@ -119,7 +128,7 @@ class ConcernIdentificationBert:
         self_outputs = module.self_attention(input_tensor, attention_mask, head_mask)
         # handle.remove()
         # handle = module.output.register_forward_hook(output_hook)
-        attention_output = module.output(self_outputs, input_tensor)
+        attention_output = module.output(self_outputs[0], input_tensor)
         # handle.remove()
         return attention_output
 
@@ -150,12 +159,11 @@ class ConcernIdentificationBert:
                         )
                         current_weight[i] = updated_row
                         current_bias[i] = original_bias[i]
-
             module.set_parameters(current_weight, current_bias)
         first_token_tensor = input_tensor[:, 0]
-        # handle = module.dense.register_forward_hook(pooler_hook)
+        handle = module.dense.register_forward_hook(pooler_hook)
         output_tensor = module.dense(first_token_tensor)
-        # handle.remove()
+        handle.remove()
         output_tensor = module.activation(output_tensor)
 
         return output_tensor
