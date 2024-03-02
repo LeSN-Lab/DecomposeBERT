@@ -3,6 +3,7 @@ import math
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 from utils.type_utils.layer_type import ActivationType, LayerType
 from transformers.modeling_outputs import (
@@ -20,7 +21,7 @@ class Layer(nn.Module):
         layer (torch.nn.Module): Actual layer module.
         layer_type (LayerType): Type of the layer.
         shape (tuple): Input and output shape of the layer.
-        act_fn (ActivationType): Activation function used in the layer.
+        act_fn_type (ActivationType): Activation function used in the layer.
         weight (torch.nn.Parameter): Weight parameter of the layer (if applicable).
         bias (torch.nn.Parameter): Bias parameter of the layer (if applicable).
 
@@ -32,18 +33,23 @@ class Layer(nn.Module):
         self.layer = layer
         self.layer_type = None
         self.shape = None
-        self.act_fn = None
+        self.act_fn_type = None
         self.weight, self.bias = None, None
-        self.init_states()
+        self.padding_idx = None  # if layer type is LayerType.Embedding
+        self.eps = None  # if layer type is LayerType.LayerNorm
+        self.dropout_rate = None  # if layer type is LayerType.Dropout
+        self.init_states(layer)
 
-    def init_states(self):
+    def init_states(self, layer):
         self.layer_type = None
         self.shape = None
-        self.act_fn = ActivationType.get_act_fn_type(self.layer)
+        self.act_fn_type = ActivationType.get_act_fn_type(layer)
 
-        if self.act_fn == ActivationType.Linear:
-            self.layer_type = LayerType.get_layer_type(self.layer)
-            self.shape = LayerType.get_layer_shape(self.layer)
+        if self.act_fn_type == ActivationType.Linear:
+            self.layer_type = LayerType.get_layer_type(layer)
+            self.shape = LayerType.get_layer_shape(layer)
+            self.padding_idx = getattr(layer, "padding_idx", None)
+            self.eps = getattr(layer, "eps", None)
         else:
             self.layer_type = LayerType.Activation
             self.shape = None
@@ -51,8 +57,6 @@ class Layer(nn.Module):
         if self.layer_type not in [
             LayerType.Activation,
             LayerType.Dropout,
-            LayerType.LayerNorm,
-            LayerType.Embedding,
         ]:
             self.weight, self.bias = self.get_parameters()
 
@@ -78,16 +82,15 @@ class Layer(nn.Module):
         )
         return weight, bias
 
-    def set_parameters(self):
+    def set_parameters(self, weight, bias):
         if self.layer_type not in [
             LayerType.Activation,
             LayerType.Dropout,
-            LayerType.LayerNorm,
-            LayerType.Embedding,
         ]:
-            self.layer.weight = torch.nn.Parameter(self.weight)
-            if self.bias is not None:
-                self.layer.bias = torch.nn.Parameter(self.bias)
+            self.weight = torch.nn.Parameter(weight)
+            if bias is not None and self.bias is not None:
+                self.bias = torch.nn.Parameter(bias)
+
     def get(self, name):
         if self.name == name:
             return self
@@ -104,8 +107,23 @@ class Layer(nn.Module):
         Returns:
             torch.Tensor: Output tensor.
         """
-        if self.layer_type != LayerType.Activation:
-            return self.layer(x)
+
+        if self.layer_type == LayerType.Linear:
+            return F.linear(x, weight=self.weight, bias=self.bias)
+        elif self.layer_type == LayerType.Activation:
+            return ActivationType.get_act_fn(self.act_fn_type, x)
+        elif self.layer_type == LayerType.Dropout:
+            return x
+        elif self.layer_type == LayerType.Embedding:
+            return F.embedding(x, weight=self.weight, padding_idx=self.padding_idx)
+        elif self.layer_type == LayerType.LayerNorm:
+            return F.layer_norm(
+                x,
+                normalized_shape=self.shape,
+                eps=self.eps,
+                weight=self.weight,
+                bias=self.bias,
+            )
 
 
 class ModularLayer(nn.Module):
@@ -188,26 +206,30 @@ class EmbeddingModule(ModularLayer):
     def __init__(self, layers, config):
         super().__init__("embeddings")
         self.config = config
-        self.append_layers(layers)  # Add embedding layers to this module
-
-        # Automatically retrieve and assign embedding layers
-        self.word_embeddings = self.get("word_embeddings")
-        self.position_embeddings = self.get("position_embeddings")
-        self.token_type_embeddings = self.get("token_type_embeddings")
-        self.LayerNorm = self.get("LayerNorm")
-        self.dropout = self.get("dropout")
-
-        # Determine position embedding type
-        self.position_embedding_type = getattr(
-            config, "position_embedding_type", "absolute"
-        )
-
-        # Initialize position IDs for efficient lookup
-        self.register_buffer(
-            "position_ids",
-            torch.arange(config.max_position_embeddings).expand((1, -1)),
-            persistent=False,
-        )
+        # self.append_layers(layers)  # Add embedding layers to this module
+        #
+        # # Automatically retrieve and assign embedding layers
+        # self.word_embeddings = self.get("word_embeddings")
+        # self.position_embeddings = self.get("position_embeddings")
+        # self.token_type_embeddings = self.get("token_type_embeddings")
+        # self.LayerNorm = self.get("LayerNorm")
+        # self.dropout = self.get("dropout")
+        #
+        # # Determine position embedding type
+        # self.position_embedding_type = getattr(
+        #     config, "position_embedding_type", "absolute"
+        # )
+        #
+        # # Initialize position IDs for efficient lookup
+        # self.register_buffer(
+        #     "position_ids",
+        #     torch.arange(config.max_position_embeddings).expand((1, -1)),
+        #     persistent=False,
+        # )
+        # self.register_buffer(
+        #     "token_type_ids", torch.zeros(self.position_ids.size(), dtype=torch.long), persistent=False
+        # )
+        self.embeddings = layers
 
     def forward(self, input_ids):
         """
@@ -219,36 +241,35 @@ class EmbeddingModule(ModularLayer):
         Returns:
             torch.Tensor: The embedded representation of the input sequences.
         """
-        input_shape = input_ids.size()
-        seq_length = input_shape[1]  # Length of input sequences
+        # input_shape = input_ids.size()
+        # seq_length = input_shape[1]  # Length of input sequences
+        #
+        # # Prepare position IDs for the specific sequence length
+        # position_ids = self.position_ids[:, 0:seq_length].to(input_ids.device)
+        #
+        # # Create token type IDs (all zeros for now)
+        # if hasattr(self, "token_type_ids"):
+        #     buffered_token_type_ids = self.token_type_ids[:, :seq_length]
+        #     buffered_token_type_ids_expanded = buffered_token_type_ids.expand(input_shape[0], seq_length)
+        #     token_type_ids = buffered_token_type_ids_expanded.to(input_ids.device)
+        # else:
+        #     token_type_ids = torch.zeros(input_shape, dtype=torch.long, device=input_ids.device)
+        #
+        # # Perform word embeddings and token type embeddings
+        # inputs_embeds = self.word_embeddings(input_ids)
+        #
+        # token_type_embeddings = self.token_type_embeddings(token_type_ids)
+        #
+        # position_embeddings = self.position_embeddings(position_ids)
+        #
+        # # Combine embeddings
+        # embeddings = inputs_embeds + position_embeddings + token_type_embeddings
+        #
+        # # Apply any additional embedding layers (e.g., LayerNorm)
+        # embeddings = self.LayerNorm(embeddings)
+        # embeddings = self.dropout(embeddings)
 
-        # Prepare position IDs for the specific sequence length
-        position_ids = self.position_ids[:, 0:seq_length].to(input_ids.device)
-
-        # Create token type IDs (all zeros for now)
-        token_type_ids = torch.zeros(
-            input_shape, dtype=torch.long, device=input_ids.device
-        )
-
-        # Perform word embeddings and token type embeddings
-        inputs_embeds = self.word_embeddings.layer(input_ids)
-
-        token_type_embeddings = self.token_type_embeddings.layer(token_type_ids)
-
-        position_embeddings = self.position_embeddings.layer(position_ids)
-
-        # Combine embeddings
-        embeddings = inputs_embeds + position_embeddings + token_type_embeddings
-
-        # Apply any additional embedding layers (e.g., LayerNorm)
-        for layer in self.layers:
-            if layer.name not in [
-                "word_embeddings",
-                "position_embeddings",
-                "token_type_embeddings",
-            ]:
-                embeddings = layer.layer(embeddings)
-
+        embeddings = self.embeddings(input_ids)
         return embeddings
 
 
@@ -291,6 +312,7 @@ class SelfAttentionModule(ModularLayer):
         self.position_embedding_type = getattr(
             config, "position_embedding_type", "absolute"
         )
+        self.attention_probs = None
 
     def transpose_for_scores(self, x):
         """
@@ -319,13 +341,13 @@ class SelfAttentionModule(ModularLayer):
             head_mask (torch.Tensor, optional): Mask for attention heads.
 
         Returns:
-            tuple: (torch.Tensor, torch.Tensor) representing the context layer and attention probabilities.
+            torch.Tensor: representing the context layer.
         """
 
-        mixed_query_layer = self.query.layer(hidden_states)
+        mixed_query_layer = self.query(hidden_states)
 
-        key_layer = self.transpose_for_scores(self.key.layer(hidden_states))
-        value_layer = self.transpose_for_scores(self.value.layer(hidden_states))
+        key_layer = self.transpose_for_scores(self.key(hidden_states))
+        value_layer = self.transpose_for_scores(self.value(hidden_states))
         query_layer = self.transpose_for_scores(mixed_query_layer)
 
         # Calculate attention scores
@@ -335,10 +357,10 @@ class SelfAttentionModule(ModularLayer):
         # Apply attention mask and normalize scores
         if attention_mask is not None:
             attention_scores = attention_scores + attention_mask
-        attention_probs = nn.functional.softmax(attention_scores, dim=-1)
+        self.attention_probs = F.softmax(attention_scores, dim=-1)
 
         # Apply dropout and head mask
-        attention_probs = self.dropout.layer(attention_probs)
+        attention_probs = self.dropout(self.attention_probs)
         if head_mask is not None:
             attention_probs = attention_probs * head_mask
 
@@ -348,7 +370,7 @@ class SelfAttentionModule(ModularLayer):
         new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
         context_layer = context_layer.view(new_context_layer_shape)
 
-        return context_layer, attention_probs
+        return context_layer
 
     def prune(self, heads, index):
         """
@@ -408,9 +430,9 @@ class OutputModule(ModularLayer):
             torch.Tensor: Processed and projected output.
         """
 
-        hidden_states = self.dense.layer(hidden_states)
-        hidden_states = self.dropout.layer(hidden_states)
-        hidden_states = self.LayerNorm.layer(hidden_states + input_tensor)
+        hidden_states = self.dense(hidden_states)
+        hidden_states = self.dropout(hidden_states)
+        hidden_states = self.LayerNorm(hidden_states + input_tensor)
 
         return hidden_states
 
@@ -443,15 +465,14 @@ class AttentionModule(ModularLayer):
             head_mask (torch.Tensor): Attention head mask (optional).
 
         Returns:
-            tuple: (torch.Tensor,) + tuple:
+            torch.Tensor:
                 - First element is the projected output.
                 - Remaining elements are additional outputs from self-attention.
         """
 
         self_outputs = self.self_attention(hidden_states, attention_mask, head_mask)
-        attention_output = self.output(self_outputs[0], hidden_states)
-        outputs = (attention_output,) + self_outputs[1:]
-        return outputs  # output tensor, other output tensors
+        attention_output = self.output(self_outputs, hidden_states)
+        return attention_output
 
     def prune_heads(self, heads):
         """
@@ -502,8 +523,8 @@ class FeedforwardModule(ModularLayer):
         Returns:
             torch.Tensor: The output tensor after processing through all layers.
         """
-        output_tensor = self.dense.layer(input_tensor)
-        output_tensor = self.intermediate_act_fn.layer(output_tensor)
+        output_tensor = self.dense(input_tensor)
+        output_tensor = self.intermediate_act_fn(output_tensor)
 
         return output_tensor
 
@@ -536,26 +557,23 @@ class EncoderBlock(ModularLayer):
             head_mask (torch.Tensor, optional): Attention head mask.
 
         Returns:
-            tuple: (torch.Tensor,) + tuple:
+            torch.Tensor:
                 - First element is the processed output.
                 - Remaining elements are additional outputs from self-attention.
         """
 
         # Self-attention with optional head mask for selective attention
         attention_outputs = self.attention(hidden_states, attention_mask, head_mask)
-        attention_output = attention_outputs[0]  # Extract main output
-        other_outputs = attention_outputs[1:]  # Keep other attention outputs
 
         # First feed-forward pass
-        intermediate_output = self.feed_forward1(attention_output)
+        intermediate_output = self.feed_forward1(attention_outputs)
         # Second feed-forward pass with output projection
         layer_output = self.feed_forward2(
-            intermediate_output, attention_output
+            intermediate_output, attention_outputs
         )  # Add residual
 
         # Combine processed output with original states for skip connections
-        outputs = (layer_output,) + other_outputs
-        return outputs
+        return layer_output
 
 
 class EncoderModule(ModularLayer):
@@ -584,11 +602,12 @@ class EncoderModule(ModularLayer):
             head_mask (torch.Tensor, optional): Attention head mask.
 
         Returns:
-            BaseModelOutputWithPoolingAndCrossAttentions: A structured output containing:
+            block_outputs: A structured output containing:
                 - last_hidden_state: The final output of the encoder.
-                - hidden_states: A list of hidden states at each block.
-                - attentions: A list of attention outputs at each block.
         """
+        # Create attention mask if not provided
+        attention_mask = get_extended_attention_mask(attention_mask)
+        block_outputs = None
         for i, encoder_block in enumerate(self.encoder_blocks):
             # Optionally apply head mask for selective attention
             layer_head_mask = head_mask[i] if head_mask is not None else None
@@ -599,9 +618,8 @@ class EncoderModule(ModularLayer):
                 attention_mask,
                 layer_head_mask,
             )
-            input_tensor = block_outputs[0]  # Updated input for next block
 
-        return input_tensor
+        return block_outputs
 
 
 class PoolerModule(ModularLayer):
@@ -630,8 +648,8 @@ class PoolerModule(ModularLayer):
             torch.Tensor: The pooled output.
         """
         first_token_tensor = hidden_states[:, 0]
-        pooled_output = self.dense.layer(first_token_tensor)
-        pooled_output = self.activation.layer(pooled_output)
+        pooled_output = self.dense(first_token_tensor)
+        pooled_output = self.activation(pooled_output)
         return pooled_output
 
 
@@ -692,9 +710,6 @@ class ModularClassificationBERT(ModularLayer):
         if attention_mask is None:
             attention_mask = torch.ones(input_shape, device=device)
 
-        # Create attention mask if not provided
-        attention_mask = get_extended_attention_mask(attention_mask, input_shape)
-
         # Prepare head mask if needed
         head_mask = self.get_head_mask(head_mask, self.config.num_hidden_layers)
 
@@ -720,7 +735,9 @@ class ModularClassificationBERT(ModularLayer):
             if self.config.problem_type is None:
                 if self.num_labels == 1:
                     self.config.problem_type = "regression"
-                elif self.num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
+                elif self.num_labels > 1 and (
+                    labels.dtype == torch.long or labels.dtype == torch.int
+                ):
                     self.config.problem_type = "single_label_classification"
                 else:
                     self.config.problem_type = "multi_label_classification"
@@ -738,14 +755,7 @@ class ModularClassificationBERT(ModularLayer):
                 loss_fct = BCEWithLogitsLoss()
                 loss = loss_fct(logits, labels)
 
-        return SequenceClassifierOutput(
-            loss=loss,
-            logits=logits
-        )
-
-    def register_hook(self, hook):
-        self.classifier.register_forward_hook(hook)
-        self.pooler.register_forward_hook(hook)
+        return SequenceClassifierOutput(loss=loss, logits=logits)
 
     def _prune_heads(self, heads_to_prune):
         """
@@ -779,13 +789,12 @@ class ModularClassificationBERT(ModularLayer):
         return head_mask
 
 
-def get_extended_attention_mask(attention_mask, input_shape):
+def get_extended_attention_mask(attention_mask):
     """
     Converts a 2D attention mask into a 3D tensor for BERT-style attention.
 
     Args:
         attention_mask (torch.Tensor): 2D attention mask.
-        input_shape (tuple): Shape of the input tensor.
 
     Returns:
         torch.Tensor: 3D attention mask.
@@ -802,7 +811,7 @@ def get_extended_attention_mask(attention_mask, input_shape):
         return extended_attention_mask
     else:
         raise ValueError(
-            f"Wrong shape for input_ids (shape {input_shape}) or attention_mask (shape {attention_mask.shape})"
+            f"Wrong shape for input_ids (shape) or attention_mask (shape {attention_mask.shape})"
         )
 
 

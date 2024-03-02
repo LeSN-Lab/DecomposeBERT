@@ -1,8 +1,7 @@
 import enum
 import torch.nn as nn
+import torch.nn.functional as F
 from transformers.activations import GELUActivation
-from transformers.models.bert.modeling_bert import BertAttention
-
 
 class LayerType(enum.Enum):
     NotRecognize = 0
@@ -11,7 +10,6 @@ class LayerType(enum.Enum):
     Dropout = 3
     Embedding = 4
     LayerNorm = 5
-    Attention = 6
 
     @staticmethod
     def get_layer_type(layer):
@@ -69,3 +67,16 @@ class ActivationType(enum.Enum):
             return ActivationType.Tanh
         else:
             return ActivationType.Linear
+
+    @staticmethod
+    def get_act_fn(act_fn_type, input_tensor):
+        if act_fn_type == ActivationType.Linear:
+            return input_tensor
+        elif act_fn_type == ActivationType.ReLU:
+            return F.relu(input_tensor)
+        elif act_fn_type == ActivationType.Tanh:
+            return F.tanh(input_tensor)
+        elif act_fn_type == ActivationType.GELU:
+            return F.gelu(input_tensor)
+        elif act_fn_type == ActivationType.Softmax:
+            return F.softmax(input_tensor)

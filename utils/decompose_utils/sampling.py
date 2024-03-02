@@ -1,17 +1,39 @@
-import numpy as np
+import torch
 
 
-def sampling_class(x, y, target_class, num_samples, positive_sample=True):
-    sample_x = []
-    sample_y = []
-    count = 0
-    if positive_sample:
-        target_class_keys = [i for i in y.keys() if target_class in y[i]]
-    else:
-        target_class_keys = [i for i in y.keys() if target_class not in y[i]]
+def sampling_class(
+    dataloader,
+    target_class,
+    num_samples,
+    positive_sample=True,
+    device="cuda",
+):
+    sampled_ids = []
+    sampled_masks = []
+    sampled_labels = []
 
-    for i in range(num_samples):
-        for j in target_class_keys:
-            sample_x.append(x[j][i])
-            sample_y.append(y[j][i])
-    return sample_y, sample_y
+    for batch in dataloader:
+        b_input_ids = batch["input_ids"].to(device)
+        b_attention_masks = batch["attention_mask"].to(device)
+        b_labels = batch["labels"].to(device)
+        if positive_sample:
+            mask = b_labels == target_class
+        else:
+            mask = b_labels != target_class
+
+        selected_input_ids = b_input_ids[mask]
+        selected_attention_masks = b_attention_masks[mask]
+        selected_labels = b_labels[mask]
+
+        sampled_ids.append(selected_input_ids)
+        sampled_masks.append(selected_attention_masks)
+        sampled_labels.append(selected_labels)
+
+        if sum(len(labels) for labels in sampled_labels) >= num_samples:
+            break
+
+    sampled_ids = torch.cat(sampled_ids)[:num_samples]
+    sampled_masks = torch.cat(sampled_masks)[:num_samples]
+    sampled_labels = torch.cat(sampled_labels)[:num_samples]
+
+    return sampled_ids, sampled_masks, sampled_labels
