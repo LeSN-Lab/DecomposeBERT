@@ -4,7 +4,7 @@ from utils.model_utils.modular_layers import get_extended_attention_mask
 class ConcernIdentificationBert:
     def __init__(self):
         self.positive_sample = True
-        self.remove_flag = True
+        self.update_flag = True
 
     def propagate(self, module, input_tensor, attention_mask, positive_sample=True):
         # propagate input tensor to the module
@@ -26,60 +26,54 @@ class ConcernIdentificationBert:
         return output_tensor
 
     def propagate_encoder(self, module, input_tensor, attention_mask):
-        attention_mask = get_extended_attention_mask(attention_mask)
-        for i, encoder_block in enumerate(module.encoder_blocks):
-            block_outputs = self.propagate_encoder_block(
-                encoder_block,
-                input_tensor,
-                attention_mask,
-                None
-            )
-            input_tensor = block_outputs[0]
         def encoder_hook(module, input, output):
             output_features, input_features = module.shape
             current_weight, current_bias = module.weight, module.bias
             original_weight, original_bias = module.get_parameters()
+
             temp = output[:,0,:].squeeze(0)
+
             for i in range(output_features):
+                if torch.sum(current_weight != 0) > module.shape[0] * module.shape[1] * 0.1:
+                    self.update_flag = False
+                else:
+                    self.update_flag = True
                 if self.positive_sample:
-                    if temp[i] <= 0:
+                    if torch.abs(temp[i]) <= 0.01:
                         current_weight[i, :] = 0
                         current_bias[i] = 0
                     else:
-                        if self.remove_flag:
+                        if not self.update_flag:
                             current_weight[i, :] = original_weight[i, :]
                             current_bias[i] = original_bias[i]
                         else:
-                            current_row = current_weight[i]
-                            original_row = original_weight[i]
+                            for j in range(input_features):
+                                current_row = current_weight[i]
+                                original_row = original_weight[i]
 
-                            mask = original_row > 0
+                                mask = original_row > 0
 
-                            updated_row = torch.where(
-                                mask,
-                                torch.min(current_row, original_row),
-                                torch.max(current_row, original_row)
-                            )
-                            current_weight[i] = updated_row
-                            current_bias[i] = original_bias[i]
+                                updated_row = torch.where(
+                                    mask,
+                                    torch.min(current_row, original_row),
+                                    torch.max(current_row, original_row)
+                                )
+                                current_weight[i] = updated_row
+                                current_weight[i, current_weight[i] < 0] = 0
+                                current_bias[i] = original_bias[i]
+
                 else:
                     if temp[i] > 0:
-                        current_weight[i,:] = original_weight[i,:]
+                        current_weight[i, :] = original_weight[i, :]
                         current_bias[i] = original_bias[i]
 
-                module.set_parameters(current_weight, current_bias)
-                if torch.sum(current_weight != 0) < 0.9:
-                    self.remove_flag = False
-                else:
-                    self.remove_flag = True
+            module.set_parameters(current_weight, current_bias)
+        handle = module.encoder_blocks[-1].feed_forward2.dense.register_forward_hook(encoder_hook)
+        output_tensor = module(input_tensor, attention_mask, None)
+        handle.remove()
 
+        return output_tensor
 
-
-        # handle = module.encoder_blocks[-1].feed_forward2.dense.register_forward_hook(encoder_hook)
-        # output_tensor = module(input_tensor, attention_mask, None)
-        # handle.remove()
-
-        return input_tensor
     def propagate_encoder_block(self, module, input_tensor, attention_mask, head_mask=None):
         attn_outputs = self.propagate_attention_module(module.attention, input_tensor, attention_mask, head_mask)
         def ff1_hook(module, input, output):
@@ -134,32 +128,50 @@ class ConcernIdentificationBert:
 
     def propagate_pooler(self, module, input_tensor):
         def pooler_hook(module, input, output):
+            # Get the shapes and original parameters (weights and biases) of the Pooler module
             output_features, input_features = module.shape
             current_weight, current_bias = module.weight, module.bias
             original_weight, original_bias = module.get_parameters()
+
+            # Squeeze the output tensor to remove the batch dimension
             temp = output.squeeze(0)
+
             for i in range(output_features):
-                if torch.abs(temp[i]) < 0.001:
-                    current_weight[i, :] = 0
-                    current_bias[i] = 0
+                if torch.sum(current_weight != 0) > module.shape[0] * module.shape[1] * 0.1:
+                    self.update_flag = False
                 else:
-                    if self.positive_sample:
+                    self.update_flag = True
+                if self.positive_sample:
+                    if torch.abs(temp[i]) <= 0.01:
+                        current_weight[i, :] = 0
+                        current_bias[i] = 0
+                    else:
+                        if not self.update_flag:
+                            current_weight[i, :] = original_weight[i, :]
+                            current_bias[i] = original_bias[i]
+                        else:
+                            for j in range(input_features):
+                                current_row = current_weight[i]
+                                original_row = original_weight[i]
+
+                                mask = original_row > 0
+
+                                updated_row = torch.where(
+                                    mask,
+                                    torch.min(current_row, original_row),
+                                    torch.max(current_row, original_row)
+                                )
+                                current_weight[i] = updated_row
+                                current_weight[i, current_weight[i] < 0] = 0
+                                current_bias[i] = original_bias[i]
+
+                else:
+                    if temp[i] > 0:
                         current_weight[i, :] = original_weight[i, :]
                         current_bias[i] = original_bias[i]
-                    else:
-                        current_row = current_weight[i]
-                        original_row = original_weight[i]
 
-                        mask = original_row > 0
-
-                        updated_row = torch.where(
-                            mask,
-                            torch.min(current_row, original_row),
-                            torch.max(current_row, original_row)
-                        )
-                        current_weight[i] = updated_row
-                        current_bias[i] = original_bias[i]
             module.set_parameters(current_weight, current_bias)
+
         first_token_tensor = input_tensor[:, 0]
         handle = module.dense.register_forward_hook(pooler_hook)
         output_tensor = module.dense(first_token_tensor)
