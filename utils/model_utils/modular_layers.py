@@ -591,6 +591,7 @@ class EncoderModule(ModularLayer):
         self.encoder_blocks = nn.ModuleList(
             [EncoderBlock(block, config) for block in blocks]
         )
+        self.num_hidden_layers = config.num_hidden_layers
 
     def forward(self, input_tensor, attention_mask=None, head_mask=None):
         """
