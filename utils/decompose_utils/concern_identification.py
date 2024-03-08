@@ -26,14 +26,22 @@ class ConcernIdentificationBert:
         return output_tensor
 
     def propagate_encoder(self, module, input_tensor, attention_mask):
+        attention_mask = get_extended_attention_mask(attention_mask)
+        for i, encoder_block in enumerate(module.encoder_blocks):
+            block_outputs = self.propagate_encoder_block(encoder_block, input_tensor, attention_mask, None)
+            input_tensor = block_outputs[0]
+        return input_tensor
 
-        def encoder_hook(module, input, output):
+    def propagate_encoder_block(self, module, input_tensor, attention_mask, head_mask=None):
+        def attn_hook(module, input, output):
+            pass
+        def ff1_hook(module, input, output):
             output_features, input_features = module.shape
             current_weight, current_bias = module.weight, module.bias
             original_weight, original_bias = module.get_parameters()
-
             original_output = module.layer(input[0])
-            temp = original_output[:,0,:].squeeze(0)
+            temp = original_output[:, 0, :].squeeze(0)
+
             for i in range(output_features):
                 if self.positive_sample:
                     if temp[i] <= 0:
@@ -69,36 +77,64 @@ class ConcernIdentificationBert:
                     self.flag = False
 
             module.set_parameters(current_weight, current_bias)
-        handles = []
-        for i, encoder_block in enumerate(module.encoder_blocks):
-            handles.append(encoder_block.feed_forward2.dense.register_forward_hook(encoder_hook))
-        output_tensor = module(input_tensor, attention_mask, None)
-        for i in range(module.num_hidden_layers):
-            handle = handles.pop()
-            handle.remove()
-        return output_tensor
+        def ff2_hook(module, input, output):
+            output_features, input_features = module.shape
+            current_weight, current_bias = module.weight, module.bias
+            original_weight, original_bias = module.get_parameters()
 
-    def propagate_encoder_block(self, module, input_tensor, attention_mask, head_mask=None):
-        attn_outputs = self.propagate_attention_module(module.attention, input_tensor, attention_mask, head_mask)
-        def ff1_hook(module, input, output):
-            pass
+            original_output = module.layer(input[0])
 
+            upper_bound = torch.mean(original_output, dim=1)
+            # print(upper_bound[0])
+            # print(original_output[:,0,:])
+            for s in range(original_output.shape[1]):
+                temp = upper_bound[0].squeeze(0)
+
+                for i in range(output_features):
+                    if self.positive_sample:
+                        if temp[i] <= 0:
+                            current_weight[i, :] = 0
+                            current_bias[i] = 0
+                        else:
+                            if self.flag:
+                                current_weight[i, :] = original_weight[i, :]
+                                current_bias[i] = original_bias[i]
+                            else:
+                                current_row = current_weight[i]
+                                original_row = original_weight[i]
+
+                                mask = original_row > 0
+                                tmp = torch.max(current_row, original_row)
+                                tmp[tmp < 0] = 0
+                                updated_row = torch.where(
+                                    mask,
+                                    torch.min(current_row, original_row),
+                                    torch.max(current_row, original_row)
+                                )
+                                current_weight[i] = updated_row
+                                current_weight[i, current_weight[i] < 0] = 0
+                                current_bias[i] = original_bias[i]
+
+                    else:
+                        if temp[i] > 0:
+                            current_weight[i, :] = original_weight[i, :]
+                            current_bias[i] = original_bias[i]
+                    if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.1:
+                        self.flag = True
+                    else:
+                        self.flag = False
+
+                module.set_parameters(current_weight, current_bias)
+
+        # handle = module.attention.register_forward_hook(attn_hook)
+        attn_outputs = module.attention(input_tensor, attention_mask, head_mask)
+        # handle.remove()
         # handle = module.feed_forward1.dense.register_forward_hook(ff1_hook)
         intermediate_output = module.feed_forward1(attn_outputs)
         # handle.remove()
-
-        # def ff2_hook(module, input, output):
-        #     # output_features, input_features = module.shape
-        #     # current_weight, current_bias = module.weight, module.bias
-        #     # original_weight, original_bias = module.get_parameters()
-        #     # attn_reshaped = attention_mask.unsqueeze(1)
-        #     # result = torch.bmm(attn_reshaped.float(), output).squeeze(1)
-        #     # print(result)
-        #     pass
-        #
-        # handle = module.feed_forward2.dense.register_forward_hook(ff2_hook)
+        handle = module.feed_forward2.dense.register_forward_hook(ff2_hook)
         layer_output = module.feed_forward2(intermediate_output, attn_outputs)
-        # handle.remove()
+        handle.remove()
         return (layer_output,)
 
     def propagate_attention_module(self, module, input_tensor, attention_mask, head_mask):
@@ -178,9 +214,9 @@ class ConcernIdentificationBert:
             module.set_parameters(current_weight, current_bias)
 
         first_token_tensor = input_tensor[:, 0]
-        # handle = module.dense.register_forward_hook(pooler_hook)
+        handle = module.dense.register_forward_hook(pooler_hook)
         output_tensor = module.dense(first_token_tensor)
-        # handle.remove()
+        handle.remove()
         output_tensor = module.activation(output_tensor)
         return output_tensor
 
