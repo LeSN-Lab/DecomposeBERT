@@ -84,11 +84,24 @@ class ConcernIdentificationBert:
 
             original_output = module.layer(input[0])
 
-            upper_bound = torch.mean(original_output, dim=1)
-            # print(upper_bound[0])
-            # print(original_output[:,0,:])
-            for s in range(original_output.shape[1]):
-                temp = upper_bound[0].squeeze(0)
+            unique_set = set()
+            temp_idx = []
+            # for i in range(original_output.shape[1]):
+            #     feature = original_output[:, i, :]
+            #
+            #     feature_mean = torch.mean(feature).item()
+            #     feature_var = torch.var(feature).item()
+            #
+            #     mean_bucket = int(feature_mean // 0.5) * 0.5
+            #     var_bucket = int(feature_var // 0.5) * 0.5
+            #
+            #     if (mean_bucket, var_bucket) not in unique_set:
+            #         unique_set.add((mean_bucket, var_bucket))
+            #         temp_idx.append(i)
+            temp_idx = [0]
+
+            for k in temp_idx:
+                temp = original_output[:,k,:].squeeze(0)
 
                 for i in range(output_features):
                     if self.positive_sample:
@@ -124,7 +137,42 @@ class ConcernIdentificationBert:
                     else:
                         self.flag = False
 
-                module.set_parameters(current_weight, current_bias)
+            #     temp = lower_bound[0].squeeze(0)
+            #     for i in range(output_features):
+            #         if self.positive_sample:
+            #             if temp[i] <= 0:
+            #                 current_weight[i, :] = 0
+            #                 current_bias[i] = 0
+            #             else:
+            #                 if self.flag:
+            #                     current_weight[i, :] = original_weight[i, :]
+            #                     current_bias[i] = original_bias[i]
+            #                 else:
+            #                     current_row = current_weight[i]
+            #                     original_row = original_weight[i]
+            #
+            #                     mask = original_row > 0
+            #                     tmp = torch.max(current_row, original_row)
+            #                     tmp[tmp < 0] = 0
+            #                     updated_row = torch.where(
+            #                         mask,
+            #                         torch.min(current_row, original_row),
+            #                         torch.max(current_row, original_row)
+            #                     )
+            #                     current_weight[i] = updated_row
+            #                     current_weight[i, current_weight[i] < 0] = 0
+            #                     current_bias[i] = original_bias[i]
+            #
+            #         else:
+            #             if temp[i] > 0:
+            #                 current_weight[i, :] = original_weight[i, :]
+            #                 current_bias[i] = original_bias[i]
+            #         if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.1:
+            #             self.flag = True
+            #         else:
+            #             self.flag = False
+            #
+            # module.set_parameters(current_weight, current_bias)
 
         # handle = module.attention.register_forward_hook(attn_hook)
         attn_outputs = module.attention(input_tensor, attention_mask, head_mask)
@@ -214,9 +262,9 @@ class ConcernIdentificationBert:
             module.set_parameters(current_weight, current_bias)
 
         first_token_tensor = input_tensor[:, 0]
-        handle = module.dense.register_forward_hook(pooler_hook)
+        # handle = module.dense.register_forward_hook(pooler_hook)
         output_tensor = module.dense(first_token_tensor)
-        handle.remove()
+        # handle.remove()
         output_tensor = module.activation(output_tensor)
         return output_tensor
 
