@@ -33,15 +33,16 @@ class ConcernIdentificationBert:
         return input_tensor
 
     def propagate_encoder_block(self, module, input_tensor, attention_mask, head_mask=None):
-        def attn_hook(module, input, output):
-            pass
-        def ff1_hook(module, input, output):
+
+        def ff2_hook(module, input, output):
             output_features, input_features = module.shape
             current_weight, current_bias = module.weight, module.bias
             original_weight, original_bias = module.get_parameters()
-            original_output = module.layer(input[0])
-            temp = original_output[:, 0, :].squeeze(0)
 
+            original_output = module.layer(input[0])
+            upper_bound = torch.max(original_output, dim=1)
+            lower_bound = torch.min(original_output, dim=1)
+            temp = upper_bound[0].squeeze(0)
             for i in range(output_features):
                 if self.positive_sample:
                     if temp[i] <= 0:
@@ -61,121 +62,24 @@ class ConcernIdentificationBert:
                             updated_row = torch.where(
                                 mask,
                                 torch.min(current_row, original_row),
-                                torch.max(current_row, original_row)
+                                tmp
                             )
                             current_weight[i] = updated_row
-                            current_weight[i, current_weight[i] < 0] = 0
                             current_bias[i] = original_bias[i]
-
-                else:
-                    if temp[i] > 0:
-                        current_weight[i, :] = original_weight[i, :]
-                        current_bias[i] = original_bias[i]
+                #
+                # else:
+                #     if temp[i] > 0:
+                #         current_weight[i, :] = original_weight[i, :]
+                #         current_bias[i] = original_bias[i]
                 if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.1:
                     self.flag = True
                 else:
                     self.flag = False
 
-        def ff2_hook(module, input, output):
-            output_features, input_features = module.shape
-            current_weight, current_bias = module.weight, module.bias
-            original_weight, original_bias = module.get_parameters()
-
-            original_output = module.layer(input[0])
-
-            unique_set = set()
-            temp_idx = []
-            for i in range(original_output.shape[1]):
-                feature = original_output[:, i, :]
-
-                feature_mean = torch.mean(feature).item()
-                feature_var = torch.var(feature).item()
-
-                mean_bucket = int(feature_mean // 0.5) * 0.5
-                var_bucket = int(feature_var // 0.5) * 0.5
-
-                if (mean_bucket, var_bucket) not in unique_set:
-                    unique_set.add((mean_bucket, var_bucket))
-                    temp_idx.append(i)
-
-            for k in temp_idx:
-                temp = original_output[:,k,:].squeeze(0)
-                for i in range(output_features):
-                    if self.positive_sample:
-                        if temp[i] <= 0:
-                            current_weight[i, :] = 0
-                            current_bias[i] = 0
-                        else:
-                            if self.flag:
-                                current_weight[i, :] = original_weight[i, :]
-                                current_bias[i] = original_bias[i]
-                            else:
-                                current_row = current_weight[i]
-                                original_row = original_weight[i]
-
-                                mask = original_row > 0
-                                tmp = torch.max(current_row, original_row)
-                                tmp[tmp < 0] = 0
-                                updated_row = torch.where(
-                                    mask,
-                                    torch.min(current_row, original_row),
-                                    tmp
-                                )
-                                current_weight[i] = updated_row
-                                current_bias[i] = original_bias[i]
-
-                    else:
-                        if temp[i] > 0:
-                            current_weight[i, :] = original_weight[i, :]
-                            current_bias[i] = original_bias[i]
-                    if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.1:
-                        self.flag = True
-                    else:
-                        self.flag = False
-
-            #     temp = lower_bound[0].squeeze(0)
-            #     for i in range(output_features):
-            #         if self.positive_sample:
-            #             if temp[i] <= 0:
-            #                 current_weight[i, :] = 0
-            #                 current_bias[i] = 0
-            #             else:
-            #                 if self.flag:
-            #                     current_weight[i, :] = original_weight[i, :]
-            #                     current_bias[i] = original_bias[i]
-            #                 else:
-            #                     current_row = current_weight[i]
-            #                     original_row = original_weight[i]
-            #
-            #                     mask = original_row > 0
-            #                     tmp = torch.max(current_row, original_row)
-            #                     tmp[tmp < 0] = 0
-            #                     updated_row = torch.where(
-            #                         mask,
-            #                         torch.min(current_row, original_row),
-            #                         torch.max(current_row, original_row)
-            #                     )
-            #                     current_weight[i] = updated_row
-            #                     current_weight[i, current_weight[i] < 0] = 0
-            #                     current_bias[i] = original_bias[i]
-            #
-            #         else:
-            #             if temp[i] > 0:
-            #                 current_weight[i, :] = original_weight[i, :]
-            #                 current_bias[i] = original_bias[i]
-            #         if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.1:
-            #             self.flag = True
-            #         else:
-            #             self.flag = False
-            #
             module.set_parameters(current_weight, current_bias)
 
-        # handle = module.attention.register_forward_hook(attn_hook)
         attn_outputs = module.attention(input_tensor, attention_mask, head_mask)
-        # handle.remove()
-        # handle = module.feed_forward1.dense.register_forward_hook(ff1_hook)
         intermediate_output = module.feed_forward1(attn_outputs)
-        # handle.remove()
         handle = module.feed_forward2.dense.register_forward_hook(ff2_hook)
         layer_output = module.feed_forward2(intermediate_output, attn_outputs)
         handle.remove()
@@ -223,7 +127,7 @@ class ConcernIdentificationBert:
 
             for i in range(output_features):
                 if self.positive_sample:
-                    if torch.abs(temp[i]) <= 0.01:
+                    if temp[i] <= 0:
                         current_weight[i, :] = 0
                         current_bias[i] = 0
                     else:
@@ -240,16 +144,26 @@ class ConcernIdentificationBert:
                             updated_row = torch.where(
                                 mask,
                                 torch.min(current_row, original_row),
-                                torch.max(current_row, original_row)
+                                tmp
                             )
                             current_weight[i] = updated_row
-                            current_weight[i, current_weight[i] < 0] = 0
                             current_bias[i] = original_bias[i]
 
-                else:
-                    if temp[i] > 0:
-                        current_weight[i, :] = original_weight[i, :]
-                        current_bias[i] = original_bias[i]
+                # else:
+                #     if temp[i] > 0:
+                #         current_row = current_weight[i]
+                #         original_row = original_weight[i]
+                #
+                #         mask = original_row < 0
+                #         tmp = torch.min(current_row, original_row)
+                #         updated_row = torch.where(
+                #             mask,
+                #             tmp,
+                #             torch.max(current_row, original_row)
+                #         )
+                #         current_weight[i] = updated_row
+                #         current_bias[i] = original_bias[i]
+
                 if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.1:
                     self.flag = True
                 else:
