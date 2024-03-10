@@ -71,14 +71,12 @@ class Layer(nn.Module):
             return None, None
 
         weight = (
-            self.layer.weight.detach()
-            if hasattr(self.layer, "weight") and self.layer.weight is not None
-            else None
+            self.layer.weight.clone().detach()
+            if hasattr(self.layer, "weight") else None
         )
         bias = (
-            self.layer.bias.detach()
-            if hasattr(self.layer, "bias") and self.layer.bias is not None
-            else None
+            self.layer.bias.clone().detach()
+            if hasattr(self.layer, "bias") else None
         )
         return weight, bias
 

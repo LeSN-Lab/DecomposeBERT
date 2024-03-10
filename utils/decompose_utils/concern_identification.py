@@ -4,7 +4,7 @@ from utils.model_utils.modular_layers import get_extended_attention_mask
 class ConcernIdentificationBert:
     def __init__(self):
         self.positive_sample = True
-        self.flag = True
+        self.flag = False
 
     def propagate(self, module, input_tensor, attention_mask, positive_sample=True):
         # propagate input tensor to the module
@@ -76,7 +76,6 @@ class ConcernIdentificationBert:
                 else:
                     self.flag = False
 
-            module.set_parameters(current_weight, current_bias)
         def ff2_hook(module, input, output):
             output_features, input_features = module.shape
             current_weight, current_bias = module.weight, module.bias
@@ -86,23 +85,21 @@ class ConcernIdentificationBert:
 
             unique_set = set()
             temp_idx = []
-            # for i in range(original_output.shape[1]):
-            #     feature = original_output[:, i, :]
-            #
-            #     feature_mean = torch.mean(feature).item()
-            #     feature_var = torch.var(feature).item()
-            #
-            #     mean_bucket = int(feature_mean // 0.5) * 0.5
-            #     var_bucket = int(feature_var // 0.5) * 0.5
-            #
-            #     if (mean_bucket, var_bucket) not in unique_set:
-            #         unique_set.add((mean_bucket, var_bucket))
-            #         temp_idx.append(i)
-            temp_idx = [0]
+            for i in range(original_output.shape[1]):
+                feature = original_output[:, i, :]
+
+                feature_mean = torch.mean(feature).item()
+                feature_var = torch.var(feature).item()
+
+                mean_bucket = int(feature_mean // 0.5) * 0.5
+                var_bucket = int(feature_var // 0.5) * 0.5
+
+                if (mean_bucket, var_bucket) not in unique_set:
+                    unique_set.add((mean_bucket, var_bucket))
+                    temp_idx.append(i)
 
             for k in temp_idx:
                 temp = original_output[:,k,:].squeeze(0)
-
                 for i in range(output_features):
                     if self.positive_sample:
                         if temp[i] <= 0:
@@ -122,10 +119,9 @@ class ConcernIdentificationBert:
                                 updated_row = torch.where(
                                     mask,
                                     torch.min(current_row, original_row),
-                                    torch.max(current_row, original_row)
+                                    tmp
                                 )
                                 current_weight[i] = updated_row
-                                current_weight[i, current_weight[i] < 0] = 0
                                 current_bias[i] = original_bias[i]
 
                     else:
@@ -172,7 +168,7 @@ class ConcernIdentificationBert:
             #         else:
             #             self.flag = False
             #
-            # module.set_parameters(current_weight, current_bias)
+            module.set_parameters(current_weight, current_bias)
 
         # handle = module.attention.register_forward_hook(attn_hook)
         attn_outputs = module.attention(input_tensor, attention_mask, head_mask)
