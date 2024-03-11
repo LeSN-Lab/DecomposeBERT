@@ -312,22 +312,6 @@ class SelfAttentionModule(ModularLayer):
         )
         self.attention_probs = None
 
-    def transpose_for_scores(self, x):
-        """
-        Transposes input for attention scores calculation.
-
-        Args:
-            x (torch.Tensor): Input tensor.
-
-        Returns:
-            torch.Tensor: Transposed tensor.
-        """
-        new_x_shape = x.size()[:-1] + (
-            self.num_attention_heads,
-            self.attention_head_size,
-        )
-        x = x.view(new_x_shape)
-        return x.permute(0, 2, 1, 3)
 
     def forward(self, hidden_states, attention_mask, head_mask):
         """
@@ -342,9 +326,9 @@ class SelfAttentionModule(ModularLayer):
             torch.Tensor: representing the context layer.
         """
 
-        key_layer = self.transpose_for_scores(self.key(hidden_states))
-        value_layer = self.transpose_for_scores(self.value(hidden_states))
-        query_layer = self.transpose_for_scores(self.query(hidden_states))
+        key_layer = transpose_for_scores(self.key(hidden_states), self.num_attention_heads, self.attention_head_size)
+        value_layer = transpose_for_scores(self.value(hidden_states), self.num_attention_heads, self.attention_head_size)
+        query_layer = transpose_for_scores(self.query(hidden_states), self.num_attention_heads, self.attention_head_size)
 
         # Calculate attention scores
         attention_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))
@@ -875,3 +859,20 @@ def prune_linear_layer(layer, index, dim=0):
         new_layer.bias.copy_(bias.contiguous())
         new_layer.bias.requires_grad = True
     return new_layer
+
+def transpose_for_scores(x, num_heads, head_size):
+    """
+    Transposes input for attention scores calculation.
+
+    Args:
+        x (torch.Tensor): Input tensor.
+
+    Returns:
+        torch.Tensor: Transposed tensor.
+    """
+    new_x_shape = x.size()[:-1] + (
+        num_heads,
+        head_size,
+    )
+    x = x.view(new_x_shape)
+    return x.permute(0, 2, 1, 3)

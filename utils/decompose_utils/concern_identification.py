@@ -1,10 +1,13 @@
 import torch
-from utils.model_utils.modular_layers import get_extended_attention_mask
+from utils.model_utils.modular_layers import get_extended_attention_mask, transpose_for_scores
 
 class ConcernIdentificationBert:
     def __init__(self):
         self.positive_sample = True
         self.flag = False
+        self.attn_probs = None
+        self.num_attention_heads = 12
+        self.attention_head_size = 64
 
     def propagate(self, module, input_tensor, attention_mask, positive_sample=True):
         # propagate input tensor to the module
@@ -40,45 +43,49 @@ class ConcernIdentificationBert:
             original_weight, original_bias = module.get_parameters()
 
             original_output = module.layer(input[0])
-            upper_bound = torch.max(original_output, dim=1)
-            lower_bound = torch.min(original_output, dim=1)
-            temp = upper_bound[0].squeeze(0)
-            for i in range(output_features):
-                if self.positive_sample:
-                    if temp[i] <= 0:
-                        current_weight[i, :] = 0
-                        current_bias[i] = 0
-                    else:
-                        if self.flag:
-                            current_weight[i, :] = original_weight[i, :]
-                            current_bias[i] = original_bias[i]
-                        else:
-                            current_row = current_weight[i]
-                            original_row = original_weight[i]
 
-                            mask = original_row > 0
-                            tmp = torch.max(current_row, original_row)
-                            tmp[tmp < 0] = 0
-                            updated_row = torch.where(
-                                mask,
-                                torch.min(current_row, original_row),
-                                tmp
-                            )
-                            current_weight[i] = updated_row
-                            current_bias[i] = original_bias[i]
-                #
-                # else:
-                #     if temp[i] > 0:
-                #         current_weight[i, :] = original_weight[i, :]
-                #         current_bias[i] = original_bias[i]
-                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.1:
-                    self.flag = True
-                else:
-                    self.flag = False
+            for s in range(original_output.shape[1]):
+                temp = original_output[:, s, :]
+                temp = temp.squeeze(0)
+                temp = temp - torch.mean(temp)
+                for i in range(output_features):
+                    if self.positive_sample:
+                        if temp[i] <= 0:
+                            current_weight[i, :] = 0
+                            current_bias[i] = 0
+                        else:
+                            if self.flag:
+                                current_weight[i, :] = original_weight[i, :]
+                                current_bias[i] = original_bias[i]
+                            else:
+                                current_row = current_weight[i]
+                                original_row = original_weight[i]
+
+                                mask = original_row > 0
+                                tmp = torch.max(current_row, original_row)
+                                tmp[tmp < 0] = 0
+                                updated_row = torch.where(
+                                    mask,
+                                    torch.min(current_row, original_row),
+                                    tmp
+                                )
+                                current_weight[i] = updated_row
+                                current_bias[i] = original_bias[i]
+                    #
+                    # else:
+                    #     if temp[i] > 0:
+                    #         current_weight[i, :] = original_weight[i, :]
+                    #         current_bias[i] = original_bias[i]
+                    if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.1:
+                        self.flag = True
+                    else:
+                        self.flag = False
 
             module.set_parameters(current_weight, current_bias)
 
         attn_outputs = module.attention(input_tensor, attention_mask, head_mask)
+        self.attn_probs = module.attention.self_attention.attention_probs
+
         intermediate_output = module.feed_forward1(attn_outputs)
         handle = module.feed_forward2.dense.register_forward_hook(ff2_hook)
         layer_output = module.feed_forward2(intermediate_output, attn_outputs)
