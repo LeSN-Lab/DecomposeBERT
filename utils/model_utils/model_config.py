@@ -22,6 +22,7 @@ class ModelConfig:
         self.train_dir = p.get_dir(p.Train, t)
         self.data_dir = p.get_dir(p.Data, _data)
         self.prep_dir = p.get_dir(self.data_dir, "Prep_data")
+        self.module_dir = p.get_dir(p.Module, t)
 
         # others
         self.model_name = _model_name

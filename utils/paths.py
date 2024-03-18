@@ -16,6 +16,7 @@ class Paths:
         self.Config = self.get_dir(
             self.Model, "Config"
         )  # path of the model configuration files
+        self.Module = self.get_dir(self.root_dir, "Modules")
 
     def set_root(self):
         while True:

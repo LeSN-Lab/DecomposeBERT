@@ -370,7 +370,7 @@ class SelfAttentionModule(ModularLayer):
         self.all_head_size = self.attention_head_size * self.num_attention_heads
 
 
-class OutputModule(ModularLayer):
+class SelfOutputModule(ModularLayer):
     """
     A modular layer responsible for post-attention processing and output projection.
 
@@ -418,6 +418,43 @@ class OutputModule(ModularLayer):
         return hidden_states
 
 
+class OutputModule(ModularLayer):
+    """
+    A modular layer responsible for post-attention processing and output projection.
+
+    Attributes:
+        config (object): Configuration
+        dense (Layer): Dense linear layer for output projection.
+        LayerNorm (Layer): Layer normalization layer for stabilization.
+        dropout (Layer): Dropout layer for regularization.
+    """
+
+    def __init__(self, layers, config, name="output"):
+        super().__init__(name)
+        self.config = config
+        self.append_layers(layers)
+        self.dense = self.get("dense")
+        self.LayerNorm = self.get("LayerNorm")
+        self.dropout = self.get("dropout")
+
+    def forward(self, hidden_states, input_tensor):
+        """
+        Performs output processing and projection.
+
+        Args:
+            hidden_states (torch.Tensor): Input hidden states.
+            input_tensor (torch.Tensor): Input tensor to be added after normalization.
+
+        Returns:
+            torch.Tensor: Processed and projected output.
+        """
+
+        hidden_states = self.dense(hidden_states)
+        hidden_states = self.dropout(hidden_states)
+        hidden_states = self.LayerNorm(hidden_states + input_tensor)
+
+        return hidden_states
+
 class AttentionModule(ModularLayer):
     """
     A modular layer responsible for self-attention and output projection.
@@ -433,7 +470,7 @@ class AttentionModule(ModularLayer):
         super().__init__("attention")
         self.config = config
         self.self_attention = SelfAttentionModule(layers.self, config)
-        self.output = OutputModule(layers.output, config, "output")
+        self.output = SelfOutputModule(layers.output, config, "output")
         self.pruned_heads = set()
 
     def forward(self, hidden_states, attention_mask, head_mask):
