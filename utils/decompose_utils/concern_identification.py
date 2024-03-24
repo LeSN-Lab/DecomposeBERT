@@ -3,9 +3,9 @@ from utils.model_utils.modular_layers import get_extended_attention_mask
 
 
 class ConcernIdentificationBert:
-    def __init__(self):
+    def __init__(self, model_config):
         self.positive_sample = True
-        self.is_sparse = False
+        self.is_sparse = {"ff1": [False]* model_config.num_hidden_layers, "ff2":[False]*model_config.num_hidden_layers, "pooler":False}
         self.a = 0
         self.b = 0
         self.c = 0
@@ -13,7 +13,7 @@ class ConcernIdentificationBert:
         self.e = 0
         self.f = 0
 
-    def positive_hook(self, module, output):
+    def positive_hook(self, module, output, is_sparse):
         """
         Positive hook
         Attributes:
@@ -28,45 +28,7 @@ class ConcernIdentificationBert:
         positive_weight_mask = original_weight > 0
         negative_weight_mask = original_weight < 0
 
-        if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.1:
-            self.is_sparse = True
-        else:
-            self.is_sparse = False
-
-        if self.is_sparse:
-            extended_mask = negative_output_mask.unsqueeze(1).expand(-1, module.shape[1])
-            k = positive_weight_mask
-            temp = torch.logical_and(extended_mask, k)
-            not_all_zeros = temp.any(dim=1)
-            current_weight[temp] = original_weight[temp]
-            current_bias[not_all_zeros] = original_bias[not_all_zeros]
-
-        else:
-            extended_mask = positive_output_mask.unsqueeze(1).expand(-1, module.shape[1])
-            k = negative_weight_mask
-            temp = torch.logical_or(extended_mask, k)
-            current_weight[temp] = 0
-            all_zeros = ~temp.any(dim=1)
-            current_bias[all_zeros] = 0
-
-        module.set_parameters(current_weight, current_bias)
-
-    def negative_hook(self, module, output):
-        # Get the shapes and original parameters (weights and biases) of the module
-        current_weight, current_bias = module.weight, module.bias
-        original_weight, original_bias = module.get_parameters()
-        negative_output_mask = output[0] < 0
-        positive_output_mask = output[0] > 0
-
-        positive_weight_mask = original_weight > 0
-        negative_weight_mask = original_weight < 0
-
-        if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.1:
-            self.is_sparse = True
-        else:
-            self.is_sparse = False
-
-        if self.is_sparse:
+        if is_sparse:
             if self.a == 0:
                 extended_mask = positive_output_mask.unsqueeze(1).expand(-1, module.shape[1])
             else:
@@ -106,6 +68,43 @@ class ConcernIdentificationBert:
 
         module.set_parameters(current_weight, current_bias)
 
+        if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.1:
+            return True
+        else:
+            return False
+
+    def negative_hook(self, module, output):
+        # Get the shapes and original parameters (weights and biases) of the module
+        current_weight, current_bias = module.weight, module.bias
+        original_weight, original_bias = module.get_parameters()
+        positive_output_mask = output[0] > 0
+        negative_output_mask = output[0] < 0
+        positive_weight_mask = original_weight > 0
+        negative_weight_mask = original_weight < 0
+
+        if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.15:
+            self.is_sparse = True
+        else:
+            self.is_sparse = False
+
+        if self.is_sparse:
+            extended_mask = negative_output_mask.unsqueeze(1).expand(-1, module.shape[1])
+            k = positive_weight_mask
+            temp = torch.logical_or(extended_mask, k)
+            not_all_zeros = temp.any(dim=1)
+            current_weight[temp] = original_weight[temp]
+            current_bias[not_all_zeros] = original_bias[not_all_zeros]
+
+        else:
+            extended_mask = positive_output_mask.unsqueeze(1).expand(-1, module.shape[1])
+            k = negative_weight_mask
+            temp = torch.logical_and(extended_mask, k)
+            current_weight[temp] = 0
+            all_zeros = ~temp.any(dim=1)
+            current_bias[all_zeros] = 0
+
+        module.set_parameters(current_weight, current_bias)
+
     def propagate(self, module, input_tensor, attention_mask, positive_sample=True):
         # propagate input tensor to the module
         self.positive_sample = positive_sample
@@ -124,21 +123,28 @@ class ConcernIdentificationBert:
 
     def propagate_encoder(self, module, input_tensor, attention_mask):
         attention_mask = get_extended_attention_mask(attention_mask)
-        maxi = len(module.encoder_blocks) - 1
         for i, encoder_block in enumerate(module.encoder_blocks):
             block_outputs = self.propagate_encoder_block(
-                encoder_block, input_tensor, attention_mask, i, maxi, None
+                encoder_block, input_tensor, attention_mask, i, None
             )
             input_tensor = block_outputs[0]
         return input_tensor
 
     def propagate_encoder_block(
-        self, module, input_tensor, attention_mask, i, maxi, head_mask=None
+        self, module, input_tensor, attention_mask, i, head_mask=None
     ):
         def ff1_hook(module, input, output):
             if self.positive_sample:
                 original_output = module.layer(input[0])
-                self.positive_hook(module, original_output[:, 0, :])
+                self.is_sparse["ff1"][i] = self.positive_hook(module, original_output[:, 0, :], self.is_sparse["ff1"][i])
+            else:
+                original_outputs = module.layer(input[0])
+                self.negative_hook(module, original_outputs[:, 0, :])
+
+        def ff2_hook(module, input, output):
+            if self.positive_sample:
+                original_output = module.layer(input[0])
+                self.is_sparse["ff2"][i] = self.positive_hook(module, original_output[:, 0, :], self.is_sparse["ff2"][i])
             else:
                 original_outputs = module.layer(input[0])
                 self.negative_hook(module, original_outputs[:, 0, :])
@@ -148,7 +154,7 @@ class ConcernIdentificationBert:
         handle = module.feed_forward1.dense.register_forward_hook(ff1_hook)
         intermediate_output = module.feed_forward1(attn_outputs)
         handle.remove()
-        handle = module.feed_forward2.dense.register_forward_hook(ff1_hook)
+        handle = module.feed_forward2.dense.register_forward_hook(ff2_hook)
         layer_output = module.feed_forward2(intermediate_output, attn_outputs)
         handle.remove()
         return (layer_output,)
@@ -170,7 +176,7 @@ class ConcernIdentificationBert:
             # Get the original output from model
             if self.positive_sample:
                 original_outputs = module.layer(input[0])
-                self.positive_hook(module, original_outputs)
+                self.is_sparse["pooler"] = self.positive_hook(module, original_outputs, self.is_sparse["pooler"])
             else:
                 original_outputs = module.layer(input[0])
                 self.negative_hook(module, original_outputs)
@@ -182,16 +188,8 @@ class ConcernIdentificationBert:
         return output_tensor
 
     def propagate_classifier(self, module, input_tensor):
-        def classifier_hook(module, input, output):
-            if self.positive_sample:
-                original_outputs = module.layer(input[0])
-                self.positive_hook(module, original_outputs)
-            else:
-                original_outputs = module.layer(input[0])
-                self.negative_hook(module, original_outputs)
-        handle = module.register_forward_hook(classifier_hook)
+
         output_tensor = module(input_tensor)
-        handle.remove()
         return output_tensor
 
 
