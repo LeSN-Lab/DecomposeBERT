@@ -132,61 +132,47 @@ def load_sdg(tokenizer, data_config):
     return train_dataloader, valid_dataloader, test_dataloader
 
 
-# In[]: Math dataset loader
-def load_math_dataset(tokenizer, batch_size=32, max_length=20):
-    # Load the dataset
-    data, info = tfds.load(
-        "math_qa", split=["train", "test", "validation"], batch_size=-1, with_info=True
+# In[]: Yahoo dataset loader
+
+def load_yahoo(tokenizer, data_config):
+    print("Loading dataset")
+
+    file_path = os.path.join(data_config.data_dir, "Dataset.csv")
+    data_config.text_column = "text"
+    data_config.label_column = "category"
+    data_config.max_length = 512
+
+    if not os.path.isfile(file_path):
+        print("Downloading SDG dataset...")
+        try:
+            df = pd.read_csv(
+                "https://zenodo.org/record/10579179/files/osdg-community-data-v2024-01-01.csv?download=1",
+                sep="\t",
+            )
+            df["sdg"] = df["sdg"] - 1
+            df.to_csv(file_path)
+            print("Download has been completed")
+        except:
+            print("Failed to download")
+
+    df = pd.read_csv(file_path)
+
+    train_df, temp_df = train_test_split(
+        df, random_state=2018, test_size=data_config.test_size, stratify=df["sdg"]
     )
-    train_data, test_data, validation_data = data
 
-    # Initialize lists
-    x_train, y_train = [], []
-    x_valid, y_valid = [], []
-    x_test, y_test = [], []
+    valid_df, test_df = train_test_split(
+        temp_df, random_state=2018, test_size=0.5, stratify=temp_df["sdg"]
+    )
 
-    # Define classes
-    list_classes = {
-        "gain": 0,
-        "general": 1,
-        "geometry": 2,
-        "other": 3,
-        "physics": 4,
-        "probability": 5,
-    }
-
-    # Process test data
-    for i in range(len(test_data["category"])):
-        category = test_data["category"][i].numpy().decode("utf-8")
-        y_test.append(list_classes[category])
-        x_test.append(test_data["Problem"][i].numpy().decode("utf-8"))
-
-    # Process train data
-    for i in range(len(train_data["category"])):
-        category = train_data["category"][i].numpy().decode("utf-8")
-        y_train.append(list_classes[category])
-        x_train.append(train_data["Problem"][i].numpy().decode("utf-8"))
-
-    # Process valid data
-    for i in range(len(validation_data["category"])):
-        category = validation_data["category"][i].numpy().decode("utf-8")
-        y_valid.append(list_classes[category])
-        x_valid.append(validation_data["Problem"][i].numpy().decode("utf-8"))
-
-    # Convert to pandas DataFrame
-    train_df = pd.DataFrame({"Problem": x_train, "Category": y_train})
-    test_df = pd.DataFrame({"Problem": x_test, "Category": y_test})
-    valid_df = pd.DataFrame({"Problem": x_valid, "Category": y_valid})
-
-    # Create dataloader
     train_dataloader = load_dataloader(
-        train_df, "Problem", "Category", tokenizer, batch_size, max_length
+        data_config=data_config, df=train_df, tokenizer=tokenizer, test=False, part="Train"
     )
     valid_dataloader = load_dataloader(
-        valid_df, "Problem", "Category", tokenizer, batch_size, max_length
+        data_config=data_config, df=valid_df, tokenizer=tokenizer, test=True, part="Valid"
     )
     test_dataloader = load_dataloader(
-        test_df, "Problem", "Category", tokenizer, batch_size, max_length
+        data_config=data_config, df=test_df, tokenizer=tokenizer, test=True, part="Test"
     )
 
     return train_dataloader, valid_dataloader, test_dataloader

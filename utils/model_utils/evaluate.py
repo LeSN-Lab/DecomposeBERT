@@ -2,6 +2,7 @@
 import numpy as np
 import torch
 from tqdm import tqdm
+from sklearn.metrics import classification_report
 
 
 # In[]: Test model
@@ -56,9 +57,9 @@ def evaluate_model(model, model_config, test_dataloader):
     print(f"Validation Loss: {avg_loss:.4f}")
     return avg_accuracy, avg_loss
 
-
-def test_f1(module, test_dataloader, model_config, test_class):
-    TP, FP, FN = 0, 0, 0
+def test_f1(module, test_dataloader, model_config, is_binary=True):
+    all_preds = []
+    all_true = []
 
     for batch in test_dataloader:
         input_ids = batch['input_ids'].to(model_config.device)
@@ -69,19 +70,17 @@ def test_f1(module, test_dataloader, model_config, test_class):
             output = module(input_ids, attn_mask)
             preds = output.logits.argmax(dim=-1)
 
-            for pred, true_label in zip(preds, true_labels):
-                if pred == true_label and true_label == test_class:
-                    TP += 1
-                elif pred != true_label and true_label == test_class:
-                    FN += 1
-                elif pred == test_class and true_label != test_class:
-                    FP += 1
+        all_preds.extend(preds.cpu().numpy())
+        all_true.extend(true_labels.cpu().numpy())
 
-    precision = TP / (TP + FP) if TP + FP > 0 else 0
-    recall = TP / (TP + FN) if TP + FN > 0 else 0
-    f1 = 2 * (precision * recall) / (precision + recall) if precision + recall > 0 else 0
-    return {"precision": precision, "recall": recall, "f1": f1}
+    report = classification_report(all_true, all_preds, output_dict=True, zero_division=0)
 
+    if is_binary:
+        detailed_metrics = report['1']  # Or '0' for the negative class
+        return {'detailed_metrics': detailed_metrics, 'classification_report': report}
+    else:
+        macro_f1 = report['macro avg']['f1-score']
+        return {"macro_f1": macro_f1, "details": report}
 
 def test(module, test_ids, test_labels, test_mask, test_case):
     cnt = 0
