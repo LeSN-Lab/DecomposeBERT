@@ -58,6 +58,7 @@ class ConcernIdentificationBert:
         # Get the shapes and original parameters (weights and biases) of the module
         current_weight, current_bias = module.weight, module.bias
         original_weight, original_bias = module.get_parameters()
+        normalized_output = output.clone()
 
         positive_weight_mask = original_weight > 0
         negative_weight_mask = original_weight < 0
@@ -66,18 +67,23 @@ class ConcernIdentificationBert:
         positive_loss_mask = output_loss[0] > 0
         negative_loss_mask = output_loss[0] < 0
 
+        positive_loss_mean = torch.mean(output[positive_loss_mask])
+        negative_loss_mean = torch.mean(output[negative_loss_mask])
 
+        positive_loss_std = torch.std(output[positive_loss_mean])
+        negative_loss_std = torch.std(output[negative_loss_mask])
 
-        # if is_sparse:
-        upper_z = norm.ppf(0.55)
-        mean_output = torch.mean(positive_loss_mask[0])
-        normalized_output = (output[0] - mean_output) / torch.std(output[0])
-        # temp = torch.abs(normalized_output) > upper_z
-        # expanded_temp = temp.unsqueeze(1).expand(-1, module.shape[1])
-        #
-        # temp = torch.logical_and(expanded_temp, negative_extended_mask)
+        normalized_output[positive_loss_mask] = (output[positive_loss_mask] - positive_loss_mean)/positive_loss_std
+        normalized_output[negative_loss_mask] = (output[negative_loss_mask] - negative_loss_mean)/negative_loss_std
 
-        temp = positive_extended_mask
+        upper_z = norm.ppf(0.95)
+        temp = torch.abs(normalized_output) > upper_z
+        expanded_temp = temp.unsqueeze(1).expand(-1, module.shape[1])
+
+        positive_temp = torch.logitcal_and(torch.logical_and(expanded_temp, positive_loss_mask), negative_weight_mask)
+        negative_temp = torch.logical_and(torch.logical_and(expanded_temp, negative_loss_mask), positive_weight_mask)
+
+        temp = torch.logical_or(positive_temp, negative_temp)
         not_all_zeros = temp.any(dim=1)
         current_weight[temp] = original_weight[temp]
         current_bias[not_all_zeros] = original_bias[not_all_zeros]
