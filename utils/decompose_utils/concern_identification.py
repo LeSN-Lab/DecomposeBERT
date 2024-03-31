@@ -19,6 +19,8 @@ class ConcernIdentificationBert:
 
         positive_output_mask = output > 0
         negative_output_mask = output < 0
+        positive_output_mask = output[0] > 0
+        negative_output_mask = output[0] < 0
 
         positive_weight_mask = original_weight > 0
         negative_weight_mask = original_weight < 0
@@ -52,6 +54,20 @@ class ConcernIdentificationBert:
 
         current_weight, current_bias = module.weight, module.bias
         original_weight, original_bias = module.get_parameters()
+        normalized_output = output.clone()
+
+        positive_weight_mask = original_weight > 0
+        negative_weight_mask = original_weight < 0
+
+        output_loss = original_output - output
+        positive_loss_mask = output_loss[0] > 0
+        negative_loss_mask = output_loss[0] < 0
+
+        positive_loss_mean = torch.mean(output[positive_loss_mask])
+        negative_loss_mean = torch.mean(output[negative_loss_mask])
+
+        positive_loss_std = torch.std(output[positive_loss_mean])
+        negative_loss_std = torch.std(output[negative_loss_mask])
         normalized_output = output.clone()
 
         if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.30:
