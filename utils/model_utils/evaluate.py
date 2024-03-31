@@ -77,7 +77,7 @@ def test_f1(module, test_dataloader, model_config, is_binary=True):
 
     if is_binary:
         detailed_metrics = report['1']  # Or '0' for the negative class
-        return {'detailed_metrics': detailed_metrics, 'classification_report': report}
+        return {'detailed_metrics': detailed_metrics, 'details': report}
     else:
         macro_f1 = report['macro avg']['f1-score']
         return {"macro_f1": macro_f1, "details": report}
