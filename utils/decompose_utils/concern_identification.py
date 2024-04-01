@@ -17,7 +17,7 @@ class ConcernIdentificationBert:
         # Get the shapes and original parameters (weights and biases) of the layer
         current_weight, current_bias = module.weight, module.bias   # updating parameters
 
-        upper_z = norm.ppf(0.70)
+        upper_z = norm.ppf(0.80)
         mean_output = torch.mean(output)
         normalized_output = (output - mean_output) / safe_std(output)
         temp = torch.abs(normalized_output) < upper_z
@@ -53,7 +53,7 @@ class ConcernIdentificationBert:
         normalized_output[positive_loss_mask] = (output[positive_loss_mask] - positive_loss_mean)/positive_loss_std
         normalized_output[negative_loss_mask] = (output[negative_loss_mask] - negative_loss_mean)/negative_loss_std
 
-        upper_z = norm.ppf(0.95)
+        upper_z = norm.ppf(0.90)
         temp = torch.abs(normalized_output) > upper_z
         expanded_mask = temp.unsqueeze(1).expand(-1, module.shape[1])
 
@@ -95,7 +95,7 @@ class ConcernIdentificationBert:
     def propagate_encoder_block(
         self, module, input_tensor, attention_mask, i, head_mask=None
     ):
-        def ff1_hook(self, module, input, output):
+        def ff1_hook(module, input, output):
             if self.positive_sample:
                 current_weight, current_bias = module.weight, module.bias
                 original_output = module.layer(input[0])
@@ -113,7 +113,7 @@ class ConcernIdentificationBert:
                 else:
                     self.remove(module, output[0, 0, :])
 
-        def ff2_hook(self, module, input, output):
+        def ff2_hook(module, input, output):
             if self.positive_sample:
                 current_weight, current_bias = module.weight, module.bias
                 original_output = module.layer(input[0])
