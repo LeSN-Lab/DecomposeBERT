@@ -1,12 +1,13 @@
 import torch
 from utils.model_utils.modular_layers import get_extended_attention_mask
+from utils.type_utils.data_type import safe_std
 from scipy.stats import norm
 
 class ConcernIdentificationBert:
     def __init__(self, model_config):
         self.positive_sample = True
 
-    def positive_hook(self, module, output):
+    def remove(self, module, output):
         """
         Positive hook
         Attributes:
@@ -15,41 +16,21 @@ class ConcernIdentificationBert:
         """
         # Get the shapes and original parameters (weights and biases) of the layer
         current_weight, current_bias = module.weight, module.bias   # updating parameters
-        original_weight, original_bias = module.get_parameters()
 
-        positive_output_mask = output > 0
-        negative_output_mask = output < 0
-        positive_output_mask = output[0] > 0
-        negative_output_mask = output[0] < 0
+        upper_z = norm.ppf(0.70)
+        mean_output = torch.mean(output)
+        normalized_output = (output - mean_output) / safe_std(output)
+        temp = torch.abs(normalized_output) < upper_z
+        expanded_temp = temp.unsqueeze(1).expand(-1, module.shape[1])
+        temp = expanded_temp
+        # temp = torch.logical_and(expanded_temp, negative_extended_mask)
+        current_weight[temp] = 0
+        all_zeros = ~temp.any(dim=1)
+        current_bias[all_zeros] = 0
 
-        positive_weight_mask = original_weight > 0
-        negative_weight_mask = original_weight < 0
-        positive_extended_mask = positive_output_mask.unsqueeze(1).expand(-1, module.shape[1])
-        negative_extended_mask = negative_output_mask.unsqueeze(1).expand(-1, module.shape[1])
+        module.set_parameters(current_weight, current_bias)
 
-        if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.15:
-            pass
-            #
-            # # recover positive_output
-            # temp = positive_extended_mask
-            # not_all_zeros = temp.any(dim=1)
-            # current_weight[temp] = original_weight[temp]
-            # current_bias[not_all_zeros] = original_bias[not_all_zeros]
-        else:
-            upper_z = norm.ppf(0.70)
-            mean_output = torch.mean(output)
-            normalized_output = (output - mean_output) / torch.std(output)
-            temp = torch.abs(normalized_output) < upper_z
-            expanded_temp = temp.unsqueeze(1).expand(-1, module.shape[1])
-            temp = expanded_temp
-            # temp = torch.logical_and(expanded_temp, negative_extended_mask)
-            current_weight[temp] = 0
-            all_zeros = ~temp.any(dim=1)
-            current_bias[all_zeros] = 0
-
-            module.set_parameters(current_weight, current_bias)
-
-    def negative_hook(self, module, original_output, output):
+    def recover(self, module, original_output, output):
         # Get the shapes and original parameters (weights and biases) of the module
 
         current_weight, current_bias = module.weight, module.bias
@@ -60,56 +41,31 @@ class ConcernIdentificationBert:
         negative_weight_mask = original_weight < 0
 
         output_loss = original_output - output
-        positive_loss_mask = output_loss[0] > 0
-        negative_loss_mask = output_loss[0] < 0
+        positive_loss_mask = output_loss > 0
+        negative_loss_mask = output_loss < 0
 
         positive_loss_mean = torch.mean(output[positive_loss_mask])
         negative_loss_mean = torch.mean(output[negative_loss_mask])
 
-        positive_loss_std = torch.std(output[positive_loss_mean])
-        negative_loss_std = torch.std(output[negative_loss_mask])
-        normalized_output = output.clone()
+        positive_loss_std = safe_std(output[positive_loss_mask])
+        negative_loss_std = safe_std(output[negative_loss_mask])
 
-        if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.30:
+        normalized_output[positive_loss_mask] = (output[positive_loss_mask] - positive_loss_mean)/positive_loss_std
+        normalized_output[negative_loss_mask] = (output[negative_loss_mask] - negative_loss_mean)/negative_loss_std
 
-            positive_weight_mask = original_weight > 0
-            negative_weight_mask = original_weight < 0
+        upper_z = norm.ppf(0.95)
+        temp = torch.abs(normalized_output) > upper_z
+        expanded_mask = temp.unsqueeze(1).expand(-1, module.shape[1])
 
-            output_loss = original_output - output
-            positive_loss_mask = output_loss > 0
-            negative_loss_mask = output_loss < 0
+        positive_temp = torch.logical_and(expanded_mask, positive_weight_mask)
+        negative_temp = torch.logical_and(expanded_mask, negative_weight_mask)
 
-            positive_loss_mean = torch.mean(output[positive_loss_mask])
-            negative_loss_mean = torch.mean(output[negative_loss_mask])
+        temp = torch.logical_or(positive_temp, negative_temp)
+        not_all_zeros = temp.any(dim=1)
+        current_weight[temp] = original_weight[temp]
+        current_bias[not_all_zeros] = original_bias[not_all_zeros]
 
-            positive_loss_std = torch.std(output[positive_loss_mask])
-            negative_loss_std = torch.std(output[negative_loss_mask])
-
-            normalized_output[positive_loss_mask] = (output[positive_loss_mask] - positive_loss_mean)/positive_loss_std
-            normalized_output[negative_loss_mask] = (output[negative_loss_mask] - negative_loss_mean)/negative_loss_std
-
-            upper_z = norm.ppf(0.95)
-            temp = torch.abs(normalized_output) > upper_z
-            expanded_temp = temp.unsqueeze(1).expand(-1, module.shape[1])
-            expanded_positive_loss_mask = positive_loss_mask.unsqueeze(1).expand(-1, module.shape[1])
-            expanded_negative_loss_mask = negative_loss_mask.unsqueeze(1).expand(-1, module.shape[1])
-
-            positive_temp = torch.logical_and(torch.logical_and(expanded_temp, expanded_positive_loss_mask), negative_weight_mask)
-            negative_temp = torch.logical_and(torch.logical_and(expanded_temp, expanded_negative_loss_mask), positive_weight_mask)
-
-            temp = torch.logical_or(positive_temp, negative_temp)
-            not_all_zeros = temp.any(dim=1)
-            current_weight[temp] = original_weight[temp]
-            current_bias[not_all_zeros] = original_bias[not_all_zeros]
-
-            module.set_parameters(current_weight, current_bias)
-
-        # else:
-            # temp = torch.logical_and(positive_extended_mask, threshold_weight_mask)
-            # temp = torch.logical_and(positive_extended_mask, threshold_weight_mask)
-            # current_weight[temp] = 0
-            # all_zeros = ~temp.any(dim=1)
-            # current_bias[all_zeros] = 0
+        module.set_parameters(current_weight, current_bias)
 
     def propagate(self, module, input_tensor, attention_mask, positive_sample=True):
         # propagate input tensor to the module
@@ -139,21 +95,41 @@ class ConcernIdentificationBert:
     def propagate_encoder_block(
         self, module, input_tensor, attention_mask, i, head_mask=None
     ):
-        def ff1_hook(module, input, output):
+        def ff1_hook(self, module, input, output):
             if self.positive_sample:
-                # original_output = module.layer(input[0])
-                self.positive_hook(module, output[0, 0, :])
-            else:
+                current_weight, current_bias = module.weight, module.bias
                 original_output = module.layer(input[0])
-                self.negative_hook(module, original_output[0, 0, :], output[0, 0, :])
 
-        def ff2_hook(module, input, output):
-            if self.positive_sample:
-                # original_output = module.layer(input[0])
-                self.positive_hook(module, output[0, 0, :])
+                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.15:
+                    self.recover(module, original_output[0, 0, :], output[0, 0, :])
+                else:
+                    self.remove(module, output[0, 0, :])
             else:
+                current_weight, current_bias = module.weight, module.bias
                 original_output = module.layer(input[0])
-                self.negative_hook(module, original_output[0, 0, :], output[0, 0, :])
+
+                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.30:
+                    self.recover(module, original_output[0, 0, :], output[0, 0, :])
+                else:
+                    self.remove(module, output[0, 0, :])
+
+        def ff2_hook(self, module, input, output):
+            if self.positive_sample:
+                current_weight, current_bias = module.weight, module.bias
+                original_output = module.layer(input[0])
+
+                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.15:
+                    self.recover(module, original_output[0, 0, :], output[0, 0, :])
+                else:
+                    self.remove(module, output[0, 0, :])
+            else:
+                current_weight, current_bias = module.weight, module.bias
+                original_output = module.layer(input[0])
+
+                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.30:
+                    self.recover(module, original_output[0, 0, :], output[0, 0, :])
+                else:
+                    self.remove(module, output[0, 0, :])
 
         attn_outputs = module.attention(input_tensor, attention_mask, head_mask)
         self.attn_probs = module.attention.self_attention.attention_probs
@@ -181,11 +157,21 @@ class ConcernIdentificationBert:
         def pooler_hook(module, input, output):
             # Get the original output from model
             if self.positive_sample:
-                # original_outputs = module.layer(input[0])
-                self.positive_hook(module, output[0])
-            else:
+                current_weight, current_bias = module.weight, module.bias
                 original_outputs = module.layer(input[0])
-                self.negative_hook(module, original_outputs[0], output[0])
+
+                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.15:
+                    self.recover(module, original_outputs[0], output[0])
+                else:
+                    self.remove(module, output[0])
+            else:
+                current_weight, current_bias = module.weight, module.bias
+                original_outputs = module.layer(input[0])
+
+                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.30:
+                    self.recover(module, original_outputs[0], output[0])
+                else:
+                    self.remove(module, output[0])
 
         handle = module.dense.register_forward_hook(pooler_hook)
         output_tensor = module.dense(first_token_tensor)
