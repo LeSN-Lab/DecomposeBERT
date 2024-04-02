@@ -17,7 +17,7 @@ class ConcernIdentificationBert:
         # Get the shapes and original parameters (weights and biases) of the layer
         current_weight, current_bias = module.weight, module.bias   # updating parameters
 
-        upper_z = norm.ppf(0.80)
+        upper_z = norm.ppf(0.60)
         mean_output = torch.mean(output)
         normalized_output = (output - mean_output) / safe_std(output)
         temp = torch.abs(normalized_output) < upper_z
@@ -100,36 +100,44 @@ class ConcernIdentificationBert:
                 current_weight, current_bias = module.weight, module.bias
                 original_output = module.layer(input[0])
 
-                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.15:
-                    self.recover(module, original_output[0, 0, :], output[0, 0, :])
+                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.70:
+                    # self.recover(module, original_output[0, 0, :], output[0, 0, :])
+                    pass
                 else:
                     self.remove(module, output[0, 0, :])
+                    pass
             else:
                 current_weight, current_bias = module.weight, module.bias
                 original_output = module.layer(input[0])
 
-                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.30:
-                    self.recover(module, original_output[0, 0, :], output[0, 0, :])
+                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.70:
+                    # self.recover(module, original_output[0, 0, :], output[0, 0, :])
+                    pass
                 else:
                     self.remove(module, output[0, 0, :])
+                    pass
 
         def ff2_hook(module, input, output):
             if self.positive_sample:
                 current_weight, current_bias = module.weight, module.bias
                 original_output = module.layer(input[0])
 
-                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.15:
-                    self.recover(module, original_output[0, 0, :], output[0, 0, :])
+                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.50:
+                    # self.recover(module, original_output[0, 0, :], output[0, 0, :])
+                    pass
                 else:
                     self.remove(module, output[0, 0, :])
+                    pass
             else:
                 current_weight, current_bias = module.weight, module.bias
                 original_output = module.layer(input[0])
 
-                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.30:
-                    self.recover(module, original_output[0, 0, :], output[0, 0, :])
+                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.50:
+                    # self.recover(module, original_output[0, 0, :], output[0, 0, :])
+                    pass
                 else:
                     self.remove(module, output[0, 0, :])
+                pass
 
         attn_outputs = module.attention(input_tensor, attention_mask, head_mask)
         self.attn_probs = module.attention.self_attention.attention_probs
@@ -160,18 +168,22 @@ class ConcernIdentificationBert:
                 current_weight, current_bias = module.weight, module.bias
                 original_outputs = module.layer(input[0])
 
-                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.15:
-                    self.recover(module, original_outputs[0], output[0])
+                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.40:
+                    # self.recover(module, original_outputs[0], output[0])
+                    pass
                 else:
                     self.remove(module, output[0])
+                    pass
             else:
                 current_weight, current_bias = module.weight, module.bias
                 original_outputs = module.layer(input[0])
 
-                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.30:
-                    self.recover(module, original_outputs[0], output[0])
+                if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.40:
+                    # self.recover(module, original_outputs[0], output[0])
+                    pass
                 else:
                     self.remove(module, output[0])
+                    pass
 
         handle = module.dense.register_forward_hook(pooler_hook)
         output_tensor = module.dense(first_token_tensor)
