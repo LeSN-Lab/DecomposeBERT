@@ -7,6 +7,7 @@ def sampling_class(
     num_samples,
     num_class,
     positive_sample=True,
+    batch_size=16,
     device="cuda",
 ):
     sampled_ids = []
@@ -52,11 +53,48 @@ def sampling_class(
             sampled_masks.append(selected_attention_masks)
             sampled_labels.append(selected_labels)
 
+            while sum(len(ids) for ids in sampled_ids) >= batch_size:
+                # Determine the size of the batch to yield
+                current_batch_size = 0
+                batch_input_ids, batch_masks, batch_labels = [], [], []
+                while sampled_ids and current_batch_size < batch_size:
+                    ids = sampled_ids[0]
+                    masks = sampled_masks[0]
+                    labels = sampled_labels[0]
+
+                    # How many samples to take from the current selection
+                    take = min(len(ids), batch_size - current_batch_size)
+                    batch_input_ids.append(ids[:take])
+                    batch_masks.append(masks[:take])
+                    batch_labels.append(labels[:take])
+
+                    # Update the current batch size
+                    current_batch_size += take
+
+                    # Remove the used samples
+                    if take == len(ids):
+                        sampled_ids.pop(0)
+                        sampled_masks.pop(0)
+                        sampled_labels.pop(0)
+                    else:
+                        sampled_ids[0] = ids[take:]
+                        sampled_masks[0] = masks[take:]
+                        sampled_labels[0] = labels[take:]
+
+                yield (
+                    torch.cat(batch_input_ids),
+                    torch.cat(batch_masks),
+                    torch.cat(batch_labels),
+                    sum(len(ids) for ids in batch_input_ids),
+                )
+
         if all(count >= samples_per_class for count in class_counts.values()):
             break
 
-    sampled_ids = torch.cat(sampled_ids)
-    sampled_masks = torch.cat(sampled_masks)
-    sampled_labels = torch.cat(sampled_labels)
-
-    return sampled_ids, sampled_masks, sampled_labels, total_sampled
+    if sampled_ids:
+        yield (
+            torch.cat(sampled_ids),
+            torch.cat(sampled_masks),
+            torch.cat(sampled_labels),
+            sum(len(ids) for ids in sampled_ids),
+        )
