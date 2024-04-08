@@ -3,6 +3,7 @@ from utils.model_utils.modular_layers import get_extended_attention_mask
 from utils.type_utils.data_type import safe_std
 from scipy.stats import norm
 
+
 class ConcernIdentificationBert:
     def __init__(self, model_config):
         self.positive_sample = True
@@ -16,105 +17,147 @@ class ConcernIdentificationBert:
             output (torch.Tensor): output tensor of the original layer
         """
         # Get the shapes and original parameters (weights and biases) of the layer
-        current_weight, current_bias = module.weight, module.bias   # updating parameters
-        upper_z = norm.ppf(0.75)
-        mean_output = torch.mean(output, keepdim=True, dim=1)
-        normalized_output = (output - mean_output) / safe_std(output, dim=1, epsilon=1e-5)
-        mask = torch.abs(normalized_output) < upper_z
-        temp = mask[0]
-        for i in range(len(output[:])):
-            temp = torch.logical_and(temp, mask[i])
+        current_weight, current_bias = (
+            module.weight.clone(),
+            module.bias.clone(),
+        )  # updating parameters
 
-        expanded_temp = temp.unsqueeze(1).expand(-1, module.shape[1])
-        temp = expanded_temp
-        # temp = torch.logical_and(expanded_temp, negative_extended_mask)
-        current_weight[temp] = 0
-        all_zeros = ~temp.any(dim=1)
+        percentile_40 = torch.quantile(output, 0.4, dim=1, keepdim=True)
+        percentile_60 = torch.quantile(output, 0.6, dim=1, keepdim=True)
+        mask = torch.logical_and(output >= percentile_40, output < percentile_60)
+        mask = torch.all(mask, dim=0).unsqueeze(1).expand(-1, module.shape[1])
+
+        current_weight[mask] = 0
+        all_zeros = ~mask.any(dim=1)
         current_bias[all_zeros] = 0
-
         module.set_parameters(current_weight, current_bias)
 
     def pruning(self, module, original_output, output):
         # Get the shapes and original parameters (weights and biases) of the module
 
-        current_weight, current_bias = module.weight, module.bias
+        current_weight, current_bias = module.weight.clone(), module.bias.clone()
         original_weight, original_bias = module.get_parameters()
-        normalized_output = output.clone()
 
-        positive_weight_mask = original_weight > 0
-        negative_weight_mask = original_weight < 0
-        upper_z = norm.ppf(0.60)
+        original_weight_mean = torch.nanmean(original_weight, dim=1, keepdim=True)
+        original_weight_std = safe_std(original_weight, dim=1, keepdim=True)
 
-        for b in range(len(output[:])):
-            single_output = output[b]
-            output_loss = original_output[b] - single_output[b]
-            positive_loss_mask = output_loss > 0
-            negative_loss_mask = output_loss < 0
-            positive_loss_mean = torch.mean(single_output[positive_loss_mask])
-            negative_loss_mean = torch.mean(single_output[negative_loss_mask])
+        current_weight_std = safe_std(
+            current_weight,
+            epsilon=original_weight_std,
+            unbiased=True,
+            dim=1,
+            keepdim=True,
+        )
+        output_loss = original_output - output
+        positive_loss_mask = (
+            torch.all(output_loss > 0, dim=0).unsqueeze(1).expand(-1, module.shape[1])
+        )
+        cgto_std_mask = current_weight_std > original_weight_std
+        expanded_cgto_std_mask = cgto_std_mask.expand(-1, module.shape[1])
 
-            positive_loss_std = safe_std(single_output[positive_loss_mask], dim=0, epsilon=1e-5)
-            negative_loss_std = safe_std(single_output[negative_loss_mask], dim=0, epsilon=1e-5)
+        padded_positive = torch.where(
+            current_weight >= 0, current_weight, torch.tensor(float("nan"))
+        )
+        padded_negative = torch.where(
+            current_weight <= 0, current_weight, torch.tensor(float("nan"))
+        )
 
-            normalized_output[b][positive_loss_mask] = (single_output[positive_loss_mask] - positive_loss_mean)/positive_loss_std
-            normalized_output[b][negative_loss_mask] = (single_output[negative_loss_mask] - negative_loss_mean)/negative_loss_std
+        top_positive_quantile = (
+            torch.nanquantile(padded_positive, 0.75, dim=1)
+            .unsqueeze(1)
+            .expand(-1, module.shape[1]),
+        )
 
-        mask = torch.abs(normalized_output) < upper_z
-        temp = mask[0]
-        for i in range(len(output[:])):
-            temp = torch.logical_and(temp, mask[i])
+        bottom_positive_quantile = (
+            torch.nanquantile(
+                padded_positive,
+                0.25,
+                dim=1,
+            )
+            .unsqueeze(1)
+            .expand(-1, module.shape[1])
+        )
 
-        expanded_mask = temp.unsqueeze(1).expand(-1, module.shape[1])
+        top_negative_quantile = (
+            torch.nanquantile(
+                padded_negative,
+                0.75,
+                dim=1,
+            )
+            .unsqueeze(1)
+            .expand(-1, module.shape[1])
+        )
+        bottom_negative_quantile = (
+            torch.nanquantile(padded_negative, 0.25, dim=1)
+            .unsqueeze(1)
+            .expand(-1, module.shape[1])
+        )
 
-        positive_temp = torch.logical_and(expanded_mask, negative_weight_mask)
-        negative_temp = torch.logical_and(expanded_mask, positive_weight_mask)
+        outlier_remove_mask = torch.where(
+            ~positive_loss_mask,
+            torch.logical_or(
+                padded_negative < bottom_negative_quantile[0],
+                padded_negative >= top_negative_quantile[0],
+            ),
+            torch.logical_or(
+                padded_positive >= top_positive_quantile[0],
+                padded_positive < bottom_positive_quantile[0],
+            ),
+        )
+        outlier_remove_mask = torch.logical_and(
+            outlier_remove_mask, expanded_cgto_std_mask
+        )
 
-        temp = torch.logical_or(positive_temp, negative_temp)
-        current_weight[temp] = 0
-        all_zeros = ~temp.any(dim=1)
+        top_positive_quantile = (
+            torch.nanquantile(padded_positive, 0.55, dim=1)
+            .unsqueeze(1)
+            .expand(-1, module.shape[1]),
+        )
+
+        bottom_positive_quantile = (
+            torch.nanquantile(
+                padded_positive,
+                0.45,
+                dim=1,
+            )
+            .unsqueeze(1)
+            .expand(-1, module.shape[1])
+        )
+
+        top_negative_quantile = (
+            torch.nanquantile(
+                padded_negative,
+                0.55,
+                dim=1,
+            )
+            .unsqueeze(1)
+            .expand(-1, module.shape[1])
+        )
+        bottom_negative_quantile = (
+            torch.nanquantile(padded_negative, 0.45, dim=1)
+            .unsqueeze(1)
+            .expand(-1, module.shape[1])
+        )
+        neutral_remove_mask = torch.where(
+            ~positive_loss_mask,
+            torch.logical_and(
+                padded_negative >= bottom_negative_quantile[0],
+                padded_negative < top_negative_quantile[0],
+            ),
+            torch.logical_and(
+                padded_positive < top_positive_quantile[0],
+                padded_positive >= bottom_positive_quantile[0],
+            ),
+        )
+        neutral_remove_mask = torch.logical_and(
+            neutral_remove_mask, ~expanded_cgto_std_mask
+        )
+
+        remove_mask = torch.logical_or(outlier_remove_mask, neutral_remove_mask)
+        current_weight[remove_mask] = 0
+
+        all_zeros = ~current_weight.any(dim=1)
         current_bias[all_zeros] = 0
-
-        module.set_parameters(current_weight, current_bias)
-
-    def recover(self, module, original_output, output):
-        # Get the shapes and original parameters (weights and biases) of the module
-
-        current_weight, current_bias = module.weight, module.bias
-        original_weight, original_bias = module.get_parameters()
-        normalized_output = output.clone()
-
-        positive_weight_mask = original_weight > 0
-        negative_weight_mask = original_weight < 0
-        upper_z = norm.ppf(0.55)
-
-        for b in range(len(output[:])):
-            single_output = output[b]
-            output_loss = original_output[b] - single_output[b]
-            positive_loss_mask = output_loss > 0
-            negative_loss_mask = output_loss < 0
-            positive_loss_mean = torch.mean(single_output[positive_loss_mask])
-            negative_loss_mean = torch.mean(single_output[negative_loss_mask])
-
-            positive_loss_std = safe_std(single_output[positive_loss_mask], dim=0, epsilon=1e-5)
-            negative_loss_std = safe_std(single_output[negative_loss_mask], dim=0, epsilon=1e-5)
-
-            normalized_output[b][positive_loss_mask] = (single_output[positive_loss_mask] - positive_loss_mean)/positive_loss_std
-            normalized_output[b][negative_loss_mask] = (single_output[negative_loss_mask] - negative_loss_mean)/negative_loss_std
-
-        mask = torch.abs(normalized_output) < upper_z
-        temp = mask[0]
-        for i in range(len(output[:])):
-            temp = torch.logical_and(temp, mask[i])
-
-        expanded_mask = temp.unsqueeze(1).expand(-1, module.shape[1])
-
-        positive_temp = torch.logical_and(expanded_mask, positive_weight_mask)
-        negative_temp = torch.logical_and(expanded_mask, negative_weight_mask)
-
-        temp = torch.logical_or(positive_temp, negative_temp)
-        not_all_zeros = temp.any(dim=1)
-        current_weight[temp] = original_weight[temp]
-        current_bias[not_all_zeros] = original_bias[not_all_zeros]
 
         module.set_parameters(current_weight, current_bias)
 
@@ -122,9 +165,7 @@ class ConcernIdentificationBert:
         # propagate input tensor to the module
         self.positive_sample = positive_sample
         output_tensor = self.propagate_embeddings(module.embeddings, input_tensor)
-        output_tensor = self.propagate_encoder(
-            module.encoder, output_tensor
-        )
+        output_tensor = self.propagate_encoder(module.encoder, output_tensor)
         output_tensor = self.propagate_pooler(module.pooler, output_tensor)
         output_tensor = module.dropout(output_tensor)
         output_tensor = self.propagate_classifier(module.classifier, output_tensor)
@@ -136,77 +177,29 @@ class ConcernIdentificationBert:
 
     def propagate_encoder(self, module, input_tensor):
         for i, encoder_block in enumerate(module.encoder_blocks):
-            block_outputs = self.propagate_encoder_block(
-                encoder_block, input_tensor, i, None
-            )
+            block_outputs = self.propagate_encoder_block(encoder_block, input_tensor)
             input_tensor = block_outputs[0]
         return input_tensor
 
-    def propagate_encoder_block(
-        self, module, input_tensor, i, head_mask=None
-    ):
+    def propagate_encoder_block(self, module, input_tensor):
         def ff1_hook(module, input, output):
-            if self.positive_sample:
-                current_weight, current_bias = module.weight, module.bias
-                original_outputs = module.layer(input[0])
+            current_weight, current_bias = module.weight, module.bias
+            original_outputs = module.layer(input[0])
 
-                if torch.sum(current_weight != 0) > module.shape[0] * module.shape[1] * 0.9:
-                    self.remove(module, output[:, 0, :])
-                    pass
-                else:
-                    if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.5:
-                        # self.recover(module, original_outputs[:, 0, :], output[:, 0, :])
-                        pass
-                    else:
-                        self.pruning(module, original_outputs[:, 0, :], output[:, 0, :])
-                    pass
-            else:
-                current_weight, current_bias = module.weight, module.bias
-                original_outputs = module.layer(input[0])
-
-                if torch.sum(current_weight != 0) > module.shape[0] * module.shape[1] * 0.9:
-                    self.remove(module, output[:, 0, :])
-                    pass
-                else:
-                    if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.5:
-                        # self.recover(module, original_outputs[:, 0, :], output[:, 0, :])
-                        pass
-                    else:
-                        self.pruning(module, original_outputs[:, 0, :], output[:, 0, :])
-                    pass
-            pass
+            if torch.sum(current_weight != 0) > module.shape[0] * module.shape[1] * 0.9:
+                self.remove(module, output[:, 0, :])
+            elif torch.sum(current_weight != 0) > module.shape[0] * module.shape[1] * 0.4:
+                self.pruning(module, original_outputs[:, 0, :], output[:, 0, :])
+                pass
 
         def ff2_hook(module, input, output):
-            if self.positive_sample:
-                current_weight, current_bias = module.weight, module.bias
-                original_outputs = module.layer(input[0])
-
-                if torch.sum(current_weight != 0) > module.shape[0] * module.shape[1] * 0.9:
-                    self.remove(module, output[:, 0, :])
-                    pass
-                else:
-                    pass
-                    if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.3:
-                        # self.recover(module, original_outputs[:, 0, :], output[:, 0, :])
-                        pass
-                    else:
-                        self.pruning(module, original_outputs[:, 0, :], output[:, 0, :])
-                    pass
-            else:
-                current_weight, current_bias = module.weight, module.bias
-                original_outputs = module.layer(input[0])
-
-                if torch.sum(current_weight != 0) > module.shape[0] * module.shape[1] * 0.9:
-                    self.remove(module, output[:, 0, :])
-                    pass
-                else:
-                    pass
-                    if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.3:
-                        # self.recover(module, original_outputs[:, 0, :], output[:, 0, :])
-                        pass
-                    else:
-                        self.pruning(module, original_outputs[:, 0, :], output[:, 0, :])
-                    pass
+            current_weight, current_bias = module.weight, module.bias
+            original_outputs = module.layer(input[0])
+            if torch.sum(current_weight != 0) > module.shape[0] * module.shape[1] * 0.9:
+                self.remove(module, output[:, 0, :])
+            elif torch.sum(current_weight != 0) > module.shape[0] * module.shape[1] * 0.4:
+                self.pruning(module, original_outputs[:, 0, :], output[:, 0, :])
+                pass
 
         attn_outputs = module.attention(input_tensor, None, None)
         handle = module.feed_forward1.dense.register_forward_hook(ff1_hook)
@@ -230,37 +223,17 @@ class ConcernIdentificationBert:
 
     def propagate_pooler(self, module, input_tensor):
         first_token_tensor = input_tensor[:, 0]
+
         def pooler_hook(module, input, output):
             # Get the original output from model
-            if self.positive_sample:
-                current_weight, current_bias = module.weight, module.bias
-                original_outputs = module.layer(input[0])
+            current_weight, current_bias = module.weight, module.bias
+            original_outputs = module.layer(input[0])
 
-                if torch.sum(current_weight != 0) > module.shape[0] * module.shape[1] * 0.9:
-                    self.remove(module, output)
-                    pass
-                else:
-                    if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.3:
-                        # self.recover(module, original_outputs, output)
-                        pass
-                    else:
-                        self.pruning(module, original_outputs, output)
-                    pass
-            else:
-                current_weight, current_bias = module.weight, module.bias
-                original_outputs = module.layer(input[0])
-
-                if torch.sum(current_weight != 0) > module.shape[0] * module.shape[1] * 0.9:
-                    self.remove(module, output)
-                    pass
-                else:
-                    if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.3:
-                        # self.recover(module, original_outputs, output)
-                        pass
-                    else:
-                        self.pruning(module, original_outputs, output)
-                    pass
-            pass
+            if torch.sum(current_weight != 0) > module.shape[0] * module.shape[1] * 0.9:
+                self.remove(module, output)
+            elif torch.sum(current_weight != 0) > module.shape[0] * module.shape[1] * 0.4:
+                self.pruning(module, original_outputs, output)
+                pass
 
         handle = module.dense.register_forward_hook(pooler_hook)
         output_tensor = module.dense(first_token_tensor)
@@ -272,7 +245,6 @@ class ConcernIdentificationBert:
 
         output_tensor = module(input_tensor)
         return output_tensor
-
 
     def remove_broken_weights(self, module):
         pass

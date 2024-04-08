@@ -12,42 +12,43 @@ class TanglingIdentification:
         current_weight, current_bias = module.weight.clone(), module.bias.clone()
         original_weight, original_bias = module.get_parameters()
 
-        positive_weight_mask = original_weight > 0
-        negative_weight_mask = original_weight < 0
-        upper_z = norm.ppf(0.8)
+        positive_weights = torch.where(current_weight >= 0, current_weight, torch.nan)
+        negative_weights = torch.where(current_weight <= 0, current_weight, torch.nan)
+
+        original_weight_std = safe_std(original_weight, dim=1, keepdim=True)
+        current_weight_std = safe_std(current_weight, epsilon=original_weight_std, unbiased=True, dim=1, keepdim=True)
+
+        positive_weight_mean = torch.nanmean(positive_weights, dim=1, keepdim=True)
+        positive_weight_std = safe_std(positive_weights, epsilon=original_weight_std, unbiased=True, dim=1, keepdim=True)
+        positive_z_scores = torch.where(torch.isnan(positive_weights), -positive_weight_mean/positive_weight_std,
+                                        (positive_weights - positive_weight_mean) / positive_weight_std)
+
+        negative_weight_mean = torch.nanmean(negative_weights, dim=1, keepdim=True)
+        negative_weight_std = safe_std(negative_weights, epsilon=original_weight_std, unbiased=True, dim=1, keepdim=True)
+        negative_z_scores = torch.where(torch.isnan(negative_weights), -negative_weight_mean/negative_weight_std,
+                                        (negative_weights - negative_weight_mean) / negative_weight_std)
+
+        cgto_std_mask = current_weight_std > original_weight_std
+        expanded_cgto_std_mask = cgto_std_mask.expand(-1, module.shape[1])
+
         output_loss = original_output - output
+        positive_loss_mask = torch.all(output_loss > 0, dim=0).unsqueeze(1).expand(-1, module.shape[1])
+        positive_recovery_mask = positive_z_scores >= torch.quantile(positive_z_scores, 0.75, dim=1, keepdim=True)
+        negative_recovery_mask = negative_z_scores <= torch.quantile(negative_z_scores, 0.25, dim=1, keepdim=True)
 
-        positive_loss_mask = output_loss > 0
-        negative_loss_mask = output_loss < 0
+        po = torch.logical_and(positive_z_scores <= torch.quantile(positive_z_scores, 0.25, dim=1, keepdim=True), original_weight >= 0)
+        no = torch.logical_and(negative_z_scores >= torch.quantile(negative_z_scores, 0.75, dim=1, keepdim=True), original_weight <= 0)
+        neutral_recovery_mask = torch.logical_or(po, no)
 
-        common_positive_mask = torch.all(positive_loss_mask, dim=0).unsqueeze(1).expand(-1, module.shape[1])
-        common_negative_mask = torch.all(negative_loss_mask, dim=0).unsqueeze(1).expand(-1, module.shape[1])
+        # outlier_mask = torch.where(positive_loss_mask, negative_recovery_mask, positive_recovery_mask)
+        outlier_mask = torch.where(positive_loss_mask, positive_recovery_mask, negative_recovery_mask)
+        # recovery_mask = torch.where(expanded_cgto_std_mask, neutral_recovery_mask, outlier_mask)
+        recovery_mask = torch.where(expanded_cgto_std_mask, outlier_mask, neutral_recovery_mask)
 
-        weight_difference = original_weight != current_weight
-        not_included_positive_weight = torch.logical_and(weight_difference, positive_weight_mask)
-        not_included_negative_weight = torch.logical_and(weight_difference, negative_weight_mask)
-
-        filtered_positive_weight = torch.where(not_included_positive_weight, original_weight, torch.tensor(0.0))
-        filtered_negative_weight = torch.where(not_included_negative_weight, original_weight, torch.tensor(0.0))
-        positive_weight_mean = torch.mean(filtered_positive_weight, dim=1, keepdim=True)
-        positive_weight_std = safe_std(filtered_negative_weight, dim=1, epsilon=1e-5, keepdim=True)
-
-        negative_weight_mean = torch.mean(filtered_negative_weight, dim=1, keepdim=True)
-        negative_weight_std = safe_std(filtered_negative_weight, dim=1, epsilon=1e-5)
-        positive_z_scores = (original_weight - positive_weight_mean) / positive_weight_std
-        negative_z_scores = (original_weight - negative_weight_mean) / negative_weight_std
-
-        positive_recovery_mask = torch.logical_and(positive_z_scores <= upper_z, positive_z_scores > 0)
-        mask = torch.logical_and(common_positive_mask, positive_recovery_mask)
-        current_weight[mask] = original_weight[mask]
-
-        negative_recovery_mask = torch.logical_and(negative_z_scores >= -upper_z, negative_z_scores < 0)
-        mask = torch.logical_and(common_negative_mask, negative_recovery_mask)
-        current_weight[mask] = original_weight[mask]
+        current_weight[recovery_mask] = original_weight[recovery_mask]
 
         not_all_zeros = current_weight.any(dim=1)
         current_bias[not_all_zeros] = original_bias[not_all_zeros]
-
         module.set_parameters(current_weight, current_bias)
 
     def propagate(self, module, input_tensor, positive_sample=True):
@@ -80,26 +81,24 @@ class TanglingIdentification:
         def ff1_hook(module, input, output):
             current_weight, current_bias = module.weight, module.bias
             original_output = module.layer(input[0])
-            self.recover(module, original_output[:, 0, :], output[:, 0, :])
 
-            # if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.60:
-            #     self.recover(module, original_output[:, 0, :], output[:, 0, :])
-            #     pass
-            # else:
-            #     # self.remove(module, output[:, 0, :])
-            #     pass
+            if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.70:
+                self.recover(module, original_output[:, 0, :], output[:, 0, :])
+                pass
+            else:
+                # self.remove(module, output[:, 0, :])
+                pass
 
         def ff2_hook(module, input, output):
             current_weight, current_bias = module.weight, module.bias
             original_output = module.layer(input[0])
-            self.recover(module, original_output[:, 0, :], output[:, 0, :])
 
-            # if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.40:
-            #     self.recover(module, original_output[:, 0, :], output[:, 0, :])
-            #     pass
-            # else:
-            #     # self.remove(module, output[:, 0, :])
-            #     pass
+            if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.40:
+                self.recover(module, original_output[:, 0, :], output[:, 0, :])
+                pass
+            else:
+                # self.remove(module, output[:, 0, :])
+                pass
 
         attn_outputs = module.attention(input_tensor, None, None)
         self.attn_probs = module.attention.self_attention.attention_probs
@@ -130,12 +129,12 @@ class TanglingIdentification:
             original_outputs = module.layer(input[0])
             self.recover(module, original_outputs[0], output)
 
-            # if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.40:
-            #     self.recover(module, original_outputs[0], output)
-            #     pass
-            # else:
-            #     # self.remove(module, output)
-            #     pass
+            if torch.sum(current_weight != 0) < module.shape[0] * module.shape[1] * 0.40:
+                self.recover(module, original_outputs[0], output)
+                pass
+            else:
+                # self.remove(module, output)
+                pass
 
         handle = module.dense.register_forward_hook(pooler_hook)
         output_tensor = module.dense(first_token_tensor)
