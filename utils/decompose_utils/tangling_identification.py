@@ -4,9 +4,9 @@ from utils.model_utils.modular_layers import set_parameters
 
 
 class TanglingIdentification:
-    def __init__(self, module, model_config):
-        self.num_labels = model_config.num_labels
+    def __init__(self, module, p=0.7):
         self.source_model = module
+        self.p = p
 
     def propagate(self, module, input_tensor):
         # propagate input tensor to the module
@@ -43,30 +43,17 @@ class TanglingIdentification:
             ref = ref_model.intermediate.dense
             original_outputs = ref(input[0])
 
-            self.recover(ref, module, original_outputs[:, 0, :], output[:, 0, :])
-            # if (
-            #     torch.sum(current_weight != 0)
-            #     < torch.numel(current_weight) * 0.70
-            # ):
-            #     self.recover(module, original_output[:, 0, :], output[:, 0, :])
-            #     pass
+            if torch.sum(current_weight != 0) < torch.numel(current_weight) * self.p:
+                self.recover(ref, module, original_outputs[:, 0, :], output[:, 0, :])
 
         def ff2_hook(module, input, output):
             current_weight, current_bias = module.weight, module.bias
             ref = ref_model.output.dense
             original_outputs = ref(input[0])
 
-            self.recover(ref, module, original_outputs[:, 0, :], output[:, 0, :])
-
-            # if (
-            #     torch.sum(current_weight != 0)
-            #     < torch.numel(current_weight) * 0.40
-            # ):
-            #     self.recover(module, original_output[:, 0, :], output[:, 0, :])
-            #     pass
-            # else:
-            #     # self.remove(module, output[:, 0, :])
-            #     pass
+            if torch.sum(current_weight != 0) < torch.numel(current_weight) * self.p:
+                self.recover(ref, module, original_outputs[:, 0, :], output[:, 0, :])
+                pass
 
         attn_outputs = module.attention(input_tensor, None, None)
         handle = module.intermediate.dense.register_forward_hook(ff1_hook)
@@ -94,17 +81,10 @@ class TanglingIdentification:
             current_weight, current_bias = module.weight, module.bias
             ref = ref_model.dense
             original_outputs = ref(input[0])
-            self.recover(ref, module, original_outputs[0], output)
 
-            # if (
-            #     torch.sum(current_weight != 0)
-            #     < torch.numel(current_weight) * 0.40
-            # ):
-            #     self.recover(module, original_outputs[0], output)
-            #     pass
-            # else:
-            #     # self.remove(module, output)
-            #     pass
+            if torch.sum(current_weight != 0) < torch.numel(current_weight) * self.p:
+                self.recover(ref, module, original_outputs[0], output)
+                pass
 
         handle = module.dense.register_forward_hook(pooler_hook)
         output_tensor = module.dense(first_token_tensor)
@@ -121,7 +101,10 @@ class TanglingIdentification:
         # Get the shapes and original parameters (weights and biases) of the module
 
         current_weight, current_bias = module.weight.clone(), module.bias.clone()
-        original_weight, original_bias = ref_model.weight.clone(), ref_model.bias.clone()
+        original_weight, original_bias = (
+            ref_model.weight.clone(),
+            ref_model.bias.clone(),
+        )
         shape = current_weight.shape
 
         original_weight_std = safe_std(original_weight, dim=1, keepdim=True)
