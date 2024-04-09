@@ -1,6 +1,7 @@
 import torch
 from utils.type_utils.data_type import safe_std
 from utils.model_utils.modular_layers import set_parameters
+from scipy.stats import norm
 
 
 class WeightRemoverBert:
@@ -111,9 +112,13 @@ class WeightRemoverBert:
         )  # updating parameters
         shape = current_weight.shape
 
-        percentile_40 = torch.quantile(output, 0.4, dim=1, keepdim=True)
-        percentile_60 = torch.quantile(output, 0.6, dim=1, keepdim=True)
-        mask = torch.logical_and(output >= percentile_40, output < percentile_60)
+        output_mean = torch.mean(output, dim=1, keepdim=True)
+        output_std = torch.std(output, dim=1, keepdim=True)
+        z_scores = (output - output_mean) / output_std
+
+        lower_z, upper_z = norm.ppf(0.4), norm.ppf(0.6)
+
+        mask = torch.logical_and(z_scores >= lower_z, z_scores < upper_z)
         mask = torch.all(mask, dim=0).unsqueeze(1).expand(-1, shape[1])
 
         current_weight[mask] = 0

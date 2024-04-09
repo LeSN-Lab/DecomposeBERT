@@ -1,6 +1,7 @@
 import torch
 from utils.type_utils.data_type import safe_std
 from utils.model_utils.modular_layers import set_parameters
+from scipy.stats import norm
 
 
 class ConcernIdentificationBert:
@@ -86,7 +87,6 @@ class ConcernIdentificationBert:
             if torch.sum(current_weight != 0) > torch.numel(current_weight) * self.p:
                 self.pruning(ref, module, original_outputs, output)
 
-
         handle = module.dense.register_forward_hook(pooler_hook)
         output_tensor = module.dense(first_token_tensor)
         handle.remove()
@@ -97,30 +97,6 @@ class ConcernIdentificationBert:
 
         output_tensor = module(input_tensor)
         return output_tensor
-
-    def remove(self, module, output):
-        """
-        Positive hook
-        Attributes:
-            module (Layer): custom layer
-            output (torch.Tensor): output tensor of the original layer
-        """
-        # Get the shapes and original parameters (weights and biases) of the layer
-        current_weight, current_bias = (
-            module.weight.clone(),
-            module.bias.clone(),
-        )  # updating parameters
-        shape = current_weight.shape
-
-        percentile_40 = torch.quantile(output, 0.4, dim=1, keepdim=True)
-        percentile_60 = torch.quantile(output, 0.6, dim=1, keepdim=True)
-        mask = torch.logical_and(output >= percentile_40, output < percentile_60)
-        mask = torch.all(mask, dim=0).unsqueeze(1).expand(-1, shape[1])
-
-        current_weight[mask] = 0
-        all_zeros = ~mask.any(dim=1)
-        current_bias[all_zeros] = 0
-        set_parameters(module, current_weight, current_bias)
 
     def pruning(self, ref_model, module, original_output, output):
         # Get the shapes and original parameters (weights and biases) of the module
@@ -141,6 +117,7 @@ class ConcernIdentificationBert:
             dim=1,
             keepdim=True,
         )
+
         output_loss = output - original_output
         positive_loss_mask = (
             torch.all(output_loss > 0, dim=0).unsqueeze(1).expand(-1, shape[1])
@@ -155,91 +132,45 @@ class ConcernIdentificationBert:
             current_weight <= 0, current_weight, torch.tensor(float("nan"))
         )
 
-        top_positive_quantile = (
-            torch.nanquantile(padded_positive, 0.9, dim=1)
-            .unsqueeze(1)
-            .expand(-1, shape[1]),
+        positive_mean = torch.nanmean(padded_positive, dim=1, keepdim=True)
+        negative_mean = torch.nanmean(padded_negative, dim=1, keepdim=True)
+
+        positive_scores = (padded_positive - positive_mean) / safe_std(
+            padded_positive, current_weight_std, dim=1, keepdim=True
         )
 
-        bottom_positive_quantile = (
-            torch.nanquantile(
-                padded_positive,
-                0.1,
-                dim=1,
-            )
-            .unsqueeze(1)
-            .expand(-1, shape[1])
+        negative_scores = (padded_negative - negative_mean) / safe_std(
+            padded_negative, current_weight_std, dim=1, keepdim=True
         )
 
-        top_negative_quantile = (
-            torch.nanquantile(
-                padded_negative,
-                0.9,
-                dim=1,
-            )
-            .unsqueeze(1)
-            .expand(-1, shape[1])
-        )
-        bottom_negative_quantile = (
-            torch.nanquantile(padded_negative, 0.1, dim=1)
-            .unsqueeze(1)
-            .expand(-1, shape[1])
-        )
+        lower_z, upper_z = norm.ppf(0.1), norm.ppf(0.9)
 
         outlier_remove_mask = torch.where(
             positive_loss_mask,
             torch.logical_or(
-                padded_negative < bottom_negative_quantile[0],
-                padded_negative >= top_negative_quantile[0],
+                negative_scores < lower_z,
+                negative_scores >= upper_z,
             ),
             torch.logical_or(
-                padded_positive >= top_positive_quantile[0],
-                padded_positive < bottom_positive_quantile[0],
+                positive_scores >= upper_z,
+                positive_scores < lower_z,
             ),
         )
         outlier_remove_mask = torch.logical_and(
             outlier_remove_mask, expanded_cgto_std_mask
         )
 
-        top_positive_quantile = (
-            torch.nanquantile(padded_positive, 0.55, dim=1)
-            .unsqueeze(1)
-            .expand(-1, shape[1]),
-        )
+        lower_z, upper_z = norm.ppf(0.30), norm.ppf(0.70)
 
-        bottom_positive_quantile = (
-            torch.nanquantile(
-                padded_positive,
-                0.45,
-                dim=1,
-            )
-            .unsqueeze(1)
-            .expand(-1, shape[1])
-        )
-
-        top_negative_quantile = (
-            torch.nanquantile(
-                padded_negative,
-                0.55,
-                dim=1,
-            )
-            .unsqueeze(1)
-            .expand(-1, shape[1])
-        )
-        bottom_negative_quantile = (
-            torch.nanquantile(padded_negative, 0.45, dim=1)
-            .unsqueeze(1)
-            .expand(-1, shape[1])
-        )
         neutral_remove_mask = torch.where(
             positive_loss_mask,
             torch.logical_and(
-                padded_negative >= bottom_negative_quantile[0],
-                padded_negative < top_negative_quantile[0],
+                negative_scores >= lower_z,
+                negative_scores < upper_z,
             ),
             torch.logical_and(
-                padded_positive < top_positive_quantile[0],
-                padded_positive >= bottom_positive_quantile[0],
+                positive_scores < upper_z,
+                positive_scores >= lower_z,
             ),
         )
         neutral_remove_mask = torch.logical_and(
