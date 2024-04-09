@@ -80,14 +80,7 @@ class Layer(nn.Module):
         )
         return weight, bias
 
-    def set_parameters(self, weight, bias):
-        if self.layer_type not in [
-            LayerType.Activation,
-            LayerType.Dropout,
-        ]:
-            self.weight = torch.nn.Parameter(weight)
-            if bias is not None and self.bias is not None:
-                self.bias = torch.nn.Parameter(bias)
+
 
     def get(self, name):
         if self.name == name:
@@ -913,3 +906,8 @@ def transpose_for_scores(x, num_heads, head_size):
     )
     x = x.view(new_x_shape)
     return x.permute(0, 2, 1, 3)
+
+def set_parameters(module, weight, bias):
+    module.weight = torch.nn.Parameter(weight)
+    if bias is not None and module.bias is not None:
+        module.bias = torch.nn.Parameter(bias)
