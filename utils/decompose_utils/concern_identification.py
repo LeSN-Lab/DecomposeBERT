@@ -160,7 +160,7 @@ class ConcernIdentificationBert:
             outlier_remove_mask, expanded_cgto_std_mask
         )
 
-        lower_z, upper_z = norm.ppf(0.30), norm.ppf(0.70)
+        lower_z, upper_z = norm.ppf(0.40), norm.ppf(0.60)
 
         neutral_remove_mask = torch.where(
             positive_loss_mask,
