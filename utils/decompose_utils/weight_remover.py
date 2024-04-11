@@ -22,7 +22,7 @@ class WeightRemoverBert:
         )
         output_tensor = module.dropout(output_tensor)
         output_tensor = self.propagate_classifier(
-            self.source_model.bert, module.classifier, output_tensor
+            self.source_model.classifier, module.classifier, output_tensor
         )
         return output_tensor
 
@@ -94,8 +94,17 @@ class WeightRemoverBert:
         return output_tensor
 
     def propagate_classifier(self, ref_model, module, input_tensor):
+        def classifier_hook(module, input, output):
+            # Get the original output from model
+            current_weight, current_bias = module.weight, module.bias
+            ref = ref_model.dense
+            original_outputs = ref(input[0])
 
+            if torch.sum(current_weight != 0) > torch.numel(current_weight) * self.p:
+                self.remove(module, output)
+        # handle = module.register_forward_hook(classifier_hook)
         output_tensor = module(input_tensor)
+        # handle.remove()
         return output_tensor
 
     def remove(self, module, output):
@@ -116,7 +125,7 @@ class WeightRemoverBert:
         output_std = torch.std(output, dim=1, keepdim=True)
         z_scores = (output - output_mean) / output_std
 
-        lower_z, upper_z = norm.ppf(0.4), norm.ppf(0.6)
+        lower_z, upper_z = norm.ppf(0.45), norm.ppf(0.55)
 
         mask = torch.logical_and(z_scores >= lower_z, z_scores < upper_z)
         mask = torch.all(mask, dim=0).unsqueeze(1).expand(-1, shape[1])
