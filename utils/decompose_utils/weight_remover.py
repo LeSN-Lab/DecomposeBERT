@@ -121,14 +121,13 @@ class WeightRemoverBert:
         )  # updating parameters
         shape = current_weight.shape
 
-        output_mean = torch.mean(output, dim=1, keepdim=True)
-        output_std = torch.std(output, dim=1, keepdim=True)
-        z_scores = (output - output_mean) / output_std
+        mean = torch.mean(current_weight, dim=1, keepdim=True)
+        std = torch.std(current_weight, dim=1, keepdim=True)
+        z_scores = (current_weight - mean) / std
 
         lower_z, upper_z = norm.ppf(0.45), norm.ppf(0.55)
 
         mask = torch.logical_and(z_scores >= lower_z, z_scores < upper_z)
-        mask = torch.all(mask, dim=0).unsqueeze(1).expand(-1, shape[1])
 
         current_weight[mask] = 0
         all_zeros = ~mask.any(dim=1)

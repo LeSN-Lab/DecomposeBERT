@@ -222,7 +222,7 @@ class ConcernIdentificationBert:
 
         current_weight[remove_mask] = 0
 
-        all_zeros = ~current_weight.any(dim=1)
+        all_zeros = ~remove_mask.any(dim=1)
         current_bias[all_zeros] = 0
 
         set_parameters(module, current_weight, current_bias)

@@ -57,30 +57,48 @@ def evaluate_model(model, model_config, test_dataloader):
     print(f"Validation Loss: {avg_loss:.4f}")
     return avg_accuracy, avg_loss
 
-def test_f1(module, test_dataloader, model_config, is_binary=True):
+
+def test_f1(module, test_dataloader, model_config, is_binary=True, concern_num=0):
     all_preds = []
     all_true = []
 
     for batch in test_dataloader:
-        input_ids = batch['input_ids'].to(model_config.device)
-        attn_mask = batch['attention_mask'].to(model_config.device)
-        true_labels = batch['labels'].to(model_config.device)
+        input_ids = batch["input_ids"].to(model_config.device)
+        attn_mask = batch["attention_mask"].to(model_config.device)
+        true_labels = batch["labels"].to(model_config.device)
 
         with torch.no_grad():
             output = module(input_ids, attn_mask)
+        if is_binary:
+            preds = (output.logits.squeeze() > 0).long()
+            true_labels = (true_labels == concern_num).long()
+        else:
             preds = output.logits.argmax(dim=-1)
 
         all_preds.extend(preds.cpu().numpy())
         all_true.extend(true_labels.cpu().numpy())
 
-    report = classification_report(all_true, all_preds, output_dict=True, zero_division=0)
+    if is_binary:
+        report = classification_report(
+            all_true,
+            all_preds,
+            labels=[0, 1],
+            target_names=["Negative", "Positive"],
+            output_dict=True,
+            zero_division=0,
+        )
+    else:
+        report = classification_report(
+            all_true, all_preds, output_dict=True, zero_division=0
+        )
 
     if is_binary:
-        detailed_metrics = report['1']  # Or '0' for the negative class
-        return {'detailed_metrics': detailed_metrics, 'details': report}
+        detailed_metrics = report["Positive"]  # Or '0' for the negative class
+        return {"detailed_metrics": detailed_metrics, "details": report}
     else:
-        macro_f1 = report['macro avg']['f1-score']
+        macro_f1 = report["macro avg"]["f1-score"]
         return {"macro_f1": macro_f1, "details": report}
+
 
 def test(module, test_ids, test_labels, test_mask, test_case):
     cnt = 0
