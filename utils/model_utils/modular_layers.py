@@ -909,5 +909,4 @@ def transpose_for_scores(x, num_heads, head_size):
 
 def set_parameters(module, weight, bias):
     module.weight = torch.nn.Parameter(weight)
-    if bias is not None and module.bias is not None:
-        module.bias = torch.nn.Parameter(bias)
+    module.bias = torch.nn.Parameter(bias)

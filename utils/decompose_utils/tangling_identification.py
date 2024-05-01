@@ -159,7 +159,6 @@ class TanglingIdentification:
         )
         shape = current_weight.shape
 
-        output_loss = output - original_output
         original_weight_std = safe_std(original_weight, dim=1, keepdim=True)
         current_weight_std = safe_std(
             current_weight,
