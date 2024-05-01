@@ -1,5 +1,5 @@
 import torch
-from utils.type_utils.data_type import safe_std
+from utils.decompose_utils.calc_util import safe_std
 from utils.model_utils.modular_layers import set_parameters
 from scipy.stats import norm
 

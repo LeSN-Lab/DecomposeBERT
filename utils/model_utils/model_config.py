@@ -1,5 +1,3 @@
-from utils.type_utils.architecture_type import ArchitectureType
-
 import os
 from utils.paths import p, Paths
 
@@ -33,11 +31,3 @@ class ModelConfig:
         self.checkpoint_name = _checkpoint_name
         self.device = _device
 
-    @staticmethod
-    def get_architecture(model_name):
-        if "BERT" in model_name.lower():
-            return ArchitectureType.only_encoder
-        elif "GPT" in model_name.lower():
-            return ArchitectureType.only_decoder
-        else:
-            return ArchitectureType.both
