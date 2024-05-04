@@ -1,57 +1,39 @@
 import os
+from os.path import join as join
+from os.path import isdir as isdir
 
 
 class Paths:
     def __init__(self):
         self.cur_dir = os.path.dirname(os.path.realpath(__file__))
         self.root_dir = self.set_root()
-        self.get_root()
+        os.chdir(self.root_dir)
 
         # Set roots
-        self.Data = self.get_dir(
-            self.root_dir, "Datasets"
-        )  # path of the training dataset
-        self.Model = self.get_dir(self.root_dir, "Models")
-        self.Train = self.get_dir(self.Model, "Train")  # path of the trained models
-        self.Config = self.get_dir(
-            self.Model, "Config"
-        )  # path of the model configuration files
-        self.Module = self.get_dir(self.root_dir, "Modules")
+        self.Data = get_dir(join(self.root_dir, "Datasets"), True)
+        self.Models = get_dir(join(self.root_dir, "Models"), True)
+        self.Configs = get_dir(join(self.Models, "Configs"), True)
+        self.Train = get_dir(join(self.Models, "Train"), True)
+        self.Modules = get_dir(join(self.Models, "Modules"), True)
 
     def set_root(self):
         while True:
             if "DecomposeBERT" in os.listdir(self.cur_dir):
-                root_path = os.path.join(self.cur_dir, "DecomposeBERT")
+                root_path = join(self.cur_dir, "DecomposeBERT")
                 return root_path
             par_dir = os.path.dirname(self.cur_dir)
             if par_dir == self.cur_dir:
                 return None
             self.cur_dir = par_dir
 
-    def get_root(self):
-        os.chdir(self.root_dir)
-        return self.root_dir
 
-    @staticmethod
-    def is_dir(_dirname):
-        return os.path.isdir(_dirname)
-
-    @staticmethod
-    def is_file(_filenames):
-        for file in _filenames:
-            if os.path.isfile(file) is False:
-                return False
-        return True
-
-    def get_dir(self, _dirname1, _dirname2):
-        _path = os.path.join(_dirname1, _dirname2)
-        segments = _dirname2.split(os.sep)
-        current_path = _dirname1
-        for _dir in segments:
-            current_path = os.path.join(current_path, _dir)
-            if not self.is_dir(current_path):
-                os.mkdir(current_path)
-        return _path
+def get_dir(path, flag=False):
+    if flag:
+        if not get_dir(path):
+            os.mkdir(path)
+            return path
+    else:
+        return isdir(path)
 
 
 p = Paths()
