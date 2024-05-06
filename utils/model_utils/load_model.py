@@ -1,5 +1,6 @@
 # in[] Library
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from utils.model_utils.load_tokenizer import load_tokenizer
 import torch
 import os
 
@@ -12,11 +13,9 @@ def save_classification_model(model_config):
         model_name, config=model_config.transformer_config
     )
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
     # Save model and tokenizer
     model.save_pretrained(model_dir)
-    tokenizer.save_pretrained(model_dir)
-    return model, tokenizer
+    return model
 
 
 def load_classification_model(model_config, train_mode):
@@ -28,19 +27,18 @@ def load_classification_model(model_config, train_mode):
     # Check if the model exists
     if not model_config.is_downloaded:
         print(f"Directory {config_path} does not exist. Saving a new model here.")
-        model, tokenizer = save_classification_model(model_config)
+        model = save_classification_model(model_config)
+        tokenizer = load_tokenizer(model_config)
         model_config.is_downloaded = True
     else:
         print(f"Directory {config_path} exists. Load the model.")
         model = AutoModelForSequenceClassification.from_pretrained(config_path)
-        tokenizer = AutoTokenizer.from_pretrained(config_path)
+        tokenizer = load_tokenizer(model_config)
 
     # load check point
     checkpoint = None
     if model_config.checkpoint_name is not None:
-        checkpoint_path = os.path.join(
-            load_path, model_config.checkpoint_name
-        )
+        checkpoint_path = os.path.join(load_path, model_config.checkpoint_name)
         if os.path.isfile(checkpoint_path):
             checkpoint = torch.load(checkpoint_path, map_location=model_config.device)
             if "model_state_dict" in checkpoint:

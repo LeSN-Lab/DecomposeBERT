@@ -1,15 +1,19 @@
-def tokenize(tokenizer, dataset):
-    tokenized_data = []
-    for sample in dataset:
-        encoded_input = tokenizer(
-            sample['text'],
-            padding='max_length',  # or use other padding strategy
-            truncation=True,
-            return_tensors='pt'
-        )
-        tokenized_data.append({
-            'input_ids': encoded_input['input_ids'].squeeze(0),
-            'attention_mask': encoded_input['attention_mask'].squeeze(0),
-            'label': sample['label']  # Assuming you have a label key in the sample
-        })
-    return tokenized_data
+from transformers import AutoTokenizer
+
+
+def save_tokenizer(model_config):
+    model_name = model_config.model_name
+    model_dir = model_config.config_dir
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer.save_pretrained(model_dir)
+
+    return tokenizer
+
+
+def load_tokenizer(model_config):
+    config_path = model_config.config_dir
+    if not model_config.is_downloaded:
+        tokenizer = save_tokenizer(model_config)
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(config_path)
+    return tokenizer

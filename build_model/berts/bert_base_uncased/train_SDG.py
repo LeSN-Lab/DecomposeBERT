@@ -6,7 +6,7 @@ from utils.model_utils.load_model import load_classification_model
 from utils.dataset_utils.load_dataset import load_data
 from utils.model_utils.model_config import ModelConfig
 from transformers import AutoConfig, TrainingArguments
-from utils.model_utils.load_tokenizer import tokenize
+from utils.model_utils.load_tokenizer import load_tokenizer
 
 
 # In[]: Train model Examples
@@ -42,9 +42,6 @@ if __name__ == "__main__":
         batch_size=16,
         test_size=0.2,
     )
-    train_data = tokenize(tokenizer, train_dataset)
-    valid_data = tokenize(tokenizer, valid_dataset)
-    test_data = tokenize(tokenizer, test_dataset)
     training_args = TrainingArguments(
         output_dir=model_config.train_dir,
         num_train_epochs=20,
@@ -62,22 +59,16 @@ if __name__ == "__main__":
         eval_steps=1000,
         save_steps=1000,
         load_best_model_at_end=True,
-        metric_for_best_model='accuracy',
+        metric_for_best_model="accuracy",
     )
-    trained_model = train_model(
+    trainer = train_model(
         model=model,
-        model_config=model_config,
         training_args=training_args,
         train_dataset=train_dataset,
         valid_dataset=valid_dataset,
-        tokenizer=tokenizer,
     )
 
     # If you want to evaluate an accuracy of the model, uncomment this
     # Evaluate model
-    """model_config.checkpoint_name = "best_model.pt"
-    model, tokenizer, checkpoint = load_classification_model(model_config)
-    train_dataloader, valid_dataloader, test_dataloader = load_dataset(
-        model_config, tokenizer, batch_size=32
-    )
-    evaluate_model(model, model_config, test_dataloader)"""
+    result = trainer.evaluate()
+    print(result)

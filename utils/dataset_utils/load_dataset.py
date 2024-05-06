@@ -1,37 +1,44 @@
 # In[]: Import Libraries
 import os
 from os.path import join as join
-from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data import DataLoader
+from utils.model_utils.load_tokenizer import load_tokenizer
 from utils.paths import p, get_dir
 from datasets import load_dataset, DatasetDict
 import torch
 
 
 class DataConfig:
-    data_dir = None
-    max_length = None
-    vocab_size = None
-    batch_size = None
-    test_size = None
-    seed = None
+    def __init__(self):
+        self.data_dir = None
+        self.max_length = 512
+        self.vocab_size = None
+        self.batch_size = None
+        self.test_size = None
+        self.seed = None
+        self.text_column = None
+        self.label_column = None
+
 
 class TextDataset(torch.utils.data.Dataset):
-    def __init__(self, tokenized_data):
-        self.tokenized_data = tokenized_data
+    def __init__(self, input_ids, attention_mask, labels):
+        self.input_ids = input_ids
+        self.attention_mask = attention_mask
+        self.labels = labels
 
     def __len__(self):
-        return len(self.tokenized_data)
+        return len(self.input_ids)
 
     def __getitem__(self, index):
-        data = self.tokenized_data[index]
         return {
-            'input_ids': data['input_ids'],
-            'attention_mask': data['attention_mask'],
-            'labels': data['label']
+            "input_ids": self.input_ids[index],
+            "attention_mask": self.attention_mask[index],
+            "labels": self.labels[index],
         }
 
+
 # In[]: Define load datasets for pretrained
-def load_dataloader(model_config, dataset=None, skip=False):
+def load_dataloader(model_config, dataset=None):
     if dataset is not None:
         get_dir(model_config.data_dir, True)
         shuffle_train = dataset["train"].shuffle(seed=data_config.seed)
@@ -50,11 +57,40 @@ def load_dataloader(model_config, dataset=None, skip=False):
     else:
         dataset = torch.load(join(model_config.data_dir, "dataset.pt"))
 
-    train_data = dataset["train"]
-    valid_data = dataset["valid"]
-    test_data = dataset["test"]
+    tokenizer = load_tokenizer(model_config)
+    tokenized_datasets = {}
 
-    return train_data, valid_data, test_data
+    for split, data in dataset.items():
+        texts = [example["text"] for example in data]
+        tokenized_batch = tokenizer.batch_encode_plus(
+            texts,
+            padding=True,
+            truncation=True,
+            return_tensors="pt",
+            max_length=data_config.max_length,
+        )
+        input_ids = tokenized_batch["input_ids"]
+        attention_mask = tokenized_batch["attention_mask"]
+
+        labels = (
+            data["label"]
+            if "label" in data.column_names
+            else torch.zeros(len(input_ids))
+        )
+
+        tokenized_datasets[split] = TextDataset(input_ids, attention_mask, labels)
+
+    train_dataloader = DataLoader(
+        tokenized_datasets.get("train"), batch_size=data_config.batch_size, shuffle=True
+    )
+    valid_dataloader = DataLoader(
+        tokenized_datasets.get("valid"), batch_size=data_config.batch_size
+    )
+    test_dataloader = DataLoader(
+        tokenized_datasets.get("test"), batch_size=data_config.batch_size
+    )
+
+    return train_dataloader, valid_dataloader, test_dataloader
 
 
 # In[]: SDG dataset loader

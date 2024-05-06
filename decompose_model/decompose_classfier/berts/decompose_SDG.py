@@ -7,7 +7,7 @@ import sys
 pwd = os.getcwd()
 sys.path.append(os.path.dirname(pwd))
 # %%
-from utils.model_utils.evaluate import evaluate_model, test_f1, test
+from utils.model_utils.evaluate import evaluate_model, test_f1
 from utils.model_utils.load_model import *
 from utils.model_utils.model_config import ModelConfig
 from utils.dataset_utils.load_dataset import load_data
@@ -24,12 +24,15 @@ import torch
 
 
 # %%
-model_name = "bert-base-uncased"
-model_type = "bert"
+# model_name = "bert-base-uncased"
+# model_type = "bert"
+model_name = "sadickam/sdg-classification-bert"
+model_type = "pretrained"
+
 data = "OSDG"
 num_labels = 16
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-checkpoint_name = "best_model.pt"
+checkpoint_name = None
 config = AutoConfig.from_pretrained(model_name, num_labels=num_labels)
 model_config = ModelConfig(
     _model_name=model_name,
@@ -45,7 +48,7 @@ train_dataloader, valid_dataloader, test_dataloader = load_data(
     model_config, batch_size=32, test_size=0.3
 )
 print("Start Time:" + datetime.now().strftime("%H:%M:%S"))
-evaluate_model(model, model_config, test_dataloader)
+result = evaluate_model(model, model_config, test_dataloader)
 # %%
 for i in tqdm(range(num_labels)):
     print("#Module " + str(i) + " in progress....")
