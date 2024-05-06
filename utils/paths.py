@@ -28,12 +28,22 @@ class Paths:
 
 
 def get_dir(path, flag=False):
-    if flag:
-        if not get_dir(path):
-            os.mkdir(path)
+    segments = path.split(os.sep)
+    current_path = segments[0] if segments[0] else os.sep
+
+    for segments in segments[1:]:
+        current_path = os.path.join(current_path, segments)
+
+        if isdir(current_path):
+            continue
+
+        if flag:
+            os.mkdir(current_path)
             return path
-    else:
-        return isdir(path)
+        else:
+            return False
+
+    return True if not flag else path
 
 
 p = Paths()
