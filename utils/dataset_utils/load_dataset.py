@@ -61,7 +61,7 @@ def load_dataloader(model_config, dataset=None):
     tokenized_datasets = {}
 
     for split, data in dataset.items():
-        texts = [example["text"] for example in data]
+        texts = [example[data_config.text_column] for example in data]
         tokenized_batch = tokenizer.batch_encode_plus(
             texts,
             padding=True,
@@ -72,11 +72,7 @@ def load_dataloader(model_config, dataset=None):
         input_ids = tokenized_batch["input_ids"]
         attention_mask = tokenized_batch["attention_mask"]
 
-        labels = (
-            data["label"]
-            if "label" in data.column_names
-            else torch.zeros(len(input_ids))
-        )
+        labels = data[data_config.label_column]
 
         tokenized_datasets[split] = TextDataset(input_ids, attention_mask, labels)
 
@@ -93,6 +89,28 @@ def load_dataloader(model_config, dataset=None):
     return train_dataloader, valid_dataloader, test_dataloader
 
 
+def convert_dataset_labels_to_binary(dataloader, target_class):
+    input_ids, attention_masks, labels = [], [], []
+    for batch in dataloader:
+        input_ids.append(batch["input_ids"])
+        attention_masks.append(batch["attention_mask"])
+
+        binary_labels = (batch["labels"] == target_class).long()
+        labels.append(binary_labels)
+
+    input_ids = torch.cat(input_ids)
+    attention_masks = torch.cat(attention_masks)
+    labels = torch.cat(labels)
+
+    transformed_dataset = TextDataset(input_ids, attention_masks, labels)
+    transformed_dataloader = DataLoader(
+        transformed_dataset,
+        batch_size=dataloader.batch_size,
+    )
+
+    return transformed_dataloader
+
+
 # In[]: SDG dataset loader
 def load_sdg(model_config):
     data_config.data_dir = get_dir(join(p.Data, model_config.data), True)
@@ -107,7 +125,7 @@ def load_sdg(model_config):
 
 # In[]: Yahoo dataset loader
 def load_yahoo(model_config):
-    data_config.data_dir = get_dir(join(p.Data, model_config.data))
+    data_config.data_dir = get_dir(join(p.Data, model_config.data), True)
     data_config.text_column = "question_title"
     data_config.label_column = "topic"
     if get_dir(join(data_config.data_dir, "dataset.pt")):
@@ -118,7 +136,7 @@ def load_yahoo(model_config):
 
 
 def load_imdb(model_config):
-    data_config.data_dir = get_dir(join(p.Data, model_config.data))
+    data_config.data_dir = get_dir(join(p.Data, model_config.data), True)
     data_config.text_column = "text"
     data_config.label_column = "label"
     if get_dir(join(data_config.data_dir, "dataset.pt")):

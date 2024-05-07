@@ -26,12 +26,14 @@ def load_classification_model(model_config, train_mode):
     config_path = model_config.config_dir
     # Check if the model exists
     if not model_config.is_downloaded:
-        print(f"Directory {config_path} does not exist. Saving a new model here.")
+        print(f"Directory {config_path} does not exist.")
+        print("Saving a new model here.")
         model = save_classification_model(model_config)
         tokenizer = load_tokenizer(model_config)
         model_config.is_downloaded = True
     else:
-        print(f"Directory {config_path} exists. Load the model.")
+        print(f"Directory {config_path} exists.")
+        print("Loading the model.")
         model = AutoModelForSequenceClassification.from_pretrained(config_path)
         tokenizer = load_tokenizer(model_config)
 

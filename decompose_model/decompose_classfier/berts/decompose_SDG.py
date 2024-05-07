@@ -1,13 +1,12 @@
-# %%
 import copy
 import os.path
 import sys
 
-# %%
+
 pwd = os.getcwd()
 sys.path.append(os.path.dirname(pwd))
-# %%
-from utils.model_utils.evaluate import evaluate_model, test_f1
+
+from utils.model_utils.evaluate import evaluate_model
 from utils.model_utils.load_model import *
 from utils.model_utils.model_config import ModelConfig
 from utils.dataset_utils.load_dataset import load_data
@@ -16,14 +15,11 @@ from utils.decompose_utils.concern_identification import ConcernIdentificationBe
 from utils.decompose_utils.tangling_identification import TanglingIdentification
 from transformers import AutoConfig
 from utils.model_utils.save_module import save_module
-from tqdm import tqdm
 from datetime import datetime
-from pprint import pp
 from utils.decompose_utils.sampling import sampling_class
 import torch
 
 
-# %%
 # model_name = "bert-base-uncased"
 # model_type = "bert"
 model_name = "sadickam/sdg-classification-bert"
@@ -48,16 +44,12 @@ train_dataloader, valid_dataloader, test_dataloader = load_data(
     model_config, batch_size=32, test_size=0.3
 )
 print("Start Time:" + datetime.now().strftime("%H:%M:%S"))
-result = evaluate_model(model, model_config, test_dataloader)
-# %%
-for i in tqdm(range(num_labels)):
+
+for i in range(num_labels):
     print("#Module " + str(i) + " in progress....")
     num_samples = 64
 
-    positive_samples1 = sampling_class(
-        train_dataloader, i, 20, num_labels, True, 4, device=device
-    )
-    positive_samples2 = sampling_class(
+    positive_samples = sampling_class(
         train_dataloader, i, num_samples, num_labels, True, 4, device=device
     )
     negative_samples = sampling_class(
@@ -86,8 +78,7 @@ for i in tqdm(range(num_labels)):
     print("origin")
     j = 0
     print(j)
-    results = test_f1(model, test_dataloader, model_config, False)
-    pp(results["details"][f"{i}"])
+    result = evaluate_model(model, model_config, test_dataloader)
 
     print("Start Positive CI sparse")
 
@@ -112,12 +103,11 @@ for i in tqdm(range(num_labels)):
         j += 1
         print(j)
 
-        results = test_f1(module1, test_dataloader, model_config, False)
-        pp(results["details"][f"{i}"])
+        result = evaluate_model(module1, model_config, test_dataloader)
 
     print("Start Positive CI after sparse")
 
-    for batch in positive_samples2:
+    for batch in positive_samples:
         input_ids, attn_mask, _, total_sampled = batch
         with torch.no_grad():
             t1 = ci1.propagate(module1, input_ids)
@@ -138,8 +128,7 @@ for i in tqdm(range(num_labels)):
         j += 1
         print(j)
 
-        results = test_f1(module1, test_dataloader, model_config, False)
-        pp(results["details"][f"{i}"])
+        result = evaluate_model(module1, model_config, test_dataloader)
 
     print("Start Negative TI")
 
@@ -164,8 +153,7 @@ for i in tqdm(range(num_labels)):
         j += 1
         print(j)
 
-        results = test_f1(module1, test_dataloader, model_config, False)
-        pp(results["details"][f"{i}"])
+        result = evaluate_model(module1, model_config, test_dataloader)
 
     for num in range(config.num_hidden_layers):
         print(f"f({ff1[num]})")
