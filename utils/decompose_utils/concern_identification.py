@@ -8,6 +8,8 @@ class ConcernIdentificationBert:
     def __init__(self, model, p=0.6):
         self.source_model = model
         self.p = p
+        self.active_node = [0] * model.classifier.weight.shape[0]
+        self.dead_node = [0] * model.classifier.weight.shape[0]
 
     def propagate(self, module, original_input_tensor):
         # propagate input tensor to the module
@@ -48,13 +50,14 @@ class ConcernIdentificationBert:
         self, ref_model, module, original_input_tensor, current_input_tensor
     ):
         for i, encoder_block in enumerate(module.layer):
-            original_output_tensor, current_output_tensor = (
-                self.propagate_encoder_block(
-                    ref_model.layer[i],
-                    encoder_block,
-                    original_input_tensor,
-                    current_input_tensor,
-                )
+            (
+                original_output_tensor,
+                current_output_tensor,
+            ) = self.propagate_encoder_block(
+                ref_model.layer[i],
+                encoder_block,
+                original_input_tensor,
+                current_input_tensor,
             )
             original_input_tensor = original_output_tensor[0]
             current_input_tensor = current_output_tensor[0]
@@ -140,9 +143,12 @@ class ConcernIdentificationBert:
         def classifier_hook(module, input, output):
             # Get the original output from model
             current_weight, current_bias = module.weight, module.bias
-
-            if torch.sum(current_weight != 0) > torch.numel(current_weight) * self.p:
-                self.pruning(ref_model, module, original_output_tensor, output)
+            temp = torch.all((output > 0), dim=0).tolist()
+            self.active_node = [a + b for a, b in zip(temp, self.active_node)]
+            temp = torch.any((output < 0), dim=0).tolist()
+            self.dead_node = [a + b for a, b in zip(temp, self.dead_node)]
+            # if torch.sum(current_weight != 0) > torch.numel(current_weight) * self.p:
+            #     self.pruning(ref_model, module, original_output_tensor, output)
 
         handle = module.register_forward_hook(classifier_hook)
         current_output_tensor = module(current_input_tensor)

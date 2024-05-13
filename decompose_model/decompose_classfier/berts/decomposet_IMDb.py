@@ -22,11 +22,11 @@ import torch
 
 # model_name = "bert-base-uncased"
 # model_type = "bert"
-model_name = "sadickam/sdg-classification-bert"
+model_name = "textattack/bert-base-uncased-imdb"
 model_type = "pretrained"
 
-data = "OSDG"
-num_labels = 16
+data = "IMDb"
+num_labels = 2
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 checkpoint_name = None
 config = AutoConfig.from_pretrained(model_name, num_labels=num_labels)
@@ -78,7 +78,7 @@ for i in range(num_labels):
     print("origin")
     j = 0
     print(j)
-    # result = evaluate_model(model, model_config, test_dataloader)
+    result = evaluate_model(model, model_config, test_dataloader)
 
     print("Start Positive CI sparse")
 
@@ -153,7 +153,7 @@ for i in range(num_labels):
         j += 1
         print(j)
 
-        # result = evaluate_model(module1, model_config, test_dataloader)
+    result = evaluate_model(module1, model_config, test_dataloader)
 
     for num in range(config.num_hidden_layers):
         print(f"f({ff1[num]})")

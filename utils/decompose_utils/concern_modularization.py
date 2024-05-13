@@ -1,22 +1,22 @@
 import torch
 from utils.model_utils.modular_layers import set_parameters
 class ConcernModularizationBert:
-
     @staticmethod
-    def channeling(module, concern, device):
-        current_weight, current_bias = module.weight.clone(), module.bias.clone()
-        shape = current_weight.shape
-        mask = torch.tensor([False] * current_weight.size(0), dtype=torch.bool)
-        mask[concern] = True
-        true_concern_weights = current_weight[mask, :]
-        true_concern_bias = current_bias[mask]
+    def channeling(module, active_node, dead_node, concern_idx, device):
+        weight = module.classifier.weight
+        bias = module.classifier.bias
+        inter1 = [dead_node[i] if i != concern_idx and dead_node[i] else 0 for i in range(len(dead_node))]
+        inter2 = [active_node[i] if i == concern_idx else 0 for i in range(len(active_node))]
+        # inter1 = dead_node
+        # inter2 = active_node
 
-        false_concern_weights = torch.zeros(shape[1]).unsqueeze(dim=0).to(device)
-        for j in range(shape[1]):
-            false_concern_weights[0, j] = torch.mean(current_weight[~mask, j])
+        inter = torch.asarray([inter1, inter2], dtype=torch.float32).to(device)
+        norms = inter.norm(p=1, dim=1, keepdim=True)
+        inter_normalized = inter / norms
+        inter_normalized[0] = inter_normalized[0]
+        inter_normalized[1] = inter_normalized[1]
+        new_weight = torch.matmul(inter_normalized, weight)
+        new_bias = torch.matmul(inter_normalized, bias)
 
-        false_concern_bias = torch.mean(current_bias[~mask], dim=0, keepdim=True)
-        new_weight = torch.cat([true_concern_weights, false_concern_weights], dim=0)
-        new_bias = torch.cat([true_concern_bias, false_concern_bias], dim=0)
-
-        set_parameters(module, new_weight, new_bias)
+        set_parameters(module.classifier, new_weight, new_bias)
+        module.classifier.out_features = 2

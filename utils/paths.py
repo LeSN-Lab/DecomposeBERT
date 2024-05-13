@@ -28,7 +28,8 @@ class Paths:
 
 
 def get_dir(path, flag=False):
-    segments = path.split(os.sep)
+    norm_path = os.path.normpath(path)
+    segments = norm_path.split(os.sep)
     current_path = segments[0] if segments[0] else os.sep
 
     for segments in segments[1:]:
@@ -42,7 +43,8 @@ def get_dir(path, flag=False):
             return path
         else:
             return False
-
+    if flag and not isdir(current_path):
+        os.mkdir(current_path)
     return True if not flag else path
 
 

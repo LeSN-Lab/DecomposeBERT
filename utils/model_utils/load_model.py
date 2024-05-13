@@ -30,12 +30,12 @@ def load_classification_model(model_config, train_mode):
         print("Saving a new model here.")
         model = save_classification_model(model_config)
         tokenizer = load_tokenizer(model_config)
-        model_config.is_downloaded = True
     else:
         print(f"Directory {config_path} exists.")
         print("Loading the model.")
         model = AutoModelForSequenceClassification.from_pretrained(config_path)
         tokenizer = load_tokenizer(model_config)
+    model_config.is_downloaded = True
 
     # load check point
     checkpoint = None

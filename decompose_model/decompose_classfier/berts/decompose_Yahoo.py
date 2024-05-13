@@ -43,7 +43,7 @@ train_dataloader, valid_dataloader, test_dataloader = load_data(
     model_config, batch_size=32, test_size=0.3
 )
 print("Start Time:" + datetime.now().strftime("%H:%M:%S"))
-
+result = evaluate_model(model, model_config, test_dataloader)
 for i in range(num_labels):
     print("#Module " + str(i) + " in progress....")
     num_samples = 64
