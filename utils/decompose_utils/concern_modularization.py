@@ -5,10 +5,16 @@ class ConcernModularizationBert:
     def channeling(module, active_node, dead_node, concern_idx, device):
         weight = module.classifier.weight
         bias = module.classifier.bias
-        inter1 = [dead_node[i] if i != concern_idx and dead_node[i] else 0 for i in range(len(dead_node))]
-        inter2 = [active_node[i] if i == concern_idx else 0 for i in range(len(active_node))]
-        # inter1 = dead_node
-        # inter2 = active_node
+        active_top1 = max(active_node)
+        dead_top1 = max(dead_node)
+        active = [idx for idx, val in enumerate(active_node) if val >= active_top1/2]
+        dead = [idx for idx, val in enumerate(dead_node) if val >= dead_top1 / 2]
+
+        print(active)
+        print(dead)
+
+        inter1 = [1 if idx in dead else 0 for idx, val in enumerate(dead_node)]
+        inter2 = [1 if idx in active and idx != concern_idx else 0 for idx, val in enumerate(active_node)]
 
         inter = torch.asarray([inter1, inter2], dtype=torch.float32).to(device)
         norms = inter.norm(p=1, dim=1, keepdim=True)

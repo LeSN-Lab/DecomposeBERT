@@ -144,7 +144,7 @@ class TanglingIdentification:
             current_weight, current_bias = module.weight, module.bias
             temp = torch.any((output > 0), dim=0).tolist()
             self.active_node = [a + b for a, b in zip(temp, self.active_node)]
-            temp = torch.all((output < 0), dim=0).tolist()
+            temp = torch.any((output < 0), dim=0).tolist()
             self.dead_node = [a + b for a, b in zip(temp, self.dead_node)]
             # if torch.sum(current_weight != 0) < torch.numel(current_weight) * self.p:
             #     self.recover(ref_model, module, original_output_tensor, output)

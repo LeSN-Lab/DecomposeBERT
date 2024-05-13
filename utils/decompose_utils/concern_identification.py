@@ -143,7 +143,7 @@ class ConcernIdentificationBert:
         def classifier_hook(module, input, output):
             # Get the original output from model
             current_weight, current_bias = module.weight, module.bias
-            temp = torch.all((output > 0), dim=0).tolist()
+            temp = torch.any((output > 0), dim=0).tolist()
             self.active_node = [a + b for a, b in zip(temp, self.active_node)]
             temp = torch.any((output < 0), dim=0).tolist()
             self.dead_node = [a + b for a, b in zip(temp, self.dead_node)]
