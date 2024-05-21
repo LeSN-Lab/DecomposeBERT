@@ -2,13 +2,13 @@ import torch
 from utils.decompose_utils.calc_util import safe_std
 from utils.model_utils.modular_layers import set_parameters
 from scipy.stats import norm
+import torch.nn.functional as F
 
 
 class TanglingIdentification:
     def __init__(self, model, p=0.7):
         self.source_model = model
         self.p = p
-        self.active_node = [0] * model.classifier.weight.shape[0]
         self.dead_node = [0] * model.classifier.weight.shape[0]
 
     def propagate(self, module, original_input_tensor):
@@ -142,10 +142,12 @@ class TanglingIdentification:
         def classifier_hook(module, input, output):
             # Get the original output from model
             current_weight, current_bias = module.weight, module.bias
-            temp = torch.any((output > 0), dim=0).tolist()
-            self.active_node = [a + b for a, b in zip(temp, self.active_node)]
-            temp = torch.any((output < 0), dim=0).tolist()
+            temp_mean = output.mean(dim=1, keepdim=True)
+            temp_std = output.std(dim=1, keepdim=True)
+            temp_score = (output - temp_mean) / (temp_std + 1e-5)
+            temp = torch.any((temp_score > 0), dim=0).tolist()
             self.dead_node = [a + b for a, b in zip(temp, self.dead_node)]
+
             # if torch.sum(current_weight != 0) < torch.numel(current_weight) * self.p:
             #     self.recover(ref_model, module, original_output_tensor, output)
 

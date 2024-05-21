@@ -6,6 +6,8 @@ from utils.model_utils.load_tokenizer import load_tokenizer
 from utils.paths import p, get_dir
 from datasets import load_dataset, DatasetDict
 import torch
+from sklearn.utils import shuffle
+
 
 
 class DataConfig:
@@ -89,7 +91,7 @@ def load_dataloader(model_config, dataset=None):
     return train_dataloader, valid_dataloader, test_dataloader
 
 
-def convert_dataset_labels_to_binary(dataloader, target_class):
+def convert_dataset_labels_to_binary(dataloader, target_class, is_stratified=False):
     input_ids, attention_masks, labels = [], [], []
     for batch in dataloader:
         input_ids.append(batch["input_ids"])
@@ -102,14 +104,63 @@ def convert_dataset_labels_to_binary(dataloader, target_class):
     attention_masks = torch.cat(attention_masks)
     labels = torch.cat(labels)
 
+    if is_stratified:
+        # Count the number of samples for each class
+        class_0_indices = [i for i, label in enumerate(labels) if label == 0]
+        class_1_indices = [i for i, label in enumerate(labels) if label == 1]
+
+        # Find the minimum class size
+        min_class_size = min(len(class_0_indices), len(class_1_indices))
+
+        # Convert to tensors and shuffle
+        class_0_indices = torch.tensor(class_0_indices)
+        class_1_indices = torch.tensor(class_1_indices)
+
+        class_0_indices = class_0_indices[torch.randperm(len(class_0_indices))[:min_class_size]]
+        class_1_indices = class_1_indices[torch.randperm(len(class_1_indices))[:min_class_size]]
+
+        # Combine indices and shuffle them
+        balanced_indices = torch.cat([class_0_indices, class_1_indices]).long()
+        balanced_indices = balanced_indices[torch.randperm(len(balanced_indices))]
+
+        # Subset the data to the balanced indices
+        input_ids = input_ids[balanced_indices]
+        attention_masks = attention_masks[balanced_indices]
+        labels = labels[balanced_indices]
+
     transformed_dataset = TextDataset(input_ids, attention_masks, labels)
     transformed_dataloader = DataLoader(
         transformed_dataset,
         batch_size=dataloader.batch_size,
+        shuffle=not is_stratified
     )
 
     return transformed_dataloader
 
+
+def extract_and_convert_dataloader(dataloader, true_index, false_index):
+    # Extract the data using the provided indices
+
+    input_ids, attention_masks, labels = [], [], []
+
+    for batch in dataloader:
+        mask = (batch['labels'] == true_index) | (batch['labels'] == false_index)
+        if mask.any():
+            input_ids.append(batch['input_ids'][mask])
+            attention_masks.append(batch['attention_mask'][mask])
+            labels.append(batch['labels'][mask])
+
+    input_ids = torch.cat(input_ids, dim=0)
+    attention_masks = torch.cat(attention_masks, dim=0)
+    labels = torch.cat(labels, dim=0)
+
+    subset_dataset = TextDataset(input_ids, attention_masks, labels)
+    subset_dataloader = DataLoader(subset_dataset, batch_size=dataloader.batch_size)
+
+    # Apply convert_dataset_labels_to_binary
+    binary_dataloader = convert_dataset_labels_to_binary(subset_dataloader, true_index)
+
+    return binary_dataloader
 
 # In[]: SDG dataset loader
 def load_sdg(model_config):
