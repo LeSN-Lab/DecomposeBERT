@@ -17,3 +17,4 @@ pytorch_model.bin
 *.pt
 __pycache__
 /Datasets/
+.nohup.out
