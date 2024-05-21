@@ -1,0 +1,617 @@
+[I 2024-05-21 15:24:14.439 ServerApp] Package notebook took 0.0000s to import
+[I 2024-05-21 15:24:14.454 ServerApp] Package jupyter_lsp took 0.0143s to import
+[W 2024-05-21 15:24:14.454 ServerApp] A `_jupyter_server_extension_points` function was not found in jupyter_lsp. Instead, a `_jupyter_server_extension_paths` function was found and will be used for now. This function name will be deprecated in future releases of Jupyter Server.
+[I 2024-05-21 15:24:14.460 ServerApp] Package jupyter_server_terminals took 0.0054s to import
+[I 2024-05-21 15:24:14.461 ServerApp] Package jupyterlab took 0.0000s to import
+[I 2024-05-21 15:24:14.496 ServerApp] Package notebook_shim took 0.0000s to import
+[W 2024-05-21 15:24:14.496 ServerApp] A `_jupyter_server_extension_points` function was not found in notebook_shim. Instead, a `_jupyter_server_extension_paths` function was found and will be used for now. This function name will be deprecated in future releases of Jupyter Server.
+[I 2024-05-21 15:24:14.497 ServerApp] jupyter_lsp | extension was successfully linked.
+[I 2024-05-21 15:24:14.501 ServerApp] jupyter_server_terminals | extension was successfully linked.
+[I 2024-05-21 15:24:14.506 ServerApp] jupyterlab | extension was successfully linked.
+[W 2024-05-21 15:24:14.510 ServerApp] notebook_dir is deprecated, use root_dir
+[W 2024-05-21 15:24:14.511 ServerApp] ServerApp.password config is deprecated in 2.0. Use PasswordIdentityProvider.hashed_password.
+[I 2024-05-21 15:24:14.511 ServerApp] notebook | extension was successfully linked.
+[I 2024-05-21 15:24:14.754 ServerApp] notebook_shim | extension was successfully linked.
+[I 2024-05-21 15:24:14.800 ServerApp] notebook_shim | extension was successfully loaded.
+[I 2024-05-21 15:24:14.802 ServerApp] jupyter_lsp | extension was successfully loaded.
+[I 2024-05-21 15:24:14.803 ServerApp] jupyter_server_terminals | extension was successfully loaded.
+[I 2024-05-21 15:24:14.804 LabApp] JupyterLab extension loaded from /home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyterlab
+[I 2024-05-21 15:24:14.805 LabApp] JupyterLab application directory is /home/Minwoo/.conda/envs/DecomposeBERT/share/jupyter/lab
+[I 2024-05-21 15:24:14.805 LabApp] Extension Manager is 'pypi'.
+[I 2024-05-21 15:24:14.808 ServerApp] jupyterlab | extension was successfully loaded.
+[I 2024-05-21 15:24:14.810 ServerApp] notebook | extension was successfully loaded.
+[I 2024-05-21 15:24:14.811 ServerApp] The port 2222 is already in use, trying another port.
+[I 2024-05-21 15:24:14.811 ServerApp] Serving notebooks from local directory: /home/Minwoo
+[I 2024-05-21 15:24:14.811 ServerApp] Jupyter Server 2.10.0 is running at:
+[I 2024-05-21 15:24:14.811 ServerApp] http://localhost:2223/tree
+[I 2024-05-21 15:24:14.811 ServerApp]     http://127.0.0.1:2223/tree
+[I 2024-05-21 15:24:14.811 ServerApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[I 2024-05-21 15:24:14.844 ServerApp] Skipped non-installed server(s): bash-language-server, dockerfile-language-server-nodejs, javascript-typescript-langserver, jedi-language-server, julia-language-server, pyright, python-language-server, python-lsp-server, r-languageserver, sql-language-server, texlab, typescript-language-server, unified-language-server, vscode-css-languageserver-bin, vscode-html-languageserver-bin, vscode-json-languageserver-bin, yaml-language-server
+[I 2024-05-21 15:24:17.516 ServerApp] Interrupted...
+[I 2024-05-21 15:24:27.561 ServerApp] Package notebook took 0.0000s to import
+[I 2024-05-21 15:24:27.571 ServerApp] Package jupyter_lsp took 0.0097s to import
+[W 2024-05-21 15:24:27.572 ServerApp] A `_jupyter_server_extension_points` function was not found in jupyter_lsp. Instead, a `_jupyter_server_extension_paths` function was found and will be used for now. This function name will be deprecated in future releases of Jupyter Server.
+[I 2024-05-21 15:24:27.576 ServerApp] Package jupyter_server_terminals took 0.0043s to import
+[I 2024-05-21 15:24:27.577 ServerApp] Package jupyterlab took 0.0000s to import
+[I 2024-05-21 15:24:27.609 ServerApp] Package notebook_shim took 0.0000s to import
+[W 2024-05-21 15:24:27.609 ServerApp] A `_jupyter_server_extension_points` function was not found in notebook_shim. Instead, a `_jupyter_server_extension_paths` function was found and will be used for now. This function name will be deprecated in future releases of Jupyter Server.
+[I 2024-05-21 15:24:27.610 ServerApp] jupyter_lsp | extension was successfully linked.
+[I 2024-05-21 15:24:27.613 ServerApp] jupyter_server_terminals | extension was successfully linked.
+[I 2024-05-21 15:24:27.618 ServerApp] jupyterlab | extension was successfully linked.
+[W 2024-05-21 15:24:27.623 ServerApp] notebook_dir is deprecated, use root_dir
+[W 2024-05-21 15:24:27.623 ServerApp] ServerApp.password config is deprecated in 2.0. Use PasswordIdentityProvider.hashed_password.
+[I 2024-05-21 15:24:27.623 ServerApp] notebook | extension was successfully linked.
+[I 2024-05-21 15:24:27.854 ServerApp] notebook_shim | extension was successfully linked.
+[I 2024-05-21 15:24:27.897 ServerApp] notebook_shim | extension was successfully loaded.
+[I 2024-05-21 15:24:27.899 ServerApp] jupyter_lsp | extension was successfully loaded.
+[I 2024-05-21 15:24:27.900 ServerApp] jupyter_server_terminals | extension was successfully loaded.
+[I 2024-05-21 15:24:27.901 LabApp] JupyterLab extension loaded from /home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyterlab
+[I 2024-05-21 15:24:27.901 LabApp] JupyterLab application directory is /home/Minwoo/.conda/envs/DecomposeBERT/share/jupyter/lab
+[I 2024-05-21 15:24:27.902 LabApp] Extension Manager is 'pypi'.
+[I 2024-05-21 15:24:27.905 ServerApp] jupyterlab | extension was successfully loaded.
+[I 2024-05-21 15:24:27.907 ServerApp] notebook | extension was successfully loaded.
+[I 2024-05-21 15:24:27.908 ServerApp] The port 2222 is already in use, trying another port.
+[I 2024-05-21 15:24:27.908 ServerApp] Serving notebooks from local directory: /home/Minwoo
+[I 2024-05-21 15:24:27.908 ServerApp] Jupyter Server 2.10.0 is running at:
+[I 2024-05-21 15:24:27.908 ServerApp] http://localhost:2223/tree
+[I 2024-05-21 15:24:27.908 ServerApp]     http://127.0.0.1:2223/tree
+[I 2024-05-21 15:24:27.908 ServerApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[I 2024-05-21 15:24:27.941 ServerApp] Skipped non-installed server(s): bash-language-server, dockerfile-language-server-nodejs, javascript-typescript-langserver, jedi-language-server, julia-language-server, pyright, python-language-server, python-lsp-server, r-languageserver, sql-language-server, texlab, typescript-language-server, unified-language-server, vscode-css-languageserver-bin, vscode-html-languageserver-bin, vscode-json-languageserver-bin, yaml-language-server
+[I 2024-05-21 15:30:33.030 ServerApp] 302 GET / (@127.0.0.1) 0.61ms
+[I 2024-05-21 15:30:33.035 JupyterNotebookApp] 302 GET /tree? (@127.0.0.1) 0.84ms
+[I 2024-05-21 15:30:35.816 ServerApp] User 876965b81f3342b8a4bd1217d890304f logged in.
+[I 2024-05-21 15:30:35.817 ServerApp] 302 POST /login?next=%2Ftree%3F (876965b81f3342b8a4bd1217d890304f@127.0.0.1) 57.29ms
+[I 2024-05-21 15:30:54.915 ServerApp] Kernel started: 06f472dd-85c8-4106-a33f-0c77b2602bed
+[I 2024-05-21 15:30:55.510 ServerApp] Connecting to kernel 06f472dd-85c8-4106-a33f-0c77b2602bed.
+[I 2024-05-21 15:31:28.727 ServerApp] Kernel restarted: 06f472dd-85c8-4106-a33f-0c77b2602bed
+[I 2024-05-21 15:31:28.739 ServerApp] Starting buffering for 06f472dd-85c8-4106-a33f-0c77b2602bed:45c53bdc-74ef-4141-a5b4-45063715b108
+[I 2024-05-21 15:31:28.793 ServerApp] Connecting to kernel 06f472dd-85c8-4106-a33f-0c77b2602bed.
+[I 2024-05-21 15:31:28.794 ServerApp] Restoring connection for 06f472dd-85c8-4106-a33f-0c77b2602bed:45c53bdc-74ef-4141-a5b4-45063715b108
+[I 2024-05-21 15:32:54.760 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb
+[I 2024-05-21 15:36:56.031 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb
+[I 2024-05-21 15:38:56.148 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb
+[I 2024-05-21 15:39:55.398 ServerApp] Kernel restarted: 06f472dd-85c8-4106-a33f-0c77b2602bed
+[I 2024-05-21 15:39:55.406 ServerApp] Starting buffering for 06f472dd-85c8-4106-a33f-0c77b2602bed:45c53bdc-74ef-4141-a5b4-45063715b108
+[I 2024-05-21 15:39:55.418 ServerApp] Connecting to kernel 06f472dd-85c8-4106-a33f-0c77b2602bed.
+[I 2024-05-21 15:39:55.418 ServerApp] Restoring connection for 06f472dd-85c8-4106-a33f-0c77b2602bed:45c53bdc-74ef-4141-a5b4-45063715b108
+[I 2024-05-21 15:40:57.030 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb
+[I 2024-05-21 15:46:29.334 ServerApp] Kernel restarted: 06f472dd-85c8-4106-a33f-0c77b2602bed
+[I 2024-05-21 15:46:29.348 ServerApp] Starting buffering for 06f472dd-85c8-4106-a33f-0c77b2602bed:45c53bdc-74ef-4141-a5b4-45063715b108
+[I 2024-05-21 15:46:29.359 ServerApp] Connecting to kernel 06f472dd-85c8-4106-a33f-0c77b2602bed.
+[I 2024-05-21 15:46:29.359 ServerApp] Restoring connection for 06f472dd-85c8-4106-a33f-0c77b2602bed:45c53bdc-74ef-4141-a5b4-45063715b108
+[I 2024-05-21 15:46:35.943 ServerApp] Kernel restarted: 06f472dd-85c8-4106-a33f-0c77b2602bed
+[I 2024-05-21 15:46:35.954 ServerApp] Starting buffering for 06f472dd-85c8-4106-a33f-0c77b2602bed:45c53bdc-74ef-4141-a5b4-45063715b108
+[I 2024-05-21 15:46:36.010 ServerApp] Connecting to kernel 06f472dd-85c8-4106-a33f-0c77b2602bed.
+[I 2024-05-21 15:46:36.010 ServerApp] Restoring connection for 06f472dd-85c8-4106-a33f-0c77b2602bed:45c53bdc-74ef-4141-a5b4-45063715b108
+[I 2024-05-21 15:46:59.032 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb
+[I 2024-05-21 15:47:05.911 ServerApp] Kernel started: 72779911-6878-41c5-b4f1-eae005c0ec10
+[I 2024-05-21 15:47:06.536 ServerApp] Connecting to kernel 72779911-6878-41c5-b4f1-eae005c0ec10.
+[I 2024-05-21 15:47:08.616 ServerApp] Starting buffering for 72779911-6878-41c5-b4f1-eae005c0ec10:9c77fc28-6738-48da-8ff3-703d8f3c72ce
+[I 2024-05-21 15:47:15.590 ServerApp] Copying LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb to /LESN/Decompose/DecomposeBERT/experiment
+[I 2024-05-21 15:47:18.919 ServerApp] Kernel started: 0767b72e-2abb-47c8-b2eb-3fb55abf53ee
+[I 2024-05-21 15:47:19.505 ServerApp] Connecting to kernel 0767b72e-2abb-47c8-b2eb-3fb55abf53ee.
+[I 2024-05-21 15:49:00.022 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb
+[I 2024-05-21 15:49:18.778 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 15:50:15.578 ServerApp] Kernel restarted: 0767b72e-2abb-47c8-b2eb-3fb55abf53ee
+[I 2024-05-21 15:50:15.587 ServerApp] Starting buffering for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 15:50:15.642 ServerApp] Connecting to kernel 0767b72e-2abb-47c8-b2eb-3fb55abf53ee.
+[I 2024-05-21 15:50:15.642 ServerApp] Restoring connection for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 15:50:49.063 ServerApp] Kernel restarted: 0767b72e-2abb-47c8-b2eb-3fb55abf53ee
+[I 2024-05-21 15:50:49.119 ServerApp] Starting buffering for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 15:50:49.127 ServerApp] Connecting to kernel 0767b72e-2abb-47c8-b2eb-3fb55abf53ee.
+[I 2024-05-21 15:50:49.127 ServerApp] Restoring connection for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 15:51:00.079 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb
+[I 2024-05-21 15:51:19.029 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 15:53:01.022 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb
+[I 2024-05-21 15:53:19.116 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 15:54:05.888 ServerApp] Kernel restarted: 0767b72e-2abb-47c8-b2eb-3fb55abf53ee
+[I 2024-05-21 15:54:05.895 ServerApp] Starting buffering for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 15:54:05.963 ServerApp] Connecting to kernel 0767b72e-2abb-47c8-b2eb-3fb55abf53ee.
+[I 2024-05-21 15:54:05.963 ServerApp] Restoring connection for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 15:55:02.063 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb
+[I 2024-05-21 15:55:19.190 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 15:55:50.048 ServerApp] Kernel restarted: 0767b72e-2abb-47c8-b2eb-3fb55abf53ee
+[I 2024-05-21 15:55:50.063 ServerApp] Starting buffering for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 15:55:50.116 ServerApp] Connecting to kernel 0767b72e-2abb-47c8-b2eb-3fb55abf53ee.
+[I 2024-05-21 15:55:50.116 ServerApp] Restoring connection for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 15:56:28.961 ServerApp] Kernel restarted: 0767b72e-2abb-47c8-b2eb-3fb55abf53ee
+[I 2024-05-21 15:56:28.971 ServerApp] Starting buffering for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 15:56:29.024 ServerApp] Connecting to kernel 0767b72e-2abb-47c8-b2eb-3fb55abf53ee.
+[I 2024-05-21 15:56:29.024 ServerApp] Restoring connection for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 15:57:03.027 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb
+[I 2024-05-21 15:57:19.253 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 15:57:51.753 ServerApp] Kernel interrupted: 0767b72e-2abb-47c8-b2eb-3fb55abf53ee
+[I 2024-05-21 15:59:03.146 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb
+[I 2024-05-21 15:59:19.323 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:04:46.035 ServerApp] Kernel restarted: 0767b72e-2abb-47c8-b2eb-3fb55abf53ee
+[I 2024-05-21 16:04:46.047 ServerApp] Starting buffering for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 16:04:46.055 ServerApp] Connecting to kernel 0767b72e-2abb-47c8-b2eb-3fb55abf53ee.
+[I 2024-05-21 16:04:46.055 ServerApp] Restoring connection for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 16:05:00.963 ServerApp] Kernel interrupted: 0767b72e-2abb-47c8-b2eb-3fb55abf53ee
+[I 2024-05-21 16:05:19.034 ServerApp] Kernel restarted: 0767b72e-2abb-47c8-b2eb-3fb55abf53ee
+[I 2024-05-21 16:05:19.042 ServerApp] Starting buffering for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 16:05:19.106 ServerApp] Connecting to kernel 0767b72e-2abb-47c8-b2eb-3fb55abf53ee.
+[I 2024-05-21 16:05:19.107 ServerApp] Restoring connection for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 16:05:19.387 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[W 2024-05-21 16:06:19.037 ServerApp] Timeout waiting for kernel_info_reply: 0767b72e-2abb-47c8-b2eb-3fb55abf53ee
+[I 2024-05-21 16:07:19.443 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:07:37.328 ServerApp] Kernel interrupted: 0767b72e-2abb-47c8-b2eb-3fb55abf53ee
+[I 2024-05-21 16:09:03.247 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb
+[I 2024-05-21 16:09:19.493 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:11:04.010 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb
+[I 2024-05-21 16:11:19.559 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:13:19.616 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:15:19.670 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:17:19.763 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:19:19.820 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:21:19.887 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:25:19.945 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:27:20.006 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+Future exception was never retrieved
+future: <Future finished exception=TimeoutError('Timeout waiting for restart')>
+TimeoutError: Timeout waiting for restart
+[I 2024-05-21 16:29:20.073 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:31:20.135 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:33:20.194 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:35:20.250 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:37:20.313 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:38:00.077 ServerApp] Kernel restarted: 0767b72e-2abb-47c8-b2eb-3fb55abf53ee
+[I 2024-05-21 16:38:00.091 ServerApp] Starting buffering for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 16:38:00.155 ServerApp] Connecting to kernel 0767b72e-2abb-47c8-b2eb-3fb55abf53ee.
+[I 2024-05-21 16:38:00.155 ServerApp] Restoring connection for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 16:39:11.932 ServerApp] Kernel restarted: 0767b72e-2abb-47c8-b2eb-3fb55abf53ee
+[I 2024-05-21 16:39:11.939 ServerApp] Starting buffering for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 16:39:11.947 ServerApp] Connecting to kernel 0767b72e-2abb-47c8-b2eb-3fb55abf53ee.
+[I 2024-05-21 16:39:11.947 ServerApp] Restoring connection for 0767b72e-2abb-47c8-b2eb-3fb55abf53ee:43f1568c-661d-4959-9db9-15e54f6a0361
+[I 2024-05-21 16:39:20.370 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:41:21.017 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:42:17.021 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb
+[I 2024-05-21 16:43:22.012 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:45:23.007 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:47:24.006 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:48:17.135 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb
+[I 2024-05-21 16:49:24.056 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:51:24.102 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:53:24.159 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:55:24.223 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:57:24.284 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 16:59:24.353 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 17:01:24.422 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 17:03:25.001 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 17:05:25.052 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 17:07:25.103 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 17:09:25.180 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 17:11:25.240 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 17:13:25.357 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 17:14:18.566 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb
+[I 2024-05-21 17:14:21.845 ServerApp] Starting buffering for 06f472dd-85c8-4106-a33f-0c77b2602bed:45c53bdc-74ef-4141-a5b4-45063715b108
+[I 2024-05-21 17:14:31.747 ServerApp] Copying LESN/Decompose/DecomposeBERT/experiment/combination.ipynb to /LESN/Decompose/DecomposeBERT/experiment
+[I 2024-05-21 17:14:35.266 ServerApp] Kernel started: 36b18e0f-c9ee-49d5-af21-16d0957f0321
+[I 2024-05-21 17:14:35.813 ServerApp] Connecting to kernel 36b18e0f-c9ee-49d5-af21-16d0957f0321.
+[I 2024-05-21 17:15:25.992 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 17:15:51.778 ServerApp] Kernel restarted: 36b18e0f-c9ee-49d5-af21-16d0957f0321
+[I 2024-05-21 17:15:51.791 ServerApp] Starting buffering for 36b18e0f-c9ee-49d5-af21-16d0957f0321:1b73a14c-9af1-492b-beb1-8bc82d73db55
+[I 2024-05-21 17:15:51.798 ServerApp] Connecting to kernel 36b18e0f-c9ee-49d5-af21-16d0957f0321.
+[I 2024-05-21 17:15:51.798 ServerApp] Restoring connection for 36b18e0f-c9ee-49d5-af21-16d0957f0321:1b73a14c-9af1-492b-beb1-8bc82d73db55
+[I 2024-05-21 17:16:36.009 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination-Copy1.ipynb
+[W 2024-05-21 17:16:51.780 ServerApp] Timeout waiting for kernel_info_reply: 36b18e0f-c9ee-49d5-af21-16d0957f0321
+[I 2024-05-21 17:17:27.002 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+Future exception was never retrieved
+future: <Future finished exception=TimeoutError('Timeout waiting for restart')>
+TimeoutError: Timeout waiting for restart
+[I 2024-05-21 17:18:12.335 ServerApp] Kernel shutdown: 06f472dd-85c8-4106-a33f-0c77b2602bed
+[I 2024-05-21 17:18:20.430 ServerApp] Connecting to kernel 72779911-6878-41c5-b4f1-eae005c0ec10.
+[I 2024-05-21 17:18:21.456 ServerApp] Starting buffering for 72779911-6878-41c5-b4f1-eae005c0ec10:f5637115-2979-4c98-a5a9-dd87f4428935
+[I 2024-05-21 17:18:27.734 ServerApp] Kernel shutdown: 72779911-6878-41c5-b4f1-eae005c0ec10
+[I 2024-05-21 17:18:36.052 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0.ipynb
+[I 2024-05-21 17:18:56.372 ServerApp] Kernel shutdown: 0767b72e-2abb-47c8-b2eb-3fb55abf53ee
+[W 2024-05-21 17:18:59.358 ServerApp] delete /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 17:19:00.233 ServerApp] Copying LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb to /LESN/Decompose/DecomposeBERT/experiment
+[I 2024-05-21 17:19:16.588 ServerApp] Kernel started: 2c4d44f5-6e31-48d4-985b-6c9bedba48bd
+[I 2024-05-21 17:19:17.141 ServerApp] Connecting to kernel 2c4d44f5-6e31-48d4-985b-6c9bedba48bd.
+[W 2024-05-21 17:19:27.988 ServerApp] 404 GET /api/contents/LESN/Decompose/DecomposeBERT/experiment/combination.ipynb?content=0&1716279576308 (127.0.0.1): No such file or directory: LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[W 2024-05-21 17:19:27.989 ServerApp] wrote error: 'No such file or directory: LESN/Decompose/DecomposeBERT/experiment/combination.ipynb'
+    Traceback (most recent call last):
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/tornado/web.py", line 1786, in _execute
+        result = await result
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_server/services/contents/handlers.py", line 121, in get
+        model = await ensure_async(
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_core/utils/__init__.py", line 189, in ensure_async
+        result = await obj
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_server/services/contents/filemanager.py", line 863, in get
+        raise web.HTTPError(404, "No such file or directory: %s" % path)
+    tornado.web.HTTPError: HTTP 404: Not Found (No such file or directory: LESN/Decompose/DecomposeBERT/experiment/combination.ipynb)
+[W 2024-05-21 17:19:28.002 ServerApp] 404 GET /api/contents/LESN/Decompose/DecomposeBERT/experiment/combination.ipynb?content=0&1716279576308 (876965b81f3342b8a4bd1217d890304f@127.0.0.1) 15.07ms referer=http://localhost:9999/notebooks/LESN%2FDecompose%2FDecomposeBERT%2Fexperiment%2Fcombination.ipynb
+[I 2024-05-21 17:19:28.053 ServerApp] Uploading file to /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 17:19:32.190 ServerApp] Kernel restarted: 2c4d44f5-6e31-48d4-985b-6c9bedba48bd
+[I 2024-05-21 17:19:32.200 ServerApp] Starting buffering for 2c4d44f5-6e31-48d4-985b-6c9bedba48bd:49db3854-01bd-480c-9599-8ce1ee7e31ce
+[I 2024-05-21 17:19:32.209 ServerApp] Connecting to kernel 2c4d44f5-6e31-48d4-985b-6c9bedba48bd.
+[I 2024-05-21 17:19:32.209 ServerApp] Restoring connection for 2c4d44f5-6e31-48d4-985b-6c9bedba48bd:49db3854-01bd-480c-9599-8ce1ee7e31ce
+[I 2024-05-21 17:20:36.117 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:21:16.487 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 17:22:36.171 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:24:36.246 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:26:36.302 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:28:36.366 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:30:36.445 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:32:36.545 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:34:36.601 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:36:36.660 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:38:36.722 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:40:36.780 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:42:36.845 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:44:36.939 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:46:37.000 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:48:37.994 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:50:38.997 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:52:39.994 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:54:41.003 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:56:41.994 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:58:42.065 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 17:59:16.998 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:00:42.243 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:01:17.077 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:02:42.312 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:03:17.160 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:04:42.424 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:05:00.567 ServerApp] Kernel started: 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb
+[I 2024-05-21 18:05:01.122 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 18:05:17.212 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:06:42.504 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:07:17.273 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:08:42.564 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:09:17.330 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:10:42.642 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:11:17.403 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:12:45.512 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:13:00.493 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:13:05.147 ServerApp] Kernel restarted: 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb
+[I 2024-05-21 18:13:05.155 ServerApp] Starting buffering for 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb:91543be3-7a73-4c85-8b1a-c0bfd505305d
+[I 2024-05-21 18:13:05.164 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 18:13:05.164 ServerApp] Restoring connection for 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb:91543be3-7a73-4c85-8b1a-c0bfd505305d
+[I 2024-05-21 18:13:17.461 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:14:45.990 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:15:00.557 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:15:17.974 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:16:46.982 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:17:00.640 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:17:18.989 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:18:47.980 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:19:00.687 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[W 2024-05-21 18:19:05.214 LabApp] Could not determine jupyterlab build status without nodejs
+[I 2024-05-21 18:19:05.257 ServerApp] Connecting to kernel 36b18e0f-c9ee-49d5-af21-16d0957f0321.
+[I 2024-05-21 18:19:05.347 ServerApp] Connecting to kernel 2c4d44f5-6e31-48d4-985b-6c9bedba48bd.
+[I 2024-05-21 18:19:05.388 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 18:19:06.208 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 18:19:19.995 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:20:48.991 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:21:00.744 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:21:20.980 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:22:49.987 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:23:00.808 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:23:21.986 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:24:50.990 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:25:00.857 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:25:22.977 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:26:51.983 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:27:00.908 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:27:23.971 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:28:52.979 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:29:00.976 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:29:24.039 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:30:53.976 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:31:01.026 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:31:24.119 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:32:54.977 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:33:01.094 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:33:24.982 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:34:55.980 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:35:01.150 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:35:25.987 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:36:56.982 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:37:01.244 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:37:26.981 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:38:57.971 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:39:01.305 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:39:27.977 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:40:58.975 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:41:01.359 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:41:28.979 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:42:59.992 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:43:01.410 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:43:29.973 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:45:00.982 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:45:01.482 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:45:30.987 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:47:01.538 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:47:01.982 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:47:32.001 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:49:01.608 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:49:02.985 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:49:32.970 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:51:01.680 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:51:03.981 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:51:33.987 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:53:01.973 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:53:04.978 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:53:34.977 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:54:20.871 ServerApp] Kernel started: ef146564-1035-41c8-b049-7234a01a6a06
+[I 2024-05-21 18:54:21.550 ServerApp] Connecting to kernel ef146564-1035-41c8-b049-7234a01a6a06.
+[I 2024-05-21 18:55:02.975 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:55:05.971 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:55:35.983 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:57:03.975 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:57:06.995 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:57:36.992 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 18:59:04.980 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 18:59:07.978 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 18:59:37.977 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:01:05.976 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:01:08.983 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:01:38.976 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:03:06.978 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:03:09.978 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:03:40.232 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:05:07.968 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:05:10.976 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:05:40.975 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:07:08.970 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:07:11.975 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:07:41.973 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:09:09.968 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:09:12.969 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:09:42.975 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:11:10.978 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:11:13.976 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:11:43.974 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:13:11.979 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:13:14.970 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:13:44.976 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:15:12.973 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:15:15.974 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:15:45.966 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:17:13.976 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:17:16.976 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:17:46.969 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:19:14.976 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:19:17.971 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:19:47.961 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:21:15.992 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:21:18.980 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:21:48.968 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:23:16.964 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:23:19.976 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:23:49.998 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:25:17.969 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:25:20.968 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:25:50.965 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:27:18.980 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:27:21.971 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:27:51.973 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:29:19.990 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:29:22.964 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:29:52.970 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:31:20.971 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:31:23.977 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:31:53.968 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:33:21.973 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:33:24.967 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:33:54.969 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:35:22.961 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:35:25.973 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:35:55.977 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:37:23.962 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:37:26.979 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:37:56.961 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:39:24.964 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:39:27.969 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:39:58.009 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:41:25.964 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:41:28.969 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:41:58.983 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:43:26.957 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:43:29.962 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:43:59.964 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:45:27.966 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:45:30.960 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:46:00.960 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:47:28.961 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:47:31.962 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:48:01.961 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:49:29.954 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:49:32.961 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:50:02.965 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:51:30.966 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:51:33.959 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:52:03.961 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:53:31.958 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:53:34.966 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:54:04.958 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:55:32.958 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:55:35.962 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:56:05.224 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:57:33.958 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:57:36.976 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 19:58:05.956 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 19:59:34.949 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 19:59:37.951 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 20:00:06.954 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 20:01:35.952 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 20:01:38.952 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 20:02:07.953 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 20:03:36.960 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 20:03:39.944 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 20:04:08.960 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 20:05:37.949 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 20:05:40.954 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 20:06:09.950 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 20:07:38.972 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 20:07:41.943 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 20:08:10.952 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 20:09:39.941 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 20:09:42.952 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 20:10:02.209 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 20:10:03.465 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 20:11:40.950 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 20:12:02.950 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 20:12:03.968 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 20:13:41.939 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 20:14:03.955 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 20:14:04.958 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 20:15:42.949 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 20:16:04.959 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 20:16:05.951 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 20:16:51.134 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 20:17:43.947 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 20:18:06.008 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 20:18:06.164 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 20:19:44.956 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 20:20:06.544 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 20:20:06.625 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[W 2024-05-21 20:20:25.505 ServerApp] 409 PATCH /api/contents/LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb?1716290425472 (127.0.0.1): File already exists: LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[W 2024-05-21 20:20:25.506 ServerApp] wrote error: 'File already exists: LESN/Decompose/DecomposeBERT/experiment/combination.ipynb'
+    Traceback (most recent call last):
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/tornado/web.py", line 1786, in _execute
+        result = await result
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_server/services/contents/handlers.py", line 151, in patch
+        model = await ensure_async(cm.update(model, path))
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_core/utils/__init__.py", line 189, in ensure_async
+        result = await obj
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_server/services/contents/manager.py", line 902, in update
+        await self.rename(path, new_path)
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_server/services/contents/manager.py", line 889, in rename
+        await self.rename_file(old_path, new_path)
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_server/services/contents/filemanager.py", line 1015, in rename_file
+        raise web.HTTPError(409, "File already exists: %s" % new_path)
+    tornado.web.HTTPError: HTTP 409: Conflict (File already exists: LESN/Decompose/DecomposeBERT/experiment/combination.ipynb)
+[W 2024-05-21 20:20:25.517 ServerApp] 409 PATCH /api/contents/LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb?1716290425472 (876965b81f3342b8a4bd1217d890304f@127.0.0.1) 13.86ms referer=http://localhost:9999/notebooks/LESN%2FDecompose%2FDecomposeBERT%2Fexperiment%2Fcombination0to6.ipynb
+[I 2024-05-21 20:20:33.341 ServerApp] Starting buffering for 2c4d44f5-6e31-48d4-985b-6c9bedba48bd:49db3854-01bd-480c-9599-8ce1ee7e31ce
+[I 2024-05-21 20:20:43.776 ServerApp] Connecting to kernel ef146564-1035-41c8-b049-7234a01a6a06.
+[I 2024-05-21 20:20:58.123 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/total eval result.ipynb
+[I 2024-05-21 20:21:02.544 ServerApp] Kernel started: ba3b865d-62a0-4455-8751-5cc3ec3a6c1d
+[I 2024-05-21 20:21:03.082 ServerApp] Connecting to kernel ba3b865d-62a0-4455-8751-5cc3ec3a6c1d.
+[I 2024-05-21 20:21:10.407 ServerApp] Starting buffering for ba3b865d-62a0-4455-8751-5cc3ec3a6c1d:920d3135-f17e-4fd5-a401-a6d959c29e45
+[I 2024-05-21 20:21:18.657 ServerApp] Kernel shutdown: ba3b865d-62a0-4455-8751-5cc3ec3a6c1d
+[W 2024-05-21 20:21:18.986 ServerApp] delete /LESN/Decompose/DecomposeBERT/experiment/Untitled.ipynb
+[I 2024-05-21 20:21:23.154 ServerApp] Connecting to kernel 2c4d44f5-6e31-48d4-985b-6c9bedba48bd.
+[I 2024-05-21 20:21:23.156 ServerApp] Discarding 43 buffered messages for 2c4d44f5-6e31-48d4-985b-6c9bedba48bd:49db3854-01bd-480c-9599-8ce1ee7e31ce
+[I 2024-05-21 20:21:34.315 ServerApp] Starting buffering for 2c4d44f5-6e31-48d4-985b-6c9bedba48bd:4536a89a-b35b-48cb-bd09-23ab55a5b96f
+[I 2024-05-21 20:21:39.788 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 20:21:42.467 ServerApp] Connecting to kernel 36b18e0f-c9ee-49d5-af21-16d0957f0321.
+[I 2024-05-21 20:21:45.967 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 20:22:06.665 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 20:22:10.568 ServerApp] Kernel shutdown: 36b18e0f-c9ee-49d5-af21-16d0957f0321
+[I 2024-05-21 20:22:10.572 ServerApp] Discarding 35 buffered messages for 2c4d44f5-6e31-48d4-985b-6c9bedba48bd:4536a89a-b35b-48cb-bd09-23ab55a5b96f
+[I 2024-05-21 20:22:10.572 ServerApp] Kernel shutdown: 2c4d44f5-6e31-48d4-985b-6c9bedba48bd
+[W 2024-05-21 20:22:12.509 ServerApp] delete /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[W 2024-05-21 20:22:13.222 ServerApp] delete /LESN/Decompose/DecomposeBERT/experiment/combination7to15.ipynb
+[I 2024-05-21 20:22:14.966 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 20:23:46.957 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 20:23:50.717 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[W 2024-05-21 20:24:06.936 ServerApp] 404 GET /api/contents/LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb?content=0&1716290646902 (127.0.0.1): No such file or directory: LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[W 2024-05-21 20:24:06.937 ServerApp] wrote error: 'No such file or directory: LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb'
+    Traceback (most recent call last):
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/tornado/web.py", line 1786, in _execute
+        result = await result
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_server/services/contents/handlers.py", line 121, in get
+        model = await ensure_async(
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_core/utils/__init__.py", line 189, in ensure_async
+        result = await obj
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_server/services/contents/filemanager.py", line 863, in get
+        raise web.HTTPError(404, "No such file or directory: %s" % path)
+    tornado.web.HTTPError: HTTP 404: Not Found (No such file or directory: LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb)
+[W 2024-05-21 20:24:06.938 ServerApp] 404 GET /api/contents/LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb?content=0&1716290646902 (876965b81f3342b8a4bd1217d890304f@127.0.0.1) 3.83ms referer=http://localhost:9999/notebooks/LESN%2FDecompose%2FDecomposeBERT%2Fexperiment%2Fcombination0to6.ipynb
+[I 2024-05-21 20:24:06.957 ServerApp] Uploading file to /LESN/Decompose/DecomposeBERT/experiment/combination0to6.ipynb
+[I 2024-05-21 20:25:49.414 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 20:25:56.414 ServerApp] Kernel restarted: 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb
+[I 2024-05-21 20:25:56.478 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 20:27:49.951 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 20:29:50.940 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 21:29:23.380 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 21:29:27.099 ServerApp] Kernel restarted: 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb
+[I 2024-05-21 21:29:27.119 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 21:31:23.309 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 21:32:31.028 ServerApp] Kernel restarted: 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb
+[I 2024-05-21 21:32:31.090 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 21:33:23.353 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 21:34:48.477 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 21:34:57.604 ServerApp] Starting buffering for ef146564-1035-41c8-b049-7234a01a6a06:c12396ce-5670-44ee-9f53-2e26f3139946
+[I 2024-05-21 21:35:23.416 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 21:37:23.485 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 21:39:23.558 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 21:41:00.131 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 21:41:03.681 ServerApp] Kernel restarted: 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb
+[I 2024-05-21 21:41:03.692 ServerApp] Starting buffering for 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb:1cdd7607-b478-4333-bea6-d504c2599de6
+[I 2024-05-21 21:41:03.704 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 21:41:03.704 ServerApp] Restoring connection for 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb:1cdd7607-b478-4333-bea6-d504c2599de6
+[I 2024-05-21 21:43:00.191 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 21:45:00.255 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 21:46:56.359 ServerApp] Starting buffering for 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb:1cdd7607-b478-4333-bea6-d504c2599de6
+[W 2024-05-21 21:52:58.414 ServerApp] 403 POST /api/shutdown (127.0.0.1): '_xsrf' argument missing from POST
+[W 2024-05-21 21:52:58.430 ServerApp] 403 POST /api/shutdown (@127.0.0.1) 16.67ms referer=None
+[I 2024-05-21 21:53:46.436 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 21:53:46.436 ServerApp] Discarding 1589 buffered messages for 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb:1cdd7607-b478-4333-bea6-d504c2599de6
+[I 2024-05-21 21:53:49.050 ServerApp] Kernel shutdown: ef146564-1035-41c8-b049-7234a01a6a06
+[I 2024-05-21 21:53:54.202 ServerApp] Starting buffering for 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb:b0cdd496-c3ec-44fc-b68a-4247602dc299
+[I 2024-05-21 21:53:54.259 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 21:53:54.259 ServerApp] Restoring connection for 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb:b0cdd496-c3ec-44fc-b68a-4247602dc299
+[I 2024-05-21 21:54:01.692 ServerApp] Kernel restarted: 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb
+[I 2024-05-21 21:54:01.706 ServerApp] Starting buffering for 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb:b0cdd496-c3ec-44fc-b68a-4247602dc299
+[I 2024-05-21 21:54:01.769 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 21:54:01.769 ServerApp] Restoring connection for 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb:b0cdd496-c3ec-44fc-b68a-4247602dc299
+[I 2024-05-21 21:55:47.077 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 21:57:27.538 ServerApp] Kernel restarted: 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb
+[I 2024-05-21 21:57:27.551 ServerApp] Starting buffering for 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb:b0cdd496-c3ec-44fc-b68a-4247602dc299
+[I 2024-05-21 21:57:27.619 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 21:57:27.620 ServerApp] Restoring connection for 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb:b0cdd496-c3ec-44fc-b68a-4247602dc299
+[I 2024-05-21 21:57:48.082 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 21:59:48.168 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 22:01:48.250 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 22:03:48.324 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 22:05:48.405 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 22:07:48.487 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 22:09:48.593 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 22:11:48.694 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 22:13:48.757 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 22:15:49.053 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[I 2024-05-21 22:17:49.141 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/combination.ipynb
+[W 2024-05-21 22:19:50.060 ServerApp] 404 GET /api/contents/LESN/Decompose/DecomposeBERT/experiment/true-false(one%20vs%20single).ipynb?content=0&1716297589822 (127.0.0.1): No such file or directory: LESN/Decompose/DecomposeBERT/experiment/true-false(one vs single).ipynb
+[W 2024-05-21 22:19:50.061 ServerApp] wrote error: 'No such file or directory: LESN/Decompose/DecomposeBERT/experiment/true-false(one vs single).ipynb'
+    Traceback (most recent call last):
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/tornado/web.py", line 1786, in _execute
+        result = await result
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_server/services/contents/handlers.py", line 121, in get
+        model = await ensure_async(
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_core/utils/__init__.py", line 189, in ensure_async
+        result = await obj
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_server/services/contents/filemanager.py", line 863, in get
+        raise web.HTTPError(404, "No such file or directory: %s" % path)
+    tornado.web.HTTPError: HTTP 404: Not Found (No such file or directory: LESN/Decompose/DecomposeBERT/experiment/true-false(one vs single).ipynb)
+[W 2024-05-21 22:19:50.063 ServerApp] 404 GET /api/contents/LESN/Decompose/DecomposeBERT/experiment/true-false(one%20vs%20single).ipynb?content=0&1716297589822 (e920312aa02c40338afad0c17de91795@127.0.0.1) 4.51ms referer=http://localhost:8899/notebooks/LESN%2FDecompose%2FDecomposeBERT%2Fexperiment%2Ftrue-false(one%20vs%20single).ipynb
+[I 2024-05-21 22:19:50.075 ServerApp] Uploading file to /LESN/Decompose/DecomposeBERT/experiment/true-false(one vs single).ipynb
+[W 2024-05-21 22:21:28.481 ServerApp] 409 PATCH /api/contents/LESN/Decompose/DecomposeBERT/experiment/true-false(one%20vs%20single).ipynb?1716297688241 (127.0.0.1): File already exists: LESN/Decompose/DecomposeBERT/experiment/true-false(one vs another).ipynb
+[W 2024-05-21 22:21:28.481 ServerApp] wrote error: 'File already exists: LESN/Decompose/DecomposeBERT/experiment/true-false(one vs another).ipynb'
+    Traceback (most recent call last):
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/tornado/web.py", line 1786, in _execute
+        result = await result
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_server/services/contents/handlers.py", line 151, in patch
+        model = await ensure_async(cm.update(model, path))
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_core/utils/__init__.py", line 189, in ensure_async
+        result = await obj
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_server/services/contents/manager.py", line 902, in update
+        await self.rename(path, new_path)
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_server/services/contents/manager.py", line 889, in rename
+        await self.rename_file(old_path, new_path)
+      File "/home/Minwoo/.conda/envs/DecomposeBERT/lib/python3.8/site-packages/jupyter_server/services/contents/filemanager.py", line 1015, in rename_file
+        raise web.HTTPError(409, "File already exists: %s" % new_path)
+    tornado.web.HTTPError: HTTP 409: Conflict (File already exists: LESN/Decompose/DecomposeBERT/experiment/true-false(one vs another).ipynb)
+[W 2024-05-21 22:21:28.482 ServerApp] 409 PATCH /api/contents/LESN/Decompose/DecomposeBERT/experiment/true-false(one%20vs%20single).ipynb?1716297688241 (e920312aa02c40338afad0c17de91795@127.0.0.1) 3.77ms referer=http://localhost:8899/notebooks/LESN%2FDecompose%2FDecomposeBERT%2Fexperiment%2Ftrue-false(one%20vs%20single).ipynb
+[I 2024-05-21 22:21:50.166 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/true-false(one vs single).ipynb
+[I 2024-05-21 22:22:35.740 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/true-false(one vs others).ipynb
+[I 2024-05-21 22:23:05.132 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/true-false(one vs others).ipynb
+[I 2024-05-21 22:23:15.039 ServerApp] Kernel restarted: 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb
+[I 2024-05-21 22:23:15.052 ServerApp] Starting buffering for 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb:b0cdd496-c3ec-44fc-b68a-4247602dc299
+[I 2024-05-21 22:23:15.111 ServerApp] Connecting to kernel 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb.
+[I 2024-05-21 22:23:15.112 ServerApp] Restoring connection for 3a0da6b1-ab97-47c1-b0a1-6b36b472e0bb:b0cdd496-c3ec-44fc-b68a-4247602dc299
+[I 2024-05-21 22:25:06.080 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/true-false(one vs others).ipynb
+[I 2024-05-21 22:27:07.087 ServerApp] Saving file at /LESN/Decompose/DecomposeBERT/experiment/true-false(one vs others).ipynb
