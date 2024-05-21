@@ -20,14 +20,14 @@ class ConcernModularizationBert:
         active = list(set(_active))
         dead = list(set(_dead))
 
-        print(dead)
-        print(active)
+        print(f"dead node \n{dead}")
+        print(f"active node \n{active}")
 
         inter1 = [val if idx in dead else 0 for idx, val in enumerate(dead_node)]
         inter2 = [val if idx in active else 0 for idx, val in enumerate(active_node)]
 
-        print(inter1)
-        print(inter2)
+        print(f"weight factor \n{inter1}")
+        print(f"weight factor \n{inter2}")
 
         inter = torch.tensor([inter1, inter2], dtype=torch.float32).to(device)
 
