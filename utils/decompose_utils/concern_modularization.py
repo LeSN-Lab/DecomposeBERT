@@ -16,7 +16,7 @@ class ConcernModularizationBert:
         _active = [idx for idx, val in enumerate(active_node) if val >= active_top1/2]
         _dead = [idx for idx, val in enumerate(dead_node) if val >= dead_top1 / 2 and idx != concern_idx]
 
-        # active = list(set(_active) - set(_dead))
+
         active = list(set(_active))
         dead = list(set(_dead))
 

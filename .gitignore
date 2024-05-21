@@ -7,7 +7,6 @@ tokenizer_config.json
 vocab.txt
 vocab.json
 merges.txt
-Dataset
 .ipynb_checkpoints
 pytorch_model.bin
 .idea/*
@@ -17,3 +16,4 @@ pytorch_model.bin
 .cache/*
 *.pt
 __pycache__
+/Datasets/
