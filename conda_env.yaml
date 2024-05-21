@@ -1,0 +1,24 @@
+name: DecomposeBERT
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.8
+  - pip
+  - pytorch
+  - transformers
+  - scipy
+  - huggingface_datasets
+  - scikit-learn
+  - spacy
+  - notebook
+  - matplotlib
+  - pip:
+    - torch
+    - transformers
+    - scipy
+    - datasets
+    - scikit-learn
+    - spacy
+    - notebook
+    - matplotlib

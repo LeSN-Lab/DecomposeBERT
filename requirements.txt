@@ -1,0 +1,8 @@
+torch
+transformers
+scipy
+datasets
+scikit-learn
+spacy
+notebook
+matplotlib
