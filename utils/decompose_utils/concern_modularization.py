@@ -42,7 +42,7 @@ class ConcernModularizationBert:
 
     @staticmethod
     def convert2binary(model_config, ref_model):
-        config = AutoConfig.from_pretrained(model_config.name)
+        config = AutoConfig.from_pretrained(model_config.model_name)
         config.id2label = {0: "negative", 1: "positive"}
         config.label2id = {"negative": 0, "positive": 1}
         config._num_labels = 2
