@@ -19,6 +19,7 @@ conda env create -f environment.yml
 conda activate DecomposeBERT
 ```
 
+
 ## Datasets
 There are three versions of decomposision for bert model that pretrained.
 
