@@ -196,6 +196,15 @@ def load_imdb(model_config):
         dataset = load_dataset("imdb")
         return load_dataloader(model_config, dataset)
 
+def load_code_search_net(model_config):
+    data_config.data_dir = get_dir(join(p.Data, model_config.data), True)
+    data_config.text_column = None
+    data_config.label_column = None
+    if get_dir(join(data_config.data_dir, "dataset.pt")):
+        return load_dataloader(model_config)
+    else:
+        dataset = load_dataset("code_search_net")
+        return load_dataloader(model_config, dataset)
 
 def load_data(model_config, batch_size=32, test_size=0.3, seed=42):
     data_config.batch_size = batch_size
@@ -207,6 +216,7 @@ def load_data(model_config, batch_size=32, test_size=0.3, seed=42):
         return load_yahoo(model_config)
     elif model_config.data == "IMDb":
         return load_imdb(model_config)
-
+    elif model_config.data == "code_search_net":
+        return load_code_search_net(model_config)
 
 data_config = DataConfig()

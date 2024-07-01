@@ -1,31 +1,41 @@
 import os
+import torch
 from os.path import join as join
-from utils.paths import p, get_dir
+from utils.paths import paths, get_dir
 
 
 class ModelConfig:
     def __init__(
         self,
-        _model_name,
-        _model_type,
-        _data,
-        _transformer_config,
-        _checkpoint_name=None,
-        _device="cuda:0",
+        model_name: str,
+        task_type: str,
+        dataset_name: str,
+        checkpoint: str = None,
+        device: torch.device = torch.device("cuda:0"),
     ):
+        """
+        Initialize the configuration for the model.
+
+        Args:
+            model_name (str): The name of the model.
+            task_type (str): The task type of the model.
+            dataset_name (str): The name of the dataset.
+            checkpoint (str, optional): The checkpoint for the model. Defaults to None.
+            device (torch.device): The device to run the model on. Defaults to "cuda:0".
+        """
         # Specific directories
-        norm_name = os.path.normpath(_model_name)
-        temp = os.path.join(_model_type, norm_name)
-        self.is_downloaded = get_dir(join(p.Configs, temp))
-        self.data_dir = get_dir(join(p.Data, _data), True)
-        self.config_dir = get_dir(join(p.Configs, temp), True)
-        self.train_dir = get_dir(join(p.Train, temp), True)
-        self.module_dir = get_dir(join(p.Modules, temp), True)
+        norm_name = os.path.normpath(model_name)
+        temp = os.path.join(task_type, norm_name)
+        self.is_downloaded = get_dir(join(paths.Configs, temp))
+        self.data_dir = get_dir(join(paths.Data, dataset_name), True)
+        self.config_dir = get_dir(join(paths.Configs, temp), True)
+        self.train_dir = get_dir(join(paths.Train, temp), True)
+        self.module_dir = get_dir(join(paths.Modules, temp), True)
 
         # others
-        self.model_name = _model_name
-        self.data = _data
-        self.transformer_config = _transformer_config
-        self.checkpoint_name = _checkpoint_name
-        self.device = _device
-
+        self.model_name = model_name
+        self.task_type = task_type
+        self.dataset_name = dataset_name
+        self.checkpoint = checkpoint
+        self.device = device
+        self.devices = [d.strip() for d in device.split(",")]
