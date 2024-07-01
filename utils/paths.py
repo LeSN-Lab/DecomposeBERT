@@ -18,8 +18,8 @@ class Paths:
 
     def set_root(self):
         while True:
-            if "DecomposeBERT" in os.listdir(self.cur_dir):
-                root_path = join(self.cur_dir, "DecomposeBERT")
+            if "DecomposeTransformer" in os.listdir(self.cur_dir):
+                root_path = join(self.cur_dir, "DecomposeTransformer")
                 return root_path
             par_dir = os.path.dirname(self.cur_dir)
             if par_dir == self.cur_dir:

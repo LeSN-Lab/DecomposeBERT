@@ -16,7 +16,7 @@ If you prefer to use Conda, you can create a Conda environment using the environ
 ```bash
 
 conda env create -f environment.yml
-conda activate DecomposeBERT
+conda activate DecomposeTransformer
 ```
 
 
