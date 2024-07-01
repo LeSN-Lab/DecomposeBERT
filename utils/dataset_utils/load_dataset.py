@@ -2,7 +2,6 @@
 import os
 from os.path import join as join
 from torch.utils.data import DataLoader
-from utils.model_utils.load_tokenizer import load_tokenizer
 from utils.paths import p, get_dir
 from datasets import load_dataset, DatasetDict
 import torch
