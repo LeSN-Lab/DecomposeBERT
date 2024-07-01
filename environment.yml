@@ -1,4 +1,4 @@
-name: DecomposeBERT
+name: DecomposeTransformer
 channels:
   - defaults
   - conda-forge
