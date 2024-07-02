@@ -14,7 +14,6 @@ class Paths:
         self.Data = get_dir(join_path(self.root_dir, "Datasets"), True)
         self.Models = get_dir(join_path(self.root_dir, "Models"), True)
         self.Configs = get_dir(join_path(self.Models, "Configs"), True)
-        self.Train = get_dir(join_path(self.Models, "Train"), True)
         self.Modules = get_dir(join_path(self.Models, "Modules"), True)
 
     def set_root(self):

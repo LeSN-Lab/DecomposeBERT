@@ -2,12 +2,11 @@
 import os
 from os.path import join as join
 from torch.utils.data import DataLoader
-from utils.paths import p, get_dir
+from utils.paths import paths, get_dir
 from datasets import load_dataset, DatasetDict
 import torch
 from sklearn.utils import shuffle
-
-
+from utils.model_utils.load_model import load_tokenizer
 
 class DataConfig:
     def __init__(self):
@@ -163,7 +162,7 @@ def extract_and_convert_dataloader(dataloader, true_index, false_index):
 
 # In[]: SDG dataset loader
 def load_sdg(model_config):
-    data_config.data_dir = get_dir(join(p.Data, model_config.data), True)
+    data_config.data_dir = get_dir(join(paths.Data, model_config.dataset_name), True)
     data_config.text_column = "text"
     data_config.label_column = "labels"
     if get_dir(join(data_config.data_dir, "dataset.pt")):
@@ -175,7 +174,7 @@ def load_sdg(model_config):
 
 # In[]: Yahoo dataset loader
 def load_yahoo(model_config):
-    data_config.data_dir = get_dir(join(p.Data, model_config.data), True)
+    data_config.data_dir = get_dir(join(paths.Data, model_config.dataset_name), True)
     data_config.text_column = "question_title"
     data_config.label_column = "topic"
     if get_dir(join(data_config.data_dir, "dataset.pt")):
@@ -186,7 +185,7 @@ def load_yahoo(model_config):
 
 
 def load_imdb(model_config):
-    data_config.data_dir = get_dir(join(p.Data, model_config.data), True)
+    data_config.data_dir = get_dir(join(paths.Data, model_config.dataset_name), True)
     data_config.text_column = "text"
     data_config.label_column = "label"
     if get_dir(join(data_config.data_dir, "dataset.pt")):
@@ -196,7 +195,7 @@ def load_imdb(model_config):
         return load_dataloader(model_config, dataset)
 
 def load_code_search_net(model_config):
-    data_config.data_dir = get_dir(join(p.Data, model_config.data), True)
+    data_config.data_dir = get_dir(join(paths.Data, model_config.dataset_name), True)
     data_config.text_column = None
     data_config.label_column = None
     if get_dir(join(data_config.data_dir, "dataset.pt")):
@@ -209,13 +208,13 @@ def load_data(model_config, batch_size=32, test_size=0.3, seed=42):
     data_config.batch_size = batch_size
     data_config.test_size = test_size
     data_config.seed = seed
-    if model_config.data == "OSDG":
+    if model_config.dataset_name == "OSDG":
         return load_sdg(model_config)
-    elif model_config.data == "Yahoo":
+    elif model_config.dataset_name == "Yahoo":
         return load_yahoo(model_config)
-    elif model_config.data == "IMDb":
+    elif model_config.dataset_name == "IMDb":
         return load_imdb(model_config)
-    elif model_config.data == "code_search_net":
+    elif model_config.dataset_name == "code_search_net":
         return load_code_search_net(model_config)
 
 data_config = DataConfig()

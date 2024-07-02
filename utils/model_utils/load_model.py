@@ -13,9 +13,7 @@ import pathlib
 def save_model(model_config):
     model_name = model_config.model_name
     model_dir = model_config.config_dir
-    model = AutoModelForSequenceClassification.from_pretrained(
-        model_name, config=model_config.transformer_config
-    )
+    model = AutoModelForSequenceClassification.from_pretrained(model_name)
 
     # Save model and tokenizer
     model.save_pretrained(model_dir)
@@ -40,22 +38,18 @@ def load_tokenizer(model_config):
     return tokenizer
 
 
-def load_model(model_config, mode):
+def load_model(model_config):
     """
     Load the specific model.
     Args:
         model_config (ModelConfig): The configuration for the model.
-        mode (str): The mode for loading the model. Can be "train" or "pruning".
     Returns:
          model
          tokenizer
          checkpoint
     """
 
-    if mode == "train":
-        load_path = pathlib.Path(model_config.train_dir)
-    elif mode == "pruning":
-        load_path = model_config.module_dir
+    load_path = model_config.module_dir
 
     config_path = model_config.config_dir
     # Check if the model exists, and Load model and tokenizer
@@ -80,8 +74,8 @@ def load_model(model_config, mode):
 
     # load check point
     checkpoint = None
-    if model_config.checkpoint_name is not None:
-        checkpoint_path = os.path.join(load_path, model_config.checkpoint_name)
+    if model_config.checkpoint is not None:
+        checkpoint_path = os.path.join(load_path, model_config.checkpoint)
         if os.path.isfile(checkpoint_path):
             checkpoint = torch.load(checkpoint_path, map_location=model_config.device)
             if "model_state_dict" in checkpoint:
@@ -93,11 +87,6 @@ def load_model(model_config, mode):
         else:
             print(f"Checkpoint path {checkpoint_path} does not exist.")
             checkpoint = None
-    if torch.cuda.device_count() > 1 and len(model_config.devices) > 1:
-        print(f"Using {torch.cuda.device_count()} GPUs.")
-        model = torch.nn.DataParallel(
-            model, device_ids=[int(dev[-1]) for dev in model_config.devices]
-        )
     model.to(model_config.device)
 
     return model, tokenizer, checkpoint

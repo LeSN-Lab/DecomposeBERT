@@ -29,7 +29,6 @@ class ModelConfig:
         self.is_downloaded = get_dir(join(paths.Configs, temp))
         self.data_dir = get_dir(join(paths.Data, dataset_name), True)
         self.config_dir = get_dir(join(paths.Configs, temp), True)
-        self.train_dir = get_dir(join(paths.Train, temp), True)
         self.module_dir = get_dir(join(paths.Modules, temp), True)
 
         # others
@@ -38,4 +37,3 @@ class ModelConfig:
         self.dataset_name = dataset_name
         self.checkpoint = checkpoint
         self.device = device
-        self.devices = [d.strip() for d in device.split(",")]
