@@ -37,7 +37,7 @@ for i in range(num_labels):
     model, tokenizer, checkpoint = load_model(model_config)
 
     train_dataloader, valid_dataloader, test_dataloader = load_data(
-        model_config, batch_size=32, test_size=0.3
+        model_config, batch_size=32
     )
 
     print("Start Time:" + datetime.now().strftime("%H:%M:%S"))
