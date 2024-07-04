@@ -1,39 +1,40 @@
 import copy
 from utils.model_utils.evaluate import evaluate_model
-from utils.model_utils.load_model import *
+from utils.model_utils.load_model import load_model
 from utils.model_utils.model_config import ModelConfig
 from utils.dataset_utils.load_dataset import load_data
 from utils.decompose_utils.weight_remover import WeightRemoverBert
 from utils.decompose_utils.concern_identification import ConcernIdentificationBert
 from utils.decompose_utils.tangling_identification import TanglingIdentification
-from transformers import AutoConfig
 from utils.model_utils.save_module import save_module
 from datetime import datetime
 from utils.decompose_utils.concern_modularization import ConcernModularizationBert
 from utils.decompose_utils.sampling import sampling_class
-from utils.dataset_utils.load_dataset import convert_dataset_labels_to_binary, extract_and_convert_dataloader
+from utils.dataset_utils.load_dataset import (
+    convert_dataset_labels_to_binary,
+    extract_and_convert_dataloader,
+)
 import torch
 
 model_name = "fabriceyhc/bert-base-uncased-yahoo_answers_topics"
-model_type = "pretrained"
-data = "Yahoo"
+task_type = "classification"
+architectures = "bert"
+dataset_name = "Yahoo"
 num_labels = 10
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-checkpoint_name = None
-config = AutoConfig.from_pretrained(model_name, num_labels=num_labels)
+checkpoint = None
 model_config = ModelConfig(
-    _model_name=model_name,
-    _model_type=model_type,
-    _data=data,
-    _transformer_config=config,
-    _checkpoint_name=checkpoint_name,
-    _device=device,
+    model_name=model_name,
+    task_type=task_type,
+    dataset_name=dataset_name,
+    checkpoint=checkpoint,
+    device=device,
 )
 
 for i in range(num_labels):
-    model, tokenizer, checkpoint = load_classification_model(model_config, train_mode=False)
+    model, tokenizer, checkpoint = load_model(model_config)
 
     train_dataloader, valid_dataloader, test_dataloader = load_data(
         model_config, batch_size=32, test_size=0.3
@@ -90,10 +91,14 @@ for i in range(num_labels):
         if idx % eval_step:
             evaluate_model(module, model_config, test_dataloader)
 
-    ConcernModularizationBert.channeling(module, ci.active_node, ti.dead_node, i, model_config.device)
+    ConcernModularizationBert.channeling(
+        module, ci.active_node, ti.dead_node, i, model_config.device
+    )
     binary_module = ConcernModularizationBert.convert2binary(model_config, module)
 
-    converted_test_dataloader = convert_dataset_labels_to_binary(test_dataloader, i, True)
+    converted_test_dataloader = convert_dataset_labels_to_binary(
+        test_dataloader, i, True
+    )
 
     result = evaluate_model(module, model_config, converted_test_dataloader)
     save_module(binary_module, model_config.module_dir, model_config.model_name)

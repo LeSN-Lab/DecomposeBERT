@@ -1,46 +1,91 @@
 # In[]: Import Libraries
 import os
-from os.path import join as join
-from torch.utils.data import DataLoader
-from utils.paths import paths, get_dir
-from datasets import load_dataset, DatasetDict
+from os.path import join
 import torch
+from torch.utils.data import DataLoader, Dataset
 from sklearn.utils import shuffle
+from datasets import load_dataset, DatasetDict
+from utils.paths import paths, get_dir
 from utils.model_utils.load_model import load_tokenizer
 
+
 class DataConfig:
-    def __init__(self):
-        self.data_dir = None
-        self.max_length = 512
-        self.vocab_size = None
-        self.batch_size = None
-        self.test_size = None
-        self.seed = None
-        self.text_column = None
-        self.label_column = None
+    def __init__(
+        self,
+        cached_dir,
+        max_length=512,
+        vocab_size=None,
+        batch_size=4,
+        test_size=0.3,
+        seed=42,
+        return_fields=["input_ids", "attention_mask", "labels"],
+        text_column="text",
+        label_column="labels",
+    ):
+        self.dataset_name = None
+        self.cached_dir = cached_dir
+        self.max_length = max_length
+        self.vocab_size = vocab_size
+        self.batch_size = batch_size
+        self.test_size = test_size
+        self.seed = seed
+        self.return_fields = return_fields
+        self.text_column = text_column
+        self.label_column = label_column
 
 
-class TextDataset(torch.utils.data.Dataset):
-    def __init__(self, input_ids, attention_mask, labels):
-        self.input_ids = input_ids
-        self.attention_mask = attention_mask
-        self.labels = labels
+class CustomDataset(Dataset):
+    def __init__(self, example, data_config):
+        self.example = example
+        self.data_config = data_config
+        self.data = {key: [ex[key] for ex in example] for key in data_config.return_fields}
 
     def __len__(self):
-        return len(self.input_ids)
+        return len(next(iter(self.data.values())))
 
     def __getitem__(self, index):
-        return {
-            "input_ids": self.input_ids[index],
-            "attention_mask": self.attention_mask[index],
-            "labels": self.labels[index],
-        }
+        return {key: self.data[key][index] for key in self.data_config.return_fields}
+
+
+def tokenize_dataset(raw_dataset, tokenizer, data_config):
+    tokenized_datasets = []
+    for example in raw_dataset:
+        tokenized_dataset = {}
+        for field in data_config.return_fields:
+            if field == "input_ids" or field == "attention_mask":
+                tokens = tokenizer(
+                    example[data_config.text_column],
+                    padding="max_length",
+                    truncation=True,
+                    max_length=data_config.max_length,
+                    return_tensors="pt",
+                )
+                tokenized_dataset["input_ids"] = tokens["input_ids"][0]
+                tokenized_dataset["attention_mask"] = tokens["attention_mask"][0]
+            else:
+                tokenized_dataset[field] = example[field]
+        tokenized_datasets.append(tokenized_dataset)
+    return CustomDataset(tokenized_datasets, data_config)
 
 
 # In[]: Define load datasets for pretrained
-def load_dataloader(model_config, dataset=None):
-    if dataset is not None:
-        get_dir(model_config.data_dir, True)
+def load_dataloaders(dataset, tokenizer, data_config):
+    train_dataset = tokenize_dataset(dataset["train"], tokenizer, data_config)
+    valid_dataset = tokenize_dataset(dataset["valid"], tokenizer, data_config)
+    test_dataset = tokenize_dataset(dataset["test"], tokenizer, data_config)
+
+    train_loader = DataLoader(train_dataset, batch_size=data_config.batch_size, shuffle=True)
+    valid_loader = DataLoader(valid_dataset, batch_size=data_config.batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=data_config.batch_size, shuffle=False)
+
+    return train_loader, valid_loader, test_loader
+
+def load_cached_dataset(data_config, model_config):
+    tokenizer = load_tokenizer(model_config)
+    cached_dataset_path = join(data_config.cached_dir, "dataset.pt")
+
+    if not get_dir(cached_dataset_path): # If not cached, generate caches
+        dataset = load_dataset(dataset_map[data_config.dataset_name])
         shuffle_train = dataset["train"].shuffle(seed=data_config.seed)
         train_test_split = shuffle_train.train_test_split(
             test_size=data_config.test_size
@@ -52,42 +97,68 @@ def load_dataloader(model_config, dataset=None):
                 "test": dataset["test"],
             }
         )
-        torch.save(dataset, join(model_config.data_dir, "dataset.pt"))
-
+        torch.save(dataset, cached_dataset_path)
     else:
-        dataset = torch.load(join(model_config.data_dir, "dataset.pt"))
+        dataset = torch.load(cached_dataset_path)
 
-    tokenizer = load_tokenizer(model_config)
-    tokenized_datasets = {}
+    return load_dataloaders(dataset, tokenizer, data_config)
 
-    for split, data in dataset.items():
-        texts = [example[data_config.text_column] for example in data]
-        tokenized_batch = tokenizer.batch_encode_plus(
-            texts,
-            padding=True,
-            truncation=True,
-            return_tensors="pt",
-            max_length=data_config.max_length,
-        )
-        input_ids = tokenized_batch["input_ids"]
-        attention_mask = tokenized_batch["attention_mask"]
 
-        labels = data[data_config.label_column]
+dataset_map = {
+    "OSDG": "albertmartinez/OSDG",
+    "Yahoo": "yahoo_answers_topics",
+    "IMDB": "imdb",
+    "Code": "code_search_net",
+}
 
-        tokenized_datasets[split] = TextDataset(input_ids, attention_mask, labels)
 
-    train_dataloader = DataLoader(
-        tokenized_datasets.get("train"), batch_size=data_config.batch_size, shuffle=True
+# In[]: SDG dataset loader
+def load_sdg(data_config):
+    data_config.text_column = "text"
+    data_config.label_column = "labels"
+
+
+# In[]: Yahoo dataset loader
+def load_yahoo(data_config):
+    data_config.text_column = "question_title"
+    data_config.label_column = "topic"
+
+
+def load_imdb(data_config):
+    data_config.text_column = "text"
+    data_config.label_column = "label"
+
+
+def load_code_search_net(data_config):
+    data_config.return_fields = ["input_ids", "attention_mask", "labels"]
+    data_config.text_column = "func_code_string"
+    data_config.label_column = "func_documentation_string"
+
+
+def load_data(model_config, batch_size=32, test_size=0.3, seed=42):
+    data_config = DataConfig(
+        cached_dir=model_config.data_dir,
+        max_length=512,
+        vocab_size=None,
+        batch_size=batch_size,
+        test_size=test_size,
+        seed=seed,
+        return_fields=["input_ids", "attention_mask", "labels"],
     )
-    valid_dataloader = DataLoader(
-        tokenized_datasets.get("valid"), batch_size=data_config.batch_size
-    )
-    test_dataloader = DataLoader(
-        tokenized_datasets.get("test"), batch_size=data_config.batch_size
-    )
 
-    return train_dataloader, valid_dataloader, test_dataloader
+    data_config.dataset_name = model_config.dataset_name
 
+    if model_config.dataset_name == "OSDG":
+        load_sdg(data_config)
+    elif model_config.dataset_name == "Yahoo":
+        load_yahoo(data_config)
+    elif model_config.dataset_name == "IMDB":
+        load_imdb(data_config)
+    elif model_config.dataset_name == "Code":
+        load_code_search_net(data_config)
+    else:
+        raise ValueError(f"Unsupported dataset: {model_config.dataset_name}")
+    return load_cached_dataset(data_config, model_config)
 
 def convert_dataset_labels_to_binary(dataloader, target_class, is_stratified=False):
     input_ids, attention_masks, labels = [], [], []
@@ -114,8 +185,12 @@ def convert_dataset_labels_to_binary(dataloader, target_class, is_stratified=Fal
         class_0_indices = torch.tensor(class_0_indices)
         class_1_indices = torch.tensor(class_1_indices)
 
-        class_0_indices = class_0_indices[torch.randperm(len(class_0_indices))[:min_class_size]]
-        class_1_indices = class_1_indices[torch.randperm(len(class_1_indices))[:min_class_size]]
+        class_0_indices = class_0_indices[
+            torch.randperm(len(class_0_indices))[:min_class_size]
+        ]
+        class_1_indices = class_1_indices[
+            torch.randperm(len(class_1_indices))[:min_class_size]
+        ]
 
         # Combine indices and shuffle them
         balanced_indices = torch.cat([class_0_indices, class_1_indices]).long()
@@ -126,11 +201,9 @@ def convert_dataset_labels_to_binary(dataloader, target_class, is_stratified=Fal
         attention_masks = attention_masks[balanced_indices]
         labels = labels[balanced_indices]
 
-    transformed_dataset = TextDataset(input_ids, attention_masks, labels)
+    transformed_dataset = CustomDataset(input_ids, attention_masks, labels)
     transformed_dataloader = DataLoader(
-        transformed_dataset,
-        batch_size=dataloader.batch_size,
-        shuffle=not is_stratified
+        transformed_dataset, batch_size=dataloader.batch_size, shuffle=not is_stratified
     )
 
     return transformed_dataloader
@@ -142,79 +215,20 @@ def extract_and_convert_dataloader(dataloader, true_index, false_index):
     input_ids, attention_masks, labels = [], [], []
 
     for batch in dataloader:
-        mask = (batch['labels'] == true_index) | (batch['labels'] == false_index)
+        mask = (batch["labels"] == true_index) | (batch["labels"] == false_index)
         if mask.any():
-            input_ids.append(batch['input_ids'][mask])
-            attention_masks.append(batch['attention_mask'][mask])
-            labels.append(batch['labels'][mask])
+            input_ids.append(batch["input_ids"][mask])
+            attention_masks.append(batch["attention_mask"][mask])
+            labels.append(batch["labels"][mask])
 
     input_ids = torch.cat(input_ids, dim=0)
     attention_masks = torch.cat(attention_masks, dim=0)
     labels = torch.cat(labels, dim=0)
 
-    subset_dataset = TextDataset(input_ids, attention_masks, labels)
+    subset_dataset = CustomDataset(input_ids, attention_masks, labels)
     subset_dataloader = DataLoader(subset_dataset, batch_size=dataloader.batch_size)
 
     # Apply convert_dataset_labels_to_binary
     binary_dataloader = convert_dataset_labels_to_binary(subset_dataloader, true_index)
 
     return binary_dataloader
-
-# In[]: SDG dataset loader
-def load_sdg(model_config):
-    data_config.data_dir = get_dir(join(paths.Data, model_config.dataset_name), True)
-    data_config.text_column = "text"
-    data_config.label_column = "labels"
-    if get_dir(join(data_config.data_dir, "dataset.pt")):
-        return load_dataloader(model_config)
-    else:
-        dataset = load_dataset("albertmartinez/OSDG")
-        return load_dataloader(model_config, dataset)
-
-
-# In[]: Yahoo dataset loader
-def load_yahoo(model_config):
-    data_config.data_dir = get_dir(join(paths.Data, model_config.dataset_name), True)
-    data_config.text_column = "question_title"
-    data_config.label_column = "topic"
-    if get_dir(join(data_config.data_dir, "dataset.pt")):
-        return load_dataloader(model_config)
-    else:
-        dataset = load_dataset("yahoo_answers_topics")
-        return load_dataloader(model_config, dataset)
-
-
-def load_imdb(model_config):
-    data_config.data_dir = get_dir(join(paths.Data, model_config.dataset_name), True)
-    data_config.text_column = "text"
-    data_config.label_column = "label"
-    if get_dir(join(data_config.data_dir, "dataset.pt")):
-        return load_dataloader(model_config)
-    else:
-        dataset = load_dataset("imdb")
-        return load_dataloader(model_config, dataset)
-
-def load_code_search_net(model_config):
-    data_config.data_dir = get_dir(join(paths.Data, model_config.dataset_name), True)
-    data_config.text_column = None
-    data_config.label_column = None
-    if get_dir(join(data_config.data_dir, "dataset.pt")):
-        return load_dataloader(model_config)
-    else:
-        dataset = load_dataset("code_search_net")
-        return load_dataloader(model_config, dataset)
-
-def load_data(model_config, batch_size=32, test_size=0.3, seed=42):
-    data_config.batch_size = batch_size
-    data_config.test_size = test_size
-    data_config.seed = seed
-    if model_config.dataset_name == "OSDG":
-        return load_sdg(model_config)
-    elif model_config.dataset_name == "Yahoo":
-        return load_yahoo(model_config)
-    elif model_config.dataset_name == "IMDb":
-        return load_imdb(model_config)
-    elif model_config.dataset_name == "code_search_net":
-        return load_code_search_net(model_config)
-
-data_config = DataConfig()

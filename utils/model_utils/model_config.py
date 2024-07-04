@@ -24,16 +24,16 @@ class ModelConfig:
             device (torch.device): The device to run the model on. Defaults to "cuda:0".
         """
         # Specific directories
-        norm_name = os.path.normpath(model_name)
-        temp = os.path.join(task_type, norm_name)
-        self.is_downloaded = get_dir(join(paths.Configs, temp))
-        self.data_dir = get_dir(join(paths.Data, dataset_name), True)
-        self.config_dir = get_dir(join(paths.Configs, temp), True)
-        self.module_dir = get_dir(join(paths.Modules, temp), True)
 
-        # others
         self.model_name = model_name
         self.task_type = task_type
         self.dataset_name = dataset_name
         self.checkpoint = checkpoint
         self.device = device
+
+        norm_name = os.path.normpath(model_name)
+        temp = os.path.join(task_type, norm_name)
+        self.is_downloaded = get_dir(join(paths.Configs, temp))
+        self.config_dir = get_dir(join(paths.Configs, temp), True)
+        self.module_dir = get_dir(join(paths.Modules, temp), True)
+        self.data_dir = get_dir(join(paths.Data, self.dataset_name), True)

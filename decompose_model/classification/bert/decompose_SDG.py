@@ -6,7 +6,6 @@ from utils.dataset_utils.load_dataset import load_data
 from utils.decompose_utils.weight_remover import WeightRemoverBert
 from utils.decompose_utils.concern_identification import ConcernIdentificationBert
 from utils.decompose_utils.tangling_identification import TanglingIdentification
-from transformers import AutoConfig
 from utils.model_utils.save_module import save_module
 from datetime import datetime
 from utils.decompose_utils.concern_modularization import ConcernModularizationBert
@@ -26,7 +25,6 @@ num_labels = 16
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 checkpoint = None
-config = AutoConfig.from_pretrained(model_name, num_labels=num_labels)
 model_config = ModelConfig(
     model_name=model_name,
     task_type=task_type,
@@ -36,7 +34,7 @@ model_config = ModelConfig(
 )
 
 for i in range(num_labels):
-    model, tokenizer, checkpoint = load_model(model_config, mode="pruning")
+    model, tokenizer, checkpoint = load_model(model_config)
 
     train_dataloader, valid_dataloader, test_dataloader = load_data(
         model_config, batch_size=32, test_size=0.3
@@ -72,8 +70,8 @@ for i in range(num_labels):
         input_ids, attn_mask, _, total_sampled = batch
         with torch.no_grad():
             wr.propagate(module, input_ids)
-        if idx % eval_step:
-            evaluate_model(module, model_config, test_dataloader)
+        # if idx % eval_step:
+        #     evaluate_model(module, model_config, test_dataloader)
 
     print("Start Positive CI after sparse")
 
@@ -81,8 +79,8 @@ for i in range(num_labels):
         input_ids, attn_mask, _, total_sampled = batch
         with torch.no_grad():
             ci.propagate(module, input_ids)
-        if idx % eval_step:
-            evaluate_model(module, model_config, test_dataloader)
+        # if idx % eval_step:
+        #     evaluate_model(module, model_config, test_dataloader)
 
     print("Start Negative TI")
 
@@ -90,8 +88,8 @@ for i in range(num_labels):
         input_ids, attn_mask, _, total_sampled = batch
         with torch.no_grad():
             ti.propagate(module, input_ids)
-        if idx % eval_step:
-            evaluate_model(module, model_config, test_dataloader)
+        # if idx % eval_step:
+        #     evaluate_model(module, model_config, test_dataloader)
 
     ConcernModularizationBert.channeling(
         module, ci.active_node, ti.dead_node, i, model_config.device
