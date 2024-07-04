@@ -1,11 +1,11 @@
 # In[]: Import Libraries
 import os
-from os.path import join
+from os.path import join, exists
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, random_split
 from sklearn.utils import shuffle
-from datasets import load_dataset, DatasetDict
-from utils.paths import paths, get_dir
+from datasets import load_dataset
+from utils.paths import get_dir
 from utils.model_utils.load_model import load_tokenizer
 
 
@@ -38,7 +38,7 @@ class DataConfig:
         train = join(self.cached_dir, "train.pt")
         valid = join(self.cached_dir, "valid.pt")
         test = join(self.cached_dir, "test.pt")
-        return get_dir(train) and get_dir(valid) and get_dir(test)
+        return exists(train) and exists(valid) and exists(test)
 
 
 class CustomDataset(Dataset):
@@ -84,20 +84,17 @@ def tokenize_dataset(raw_dataset, tokenizer, data_config):
             )
             tokenized_datasets["input_ids"].append(tokens["input_ids"][0])
             tokenized_datasets["attention_mask"].append(tokens["attention_mask"][0])
-            for field in data_config.return_fields:
-                if field not in ["input_ids", "attention_mask"]:
-                    tokenized_datasets[field].append(example.get(field, 0))  # Default to 0 if not found
+            tokenized_datasets["labels"].append(example[data_config.label_column])
     return CustomDataset(tokenized_datasets, data_config)
 
 
 # In[]: Define load datasets for pretrained
 def load_dataloader(dataset, tokenizer, data_config, is_valid=False):
     if is_valid:
-        shuffled_dataset = dataset.shuffle(seed=data_config.seed)
-        tokenized_dataset = tokenize_dataset(shuffled_dataset, tokenizer, data_config)
-        train_valid_split = tokenized_dataset.train_test_split(test_size=data_config.valid_size)
-        train_dataset = train_valid_split['train']
-        valid_dataset = train_valid_split['test']
+        tokenized_dataset = tokenize_dataset(dataset, tokenizer, data_config)
+        valid_size = int(len(tokenized_dataset) * data_config.valid_size)
+        train_size = len(tokenized_dataset) - valid_size
+        train_dataset, valid_dataset = random_split(tokenized_dataset, [train_size, valid_size])
 
         train_dataloader = DataLoader(train_dataset, batch_size=data_config.batch_size, shuffle=True)
         valid_dataloader = DataLoader(valid_dataset, batch_size=data_config.batch_size, shuffle=False)
@@ -118,16 +115,17 @@ def load_cached_dataset(data_config, model_config):
 
         train_dataloader, valid_dataloader = load_dataloader(train_dataset, tokenizer, data_config, True)
         test_dataloader = load_dataloader(test_dataset, tokenizer, data_config)
-
-        torch.save(train_dataloader, join(cached_dataset_path, "train.pt"))
-        torch.save(valid_dataloader, join(cached_dataset_path, "valid.pt"))
-        torch.save(test_dataloader, join(cached_dataset_path, "test.pt"))
-        print("Caching is completed.")
+        if data_config.do_cache:
+            torch.save(train_dataloader, join(cached_dataset_path, "train.pt"))
+            torch.save(valid_dataloader, join(cached_dataset_path, "valid.pt"))
+            torch.save(test_dataloader, join(cached_dataset_path, "test.pt"))
+            print("Caching is completed.")
     else:
         print("Load cached dataset.")
         train_dataloader = torch.load(join(cached_dataset_path, "train.pt"))
         valid_dataloader = torch.load(join(cached_dataset_path, "valid.pt"))
         test_dataloader = torch.load(join(cached_dataset_path, "test.pt"))
+    print(f"The dataset {data_config.dataset_name} is loaded")
     return train_dataloader, valid_dataloader, test_dataloader
 
 
@@ -157,7 +155,6 @@ def load_imdb(data_config):
 
 
 def load_code_search_net(data_config):
-    data_config.return_fields = ["input_ids", "attention_mask", "labels"]
     data_config.text_column = "func_code_string"
     data_config.label_column = "func_documentation_string"
 
@@ -170,7 +167,6 @@ def load_data(model_config, batch_size=32, valid_size=0.1, seed=42, do_cache=Tru
         batch_size=batch_size,
         valid_size=valid_size,
         seed=seed,
-        return_fields=["input_ids", "attention_mask", "labels"],
         do_cache=do_cache
     )
     data_config.dataset_name = model_config.dataset_name
@@ -231,7 +227,7 @@ def convert_dataset_labels_to_binary(dataloader, target_class, is_stratified=Fal
 
     transformed_dataset = CustomDataset(input_ids, attention_masks, labels)
     transformed_dataloader = DataLoader(
-        transformed_dataset, batch_size=dataloader.batch_size, shuffle=not is_stratified
+        transformed_dataset, batch_size=dataloader.batch_size
     )
 
     return transformed_dataloader

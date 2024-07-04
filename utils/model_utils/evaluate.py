@@ -38,7 +38,7 @@ def evaluate_model(model, model_config, test_dataloader, is_binary=False):
 
     avg_loss = total_loss / len(test_dataloader)
     precision, recall, f1, _ = precision_recall_fscore_support(
-        all_labels, all_preds, average="macro", zero_division=0
+        all_labels, all_preds, average="binary" if is_binary else "macro", zero_division=0
     )
 
     report = classification_report(all_labels, all_preds, zero_division=0)

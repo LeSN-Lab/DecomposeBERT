@@ -88,5 +88,5 @@ def load_model(model_config):
             print(f"Checkpoint path {checkpoint_path} does not exist.")
             checkpoint = None
     model.to(model_config.device)
-
+    print(f"The model {model_config.model_name} is loaded.")
     return model, tokenizer, checkpoint
