@@ -32,39 +32,54 @@ class DataConfig:
         self.return_fields = return_fields
         self.text_column = text_column
         self.label_column = label_column
-
+        self.task_type = "classification"
 
 class CustomDataset(Dataset):
-    def __init__(self, example, data_config):
-        self.example = example
+    def __init__(self, data, data_config):
+        self.data = data
         self.data_config = data_config
-        self.data = {key: [ex[key] for ex in example] for key in data_config.return_fields}
 
     def __len__(self):
-        return len(next(iter(self.data.values())))
+        return len(self.data[self.data_config.return_fields[0]])
 
     def __getitem__(self, index):
         return {key: self.data[key][index] for key in self.data_config.return_fields}
 
 
 def tokenize_dataset(raw_dataset, tokenizer, data_config):
-    tokenized_datasets = []
+    tokenized_datasets = {field: [] for field in data_config.return_fields}
     for example in raw_dataset:
-        tokenized_dataset = {}
-        for field in data_config.return_fields:
-            if field == "input_ids" or field == "attention_mask":
-                tokens = tokenizer(
-                    example[data_config.text_column],
-                    padding="max_length",
-                    truncation=True,
-                    max_length=data_config.max_length,
-                    return_tensors="pt",
-                )
-                tokenized_dataset["input_ids"] = tokens["input_ids"][0]
-                tokenized_dataset["attention_mask"] = tokens["attention_mask"][0]
-            else:
-                tokenized_dataset[field] = example[field]
-        tokenized_datasets.append(tokenized_dataset)
+        if data_config.task_type == "seq2seq":
+            inputs = tokenizer(
+                example[data_config.text_column],
+                padding="max_length",
+                truncation=True,
+                max_length=data_config.max_length,
+                return_tensors="pt",
+            )
+            targets = tokenizer(
+                example[data_config.label_column],
+                padding="max_length",
+                truncation=True,
+                max_length=data_config.max_length,
+                return_tensors="pt",
+            )
+            tokenized_datasets["input_ids"].append(inputs["input_ids"][0])
+            tokenized_datasets["attention_mask"].append(inputs["attention_mask"][0])
+            tokenized_datasets["labels"].append(targets["input_ids"][0])
+        else:
+            tokens = tokenizer(
+                example[data_config.text_column],
+                padding="max_length",
+                truncation=True,
+                max_length=data_config.max_length,
+                return_tensors="pt",
+            )
+            tokenized_datasets["input_ids"].append(tokens["input_ids"][0])
+            tokenized_datasets["attention_mask"].append(tokens["attention_mask"][0])
+            for field in data_config.return_fields:
+                if field not in ["input_ids", "attention_mask"]:
+                    tokenized_datasets[field].append(example.get(field, 0))  # Default to 0 if not found
     return CustomDataset(tokenized_datasets, data_config)
 
 
@@ -84,7 +99,7 @@ def load_cached_dataset(data_config, model_config):
     tokenizer = load_tokenizer(model_config)
     cached_dataset_path = join(data_config.cached_dir, "dataset.pt")
 
-    if not get_dir(cached_dataset_path): # If not cached, generate caches
+    if not get_dir(cached_dataset_path):  # If not cached, generate caches
         dataset = load_dataset(dataset_map[data_config.dataset_name])
         shuffle_train = dataset["train"].shuffle(seed=data_config.seed)
         train_test_split = shuffle_train.train_test_split(
@@ -155,6 +170,7 @@ def load_data(model_config, batch_size=32, test_size=0.3, seed=42):
     elif model_config.dataset_name == "IMDB":
         load_imdb(data_config)
     elif model_config.dataset_name == "Code":
+        data_config.task_type = model_config.task_type
         load_code_search_net(data_config)
     else:
         raise ValueError(f"Unsupported dataset: {model_config.dataset_name}")
