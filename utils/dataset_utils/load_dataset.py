@@ -89,7 +89,7 @@ def tokenize_dataset(raw_dataset, tokenizer, data_config):
 
 
 # In[]: Define load datasets for pretrained
-def load_dataloader(dataset, tokenizer, data_config, is_valid=False):
+def load_dataloader(dataset, tokenizer, data_config, shuffle=False, is_valid=False):
     if is_valid:
         tokenized_dataset = tokenize_dataset(dataset, tokenizer, data_config)
         valid_size = int(len(tokenized_dataset) * data_config.valid_size)
@@ -101,7 +101,7 @@ def load_dataloader(dataset, tokenizer, data_config, is_valid=False):
         return train_dataloader, valid_dataloader
     else:
         tokenized_dataset = tokenize_dataset(dataset, tokenizer, data_config)
-        dataloader = DataLoader(tokenized_dataset, batch_size=data_config.batch_size, shuffle=False)
+        dataloader = DataLoader(tokenized_dataset, batch_size=data_config.batch_size, shuffle=shuffle)
         return dataloader
 
 def load_cached_dataset(data_config, model_config):
@@ -109,11 +109,22 @@ def load_cached_dataset(data_config, model_config):
     cached_dataset_path = data_config.cached_dir
 
     if not data_config.is_cached() or not data_config.do_cache:  # If not cached, generate caches
-        dataset = load_dataset(dataset_map[data_config.dataset_name])
+        dataset_args = dataset_map[data_config.dataset_name]
+        dataset = load_dataset(**dataset_args)
+        
         train_dataset = dataset['train']
         test_dataset = dataset['test']
-
-        train_dataloader, valid_dataloader = load_dataloader(train_dataset, tokenizer, data_config, True)
+        if 'validation' in dataset:
+            valid_dataset = dataset['validation']
+            train_dataloader = load_dataloader(train_dataset, tokenizer, data_config, shuffle=True)
+            valid_dataloader = load_dataloader(valid_dataset, tokenizer, data_config)
+        elif 'valid' in dataset:
+            valid_dataset = dataset['valid']
+            train_dataloader = load_dataloader(train_dataset, tokenizer, data_config, shuffle=True)
+            valid_dataloader = load_dataloader(valid_dataset, tokenizer, data_config)
+        else:
+            train_dataloader, valid_dataloader = load_dataloader(train_dataset, tokenizer, data_config, is_valid=True)
+            
         test_dataloader = load_dataloader(test_dataset, tokenizer, data_config)
         if data_config.do_cache:
             torch.save(train_dataloader, join(cached_dataset_path, "train.pt"))
@@ -133,7 +144,12 @@ dataset_map = {
     "OSDG": "albertmartinez/OSDG",
     "Yahoo": "yahoo_answers_topics",
     "IMDB": "imdb",
-    "Code": "code_search_net",
+    "Go": {"path": "code_search_net", "name": "go"},
+    "Java": {"path": "code_search_net", "name": "java"},
+    "Javascript": {"path": "code_search_net", "name": "javascript"},
+    "PHP": {"path": "code_search_net", "name": "php"},
+    "Python": {"path": "code_search_net", "name": "python"},
+    "Ruby": {"path": "code_search_net", "name": "ruby"}
 }
 
 
@@ -170,14 +186,14 @@ def load_data(model_config, batch_size=32, valid_size=0.1, seed=42, do_cache=Tru
         do_cache=do_cache
     )
     data_config.dataset_name = model_config.dataset_name
-
+    print(f"Loading the dataset {data_config.dataset_name}")
     if model_config.dataset_name == "OSDG":
         load_sdg(data_config)
     elif model_config.dataset_name == "Yahoo":
         load_yahoo(data_config)
     elif model_config.dataset_name == "IMDB":
         load_imdb(data_config)
-    elif model_config.dataset_name == "Code":
+    elif model_config.dataset_name in ["Go", "Java", "Javascript", "PHP", "Python", "Ruby"]:
         data_config.task_type = model_config.task_type
         load_code_search_net(data_config)
     else:
