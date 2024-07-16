@@ -6,32 +6,36 @@ from torch.utils.data import DataLoader, Dataset, random_split
 from sklearn.utils import shuffle
 from datasets import load_dataset
 from utils.paths import get_dir
+import json
 from utils.model_utils.load_model import load_tokenizer
 
 
 class DataConfig:
     def __init__(
         self,
-        cached_dir,
+        config,
         max_length=512,
-        vocab_size=None,
         batch_size=4,
         valid_size=0.1,
         seed=42,
         return_fields=["input_ids", "attention_mask", "labels"],
-        do_cache=True
+        do_cache=True,
     ):
-        self.dataset_name = None
-        self.cached_dir = cached_dir
+        self.dataset_name = config["dataset"]
+        self.cached_dir = config["cached_dir"]
+        self.text_column = config["text_column"]
+        self.label_column = config["label_column"]
+        self.task_type = config["task_type"]
+        if config["path"] == "code_search_net":
+            self.dataset_args = {"path": config["path"], "name": config["name"]}
+        else:
+            self.dataset_args = {"path": config["path"]}
         self.max_length = max_length
-        self.vocab_size = vocab_size
         self.batch_size = batch_size
         self.valid_size = valid_size
         self.seed = seed
         self.return_fields = return_fields
-        self.text_column = "text"
-        self.label_column = "labels"
-        self.task_type = "classification"
+
         self.do_cache = do_cache
 
     def is_cached(self):
@@ -94,37 +98,53 @@ def load_dataloader(dataset, tokenizer, data_config, shuffle=False, is_valid=Fal
         tokenized_dataset = tokenize_dataset(dataset, tokenizer, data_config)
         valid_size = int(len(tokenized_dataset) * data_config.valid_size)
         train_size = len(tokenized_dataset) - valid_size
-        train_dataset, valid_dataset = random_split(tokenized_dataset, [train_size, valid_size])
+        train_dataset, valid_dataset = random_split(
+            tokenized_dataset, [train_size, valid_size]
+        )
 
-        train_dataloader = DataLoader(train_dataset, batch_size=data_config.batch_size, shuffle=True)
-        valid_dataloader = DataLoader(valid_dataset, batch_size=data_config.batch_size, shuffle=False)
+        train_dataloader = DataLoader(
+            train_dataset, batch_size=data_config.batch_size, shuffle=True
+        )
+        valid_dataloader = DataLoader(
+            valid_dataset, batch_size=data_config.batch_size, shuffle=False
+        )
         return train_dataloader, valid_dataloader
     else:
         tokenized_dataset = tokenize_dataset(dataset, tokenizer, data_config)
-        dataloader = DataLoader(tokenized_dataset, batch_size=data_config.batch_size, shuffle=shuffle)
+        dataloader = DataLoader(
+            tokenized_dataset, batch_size=data_config.batch_size, shuffle=shuffle
+        )
         return dataloader
+
 
 def load_cached_dataset(data_config, model_config):
     tokenizer = load_tokenizer(model_config)
     cached_dataset_path = data_config.cached_dir
 
-    if not data_config.is_cached() or not data_config.do_cache:  # If not cached, generate caches
-        dataset_args = dataset_map[data_config.dataset_name]
-        dataset = load_dataset(**dataset_args)
-        
-        train_dataset = dataset['train']
-        test_dataset = dataset['test']
-        if 'validation' in dataset:
-            valid_dataset = dataset['validation']
-            train_dataloader = load_dataloader(train_dataset, tokenizer, data_config, shuffle=True)
+    if (
+        not data_config.is_cached() or not data_config.do_cache
+    ):  # If not cached, generate caches
+        dataset = load_dataset(**data_config.dataset_args)
+
+        train_dataset = dataset["train"]
+        test_dataset = dataset["test"]
+        if "validation" in dataset:
+            valid_dataset = dataset["validation"]
+            train_dataloader = load_dataloader(
+                train_dataset, tokenizer, data_config, shuffle=True
+            )
             valid_dataloader = load_dataloader(valid_dataset, tokenizer, data_config)
-        elif 'valid' in dataset:
-            valid_dataset = dataset['valid']
-            train_dataloader = load_dataloader(train_dataset, tokenizer, data_config, shuffle=True)
+        elif "valid" in dataset:
+            valid_dataset = dataset["valid"]
+            train_dataloader = load_dataloader(
+                train_dataset, tokenizer, data_config, shuffle=True
+            )
             valid_dataloader = load_dataloader(valid_dataset, tokenizer, data_config)
         else:
-            train_dataloader, valid_dataloader = load_dataloader(train_dataset, tokenizer, data_config, is_valid=True)
-            
+            train_dataloader, valid_dataloader = load_dataloader(
+                train_dataset, tokenizer, data_config, is_valid=True
+            )
+
         test_dataloader = load_dataloader(test_dataset, tokenizer, data_config)
         if data_config.do_cache:
             torch.save(train_dataloader, join(cached_dataset_path, "train.pt"))
@@ -140,65 +160,24 @@ def load_cached_dataset(data_config, model_config):
     return train_dataloader, valid_dataloader, test_dataloader
 
 
-dataset_map = {
-    "OSDG": "albertmartinez/OSDG",
-    "Yahoo": "yahoo_answers_topics",
-    "IMDB": "imdb",
-    "Go": {"path": "code_search_net", "name": "go"},
-    "Java": {"path": "code_search_net", "name": "java"},
-    "Javascript": {"path": "code_search_net", "name": "javascript"},
-    "PHP": {"path": "code_search_net", "name": "php"},
-    "Python": {"path": "code_search_net", "name": "python"},
-    "Ruby": {"path": "code_search_net", "name": "ruby"}
-}
-
-
-# In[]: SDG dataset loader
-def load_sdg(data_config):
-    data_config.text_column = "text"
-    data_config.label_column = "labels"
-
-
-# In[]: Yahoo dataset loader
-def load_yahoo(data_config):
-    data_config.text_column = "question_title"
-    data_config.label_column = "topic"
-
-
-def load_imdb(data_config):
-    data_config.text_column = "text"
-    data_config.label_column = "label"
-
-
-def load_code_search_net(data_config):
-    data_config.text_column = "func_code_string"
-    data_config.label_column = "func_documentation_string"
-
-
 def load_data(model_config, batch_size=32, valid_size=0.1, seed=42, do_cache=True):
+    with open("utils/dataset_utils/data_info.json", "r") as data_info:
+        config = json.load(data_info)
+        config = config[model_config.dataset_name]
+
     data_config = DataConfig(
-        cached_dir=model_config.data_dir,
+        config=config,
         max_length=512,
-        vocab_size=None,
         batch_size=batch_size,
         valid_size=valid_size,
         seed=seed,
-        do_cache=do_cache
+        do_cache=do_cache,
     )
-    data_config.dataset_name = model_config.dataset_name
+
     print(f"Loading the dataset {data_config.dataset_name}")
-    if model_config.dataset_name == "OSDG":
-        load_sdg(data_config)
-    elif model_config.dataset_name == "Yahoo":
-        load_yahoo(data_config)
-    elif model_config.dataset_name == "IMDB":
-        load_imdb(data_config)
-    elif model_config.dataset_name in ["Go", "Java", "Javascript", "PHP", "Python", "Ruby"]:
-        data_config.task_type = model_config.task_type
-        load_code_search_net(data_config)
-    else:
-        raise ValueError(f"Unsupported dataset: {model_config.dataset_name}")
+
     return load_cached_dataset(data_config, model_config)
+
 
 def convert_dataset_labels_to_binary(dataloader, target_class, is_stratified=False):
     input_ids, attention_masks, labels = [], [], []

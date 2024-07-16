@@ -53,3 +53,23 @@ def evaluate_model(model, model_config, test_dataloader, is_binary=False):
         "f1_score": f1,
         "report": report,
     }
+
+def calculate_sparsity(param):
+    return (param == 0).sum().item() / param.numel()
+
+def get_sparsity(model):
+    sparsity_dict = {}
+    total_sparsity = 0
+    total_params = 0
+
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            sparsity = calculate_sparsity(param.data)
+            sparsity_dict[name] = sparsity
+            total_sparsity += sparsity * param.numel()
+            total_params += param.numel()
+
+    overall_sparsity = total_sparsity / total_params
+    return overall_sparsity, sparsity_dict
+    
+    

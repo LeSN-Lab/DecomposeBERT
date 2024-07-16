@@ -22,7 +22,7 @@ architectures = "bert"
 dataset_name = "OSDG"
 num_labels = 16
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 checkpoint = None
 model_config = ModelConfig(
