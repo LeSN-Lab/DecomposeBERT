@@ -14,5 +14,7 @@ dependencies:
   - notebook
   - matplotlib
   - pip
+  - tqdm
   - pip:
     - datasets
+    - colorama

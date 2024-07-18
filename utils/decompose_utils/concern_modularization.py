@@ -1,5 +1,4 @@
 import torch
-from utils.model_utils.modular_layers import set_parameters
 from transformers import AutoConfig
 from transformers import BertForSequenceClassification
 
@@ -37,7 +36,7 @@ class ConcernModularizationBert:
         new_weight = torch.matmul(inter_normalized, weight)
         new_bias = torch.matmul(inter_normalized, bias.unsqueeze(1)).squeeze(1)
 
-        set_parameters(module.classifier, new_weight, new_bias)
+        # set_parameters(module.classifier, new_weight, new_bias)
         module.classifier.out_features = 2
 
     @staticmethod

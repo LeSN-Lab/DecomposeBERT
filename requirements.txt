@@ -6,3 +6,5 @@ scikit-learn
 spacy
 notebook
 matplotlib
+colorama
+tqdm

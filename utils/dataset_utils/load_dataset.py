@@ -1,48 +1,9 @@
-# In[]: Import Libraries
-import os
-from os.path import join, exists
+from os.path import join
 import torch
 from torch.utils.data import DataLoader, Dataset, random_split
-from sklearn.utils import shuffle
 from datasets import load_dataset
-from utils.paths import get_dir
-import json
-from utils.model_utils.load_model import load_tokenizer
-
-
-class DataConfig:
-    def __init__(
-        self,
-        config,
-        max_length=512,
-        batch_size=4,
-        valid_size=0.1,
-        seed=42,
-        return_fields=["input_ids", "attention_mask", "labels"],
-        do_cache=True,
-    ):
-        self.dataset_name = config["dataset"]
-        self.cached_dir = config["cached_dir"]
-        self.text_column = config["text_column"]
-        self.label_column = config["label_column"]
-        self.task_type = config["task_type"]
-        if config["path"] == "code_search_net":
-            self.dataset_args = {"path": config["path"], "name": config["name"]}
-        else:
-            self.dataset_args = {"path": config["path"]}
-        self.max_length = max_length
-        self.batch_size = batch_size
-        self.valid_size = valid_size
-        self.seed = seed
-        self.return_fields = return_fields
-
-        self.do_cache = do_cache
-
-    def is_cached(self):
-        train = join(self.cached_dir, "train.pt")
-        valid = join(self.cached_dir, "valid.pt")
-        test = join(self.cached_dir, "test.pt")
-        return exists(train) and exists(valid) and exists(test)
+from utils.helper import DataConfig, ModelConfig, color_print, Paths
+from transformers import AutoTokenizer
 
 
 class CustomDataset(Dataset):
@@ -117,13 +78,16 @@ def load_dataloader(dataset, tokenizer, data_config, shuffle=False, is_valid=Fal
         return dataloader
 
 
-def load_cached_dataset(data_config, model_config):
-    tokenizer = load_tokenizer(model_config)
-    cached_dataset_path = data_config.cached_dir
+def load_cached_dataset(data_config):
+    model_config = ModelConfig(data_config.dataset_name, data_config.device)
+
+    tokenizer = AutoTokenizer.from_pretrained(model_config.model_name, cache_dir=model_config.cache_dir)
+    cached_dataset_path = data_config.cache_dir
 
     if (
         not data_config.is_cached() or not data_config.do_cache
     ):  # If not cached, generate caches
+        color_print(f"Downloading the Dataset {data_config.dataset_name}")
         dataset = load_dataset(**data_config.dataset_args)
 
         train_dataset = dataset["train"]
@@ -147,36 +111,31 @@ def load_cached_dataset(data_config, model_config):
 
         test_dataloader = load_dataloader(test_dataset, tokenizer, data_config)
         if data_config.do_cache:
+            Paths.get_dir(cached_dataset_path)
             torch.save(train_dataloader, join(cached_dataset_path, "train.pt"))
             torch.save(valid_dataloader, join(cached_dataset_path, "valid.pt"))
             torch.save(test_dataloader, join(cached_dataset_path, "test.pt"))
-            print("Caching is completed.")
+            color_print("Caching is completed.")
     else:
-        print("Load cached dataset.")
+        color_print(f"Loading cached dataset {data_config.dataset_name}.")
         train_dataloader = torch.load(join(cached_dataset_path, "train.pt"))
         valid_dataloader = torch.load(join(cached_dataset_path, "valid.pt"))
         test_dataloader = torch.load(join(cached_dataset_path, "test.pt"))
-    print(f"The dataset {data_config.dataset_name} is loaded")
+    color_print(f"The dataset {data_config.dataset_name} is loaded")
     return train_dataloader, valid_dataloader, test_dataloader
 
 
-def load_data(model_config, batch_size=32, valid_size=0.1, seed=42, do_cache=True):
-    with open("utils/dataset_utils/data_info.json", "r") as data_info:
-        config = json.load(data_info)
-        config = config[model_config.dataset_name]
-
+def load_data(dataset_name, batch_size=32, valid_size=0.1, seed=42, do_cache=True):
     data_config = DataConfig(
-        config=config,
+        dataset_name=dataset_name,
         max_length=512,
         batch_size=batch_size,
         valid_size=valid_size,
         seed=seed,
         do_cache=do_cache,
     )
-
-    print(f"Loading the dataset {data_config.dataset_name}")
-
-    return load_cached_dataset(data_config, model_config)
+    data_config.summary()
+    return load_cached_dataset(data_config)
 
 
 def convert_dataset_labels_to_binary(dataloader, target_class, is_stratified=False):

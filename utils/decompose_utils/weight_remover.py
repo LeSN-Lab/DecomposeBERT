@@ -1,5 +1,5 @@
 import torch
-from utils.model_utils.modular_layers import set_parameters
+from utils.helper import set_parameters
 from scipy.stats import norm
 
 
