@@ -38,7 +38,7 @@
       "dataset_name": "OSDG",
       "path": "albertmartinez/OSDG",
       "text_column": "text",
-      "label_column": "labels",
+      "label_column": "label",
       "cache_dir": "Datasets/OSDG",
       "task_type": "classification"
     },
