@@ -37,14 +37,16 @@
     "OSDG": {
       "dataset_name": "OSDG",
       "path": "albertmartinez/OSDG",
+      "config_name": "2024-04-01",
       "text_column": "text",
-      "label_column": "labels",
+      "label_column": "label",
       "cache_dir": "Datasets/OSDG",
       "task_type": "classification"
     },
     "Yahoo": {
-      "dataset_name": "Yahoo",
+      "dataset_name": "YahooAnswersTopics",
       "path": "yahoo_answers_topics",
+      "config_name": "yahoo_answers_topics",
       "text_column": "question_title",
       "label_column": "topic",
       "cache_dir": "Datasets/Yahoo",
@@ -53,6 +55,7 @@
     "IMDB": {
       "dataset_name": "IMDB",
       "path": "imdb",
+      "config_name": "plain_text",
       "text_column": "text",
       "label_column": "label",
       "cache_dir": "Datasets/IMDB",
@@ -61,7 +64,7 @@
     "Go": {
       "dataset_name": "Go",
       "path": "code_search_net",
-      "name": "go",
+      "config_name": "go",
       "text_column": "func_code_string",
       "label_column": "func_documentation_string",
       "cache_dir": "Datasets/Go",
@@ -70,7 +73,7 @@
     "Java": {
       "dataset_name": "Java",
       "path": "code_search_net",
-      "name": "java",
+      "config_name": "java",
       "text_column": "func_code_string",
       "label_column": "func_documentation_string",
       "cache_dir": "Datasets/Java",
@@ -79,7 +82,7 @@
     "Javascript": {
       "dataset_name": "Javascript",
       "path": "code_search_net",
-      "name": "javascript",
+      "config_name": "javascript",
       "text_column": "func_code_string",
       "label_column": "func_documentation_string",
       "cache_dir": "Datasets/Javascript",
@@ -88,7 +91,7 @@
     "PHP": {
       "dataset_name": "PHP",
       "path": "code_search_net",
-      "name": "php",
+      "config_name": "php",
       "text_column": "func_code_string",
       "label_column": "func_documentation_string",
       "cache_dir": "Datasets/PHP",
@@ -97,7 +100,7 @@
     "Python": {
       "dataset_name": "Python",
       "path": "code_search_net",
-      "name": "python",
+      "config_name": "python",
       "text_column": "func_code_string",
       "label_column": "func_documentation_string",
       "cache_dir": "Datasets/Python",
@@ -106,7 +109,7 @@
     "Ruby": {
       "dataset_name": "Ruby",
       "path": "code_search_net",
-      "name": "ruby",
+      "config_name": "ruby",
       "text_column": "func_code_string",
       "label_column": "func_documentation_string",
       "cache_dir": "Datasets/Ruby",
