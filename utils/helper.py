@@ -89,7 +89,7 @@ class DataConfig:
         if self.config["path"] == "code_search_net":
             self.dataset_args = {
                 "path": self.config["path"],
-                "name": self.config["name"],
+                "config_name": self.config["config_name"],
             }
         else:
             self.dataset_args = {"path": self.config["path"]}
