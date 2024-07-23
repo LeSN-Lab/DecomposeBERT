@@ -11,7 +11,8 @@ class Paths:
     """Class for managing directory paths."""
 
     def __init__(self):
-        self.root = "../"
+        current_path = os.path.dirname(os.path.realpath(__file__))
+        self.root = os.path.dirname(current_path)
         os.chdir(self.root)
 
         # Set roots
