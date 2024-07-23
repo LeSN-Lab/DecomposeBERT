@@ -13,15 +13,21 @@ class LayerWrapper:
         self.name = name
         self.layer = layer
         self.shape = layer.weight.shape
-        self.inputs = None
-        self.outputs = None
+        self.inputs = []
+        self.outputs = []
 
     def update(self, input, output):
-        self.inputs = input
-        self.outputs = output
+        self.inputs.append(input)
+        self.outputs.append(output)
+
+    def update_batch(self):
+        self.inputs = torch.cat(self.inputs, dim=0)
+        self.outputs = torch.cat(self.outputs, dim=0)
 
 
-def find_layers(model, layer_types=None, include_layers=None, exclude_layers=None, prefix=""):
+def find_layers(
+    model, layer_types=None, include_layers=None, exclude_layers=None, prefix=""
+):
     if layer_types is None:
         layer_types = [nn.Linear]
     if include_layers is None:
@@ -35,7 +41,9 @@ def find_layers(model, layer_types=None, include_layers=None, exclude_layers=Non
             layer_name = f"{prefix}.{name}" if prefix else name
             if any(exclude in layer_name for exclude in exclude_layers):
                 continue
-            if include_layers and not any(include in layer_name for include in include_layers):
+            if include_layers and not any(
+                include in layer_name for include in include_layers
+            ):
                 if not any(isinstance(layer, t) for t in layer_types):
                     recursive_find(layer, layer_name)
                 continue
@@ -122,8 +130,7 @@ def prune_concern_identification(
         def hook(module, input, output):
             wrapper.update(input, output)
 
-        # Ensure X and W are compatible
-        X_flat = X.view(-1, X.shape[-1])  # Flatten the input to (N * L, C_in)
+        return hook
 
     for (ref_name, ref_layer), (target_name, target_layer) in zip(
         ref_layers.items(), target_layers.items()
@@ -146,119 +153,124 @@ def prune_concern_identification(
         with torch.no_grad():
             model(input_ids, attention_mask=attn_mask)
             module(input_ids, attention_mask=attn_mask)
-        # Calculate difference with ref_layer and target_layer
-        for name, wrapper_pair in wrappers.items():
-            ref_outputs = wrapper_pair["ref"].outputs
-            target_outputs = wrapper_pair["target"].outputs
 
-            original_weight = wrapper_pair["ref"].layer.weight.data
-            current_weight = wrapper_pair["target"].layer.weight.data
-            shape = current_weight.shape
+    for name, wrapper_pair in wrappers.items():
+        wrapper_pair["ref"].update_batch()
+        wrapper_pair["target"].update_batch()
 
-            loss = target_outputs - ref_outputs
-            if loss.dim() == 2:
-                loss = loss.unsqueeze(1)
-            if p == 1:
-                output_loss = torch.sum(torch.abs(loss), dim=1)
-            elif p == 2:
-                output_loss = torch.sqrt(torch.sum(loss**2, dim=1))
-            elif p == "inf":
-                output_loss = torch.max(torch.abs(loss), dim=1)[0]
-            positive_loss_mask = (
-                torch.all(output_loss > 0, dim=0).unsqueeze(1).expand(-1, shape[1])
-            )
-            original_weight_std = safe_std(original_weight, dim=1, keepdim=True)
-            current_weight_std = safe_std(
-                current_weight,
-                epsilon=original_weight_std,
-                unbiased=True,
-                dim=1,
-                keepdim=True,
-            )
+        ref_outputs = wrapper_pair["ref"].outputs
+        target_outputs = wrapper_pair["target"].outputs
 
-            padded_positive = torch.where(
-                current_weight > 0, current_weight, torch.tensor(float("nan"))
-            )
-            padded_negative = torch.where(
-                current_weight < 0, current_weight, torch.tensor(float("nan"))
-            )
-            positive_mean = torch.nanmean(padded_positive, dim=1, keepdim=True)
-            negative_mean = torch.nanmean(padded_negative, dim=1, keepdim=True)
+        original_weight = wrapper_pair["ref"].layer.weight.data
+        current_weight = wrapper_pair["target"].layer.weight.data
+        shape = current_weight.shape
 
-            positive_std = safe_std(
-                current_weight,
-                epsilon=current_weight_std,
-                unbiased=True,
-                dim=1,
-                keepdim=True,
-            )
-            negative_std = safe_std(
-                current_weight,
-                epsilon=current_weight_std,
-                unbiased=True,
-                dim=1,
-                keepdim=True,
-            )
+        loss = target_outputs - ref_outputs
+        if loss.dim() == 2:
+            loss = loss.unsqueeze(1)
+        if p == 1:
+            output_loss = torch.sum(torch.abs(loss), dim=1)
+        elif p == 2:
+            output_loss = torch.sqrt(torch.sum(loss**2, dim=1))
+        elif p == "inf":
+            output_loss = torch.max(torch.abs(loss), dim=1)[0]
+        positive_loss_mask = (
+            torch.all(output_loss > 0, dim=0).unsqueeze(1).expand(-1, shape[1])
+        )
+        original_weight_std = safe_std(original_weight, dim=1, keepdim=True)
+        current_weight_std = safe_std(
+            current_weight,
+            epsilon=original_weight_std,
+            unbiased=True,
+            dim=1,
+            keepdim=True,
+        )
 
-            positive_scores = (padded_positive - positive_mean) / positive_std
-            negative_scores = (padded_negative - negative_mean) / negative_std
+        padded_positive = torch.where(
+            current_weight > 0, current_weight, torch.tensor(float("nan"))
+        )
+        padded_negative = torch.where(
+            current_weight < 0, current_weight, torch.tensor(float("nan"))
+        )
+        positive_mean = torch.nanmean(padded_positive, dim=1, keepdim=True)
+        negative_mean = torch.nanmean(padded_negative, dim=1, keepdim=True)
 
-            positive_median = torch.nanmedian(padded_positive, dim=1, keepdim=True)
-            negative_median = torch.nanmedian(padded_negative, dim=1, keepdim=True)
-            lower_z, upper_z = norm.ppf(0.1), norm.ppf(0.3)
+        positive_std = safe_std(
+            current_weight,
+            epsilon=current_weight_std,
+            unbiased=True,
+            dim=1,
+            keepdim=True,
+        )
+        negative_std = safe_std(
+            current_weight,
+            epsilon=current_weight_std,
+            unbiased=True,
+            dim=1,
+            keepdim=True,
+        )
 
-            positive_remove_mask = torch.where(
-                positive_mean < positive_median.values,
-                positive_scores <= lower_z,
-                torch.logical_and(
-                    positive_scores >= lower_z, positive_scores < upper_z
-                ),
-            )
+        positive_scores = (padded_positive - positive_mean) / positive_std
+        negative_scores = (padded_negative - negative_mean) / negative_std
 
-            negative_remove_mask = torch.where(
-                negative_mean < negative_median.values,
-                torch.logical_and(
-                    negative_scores < -lower_z, negative_scores >= -upper_z
-                ),
-                negative_scores >= -upper_z,
-            )
+        positive_median = torch.nanmedian(padded_positive, dim=1, keepdim=True)
+        negative_median = torch.nanmedian(padded_negative, dim=1, keepdim=True)
+        lower_z, upper_z = norm.ppf(0.1), norm.ppf(0.3)
 
-            remove_mask = torch.where(
-                positive_loss_mask, positive_remove_mask, negative_remove_mask
-            )
+        positive_remove_mask = torch.where(
+            positive_mean < positive_median.values,
+            positive_scores <= lower_z,
+            torch.logical_and(positive_scores >= lower_z, positive_scores < upper_z),
+        )
 
-            total_elements = current_weight.numel()
-            num_elements_to_prune = int(total_elements * sparsity_ratio)
-            current_pruned_elements = torch.sum(remove_mask).item()
+        negative_remove_mask = torch.where(
+            negative_mean < negative_median.values,
+            torch.logical_and(negative_scores < -lower_z, negative_scores >= -upper_z),
+            negative_scores >= -upper_z,
+        )
 
-            if current_pruned_elements < num_elements_to_prune:
-                # Not enough elements to prune, relax the threshold
-                while current_pruned_elements < num_elements_to_prune:
-                    lower_z += 0.1
-                    upper_z += 0.1
-                    positive_remove_mask = torch.where(
-                        positive_mean < positive_median.values,
-                        positive_scores <= lower_z,
-                        torch.logical_and(
-                            positive_scores >= lower_z, positive_scores < upper_z
-                        ),
-                    )
-                    negative_remove_mask = torch.where(
-                        negative_mean < negative_median.values,
-                        torch.logical_and(
-                            negative_scores < -lower_z, negative_scores >= -upper_z
-                        ),
-                        negative_scores >= -upper_z,
-                    )
-                    remove_mask = torch.where(
-                        ~positive_loss_mask, positive_remove_mask, negative_remove_mask
-                    )
-                    current_pruned_elements = torch.sum(remove_mask).item()
+        remove_mask = torch.where(
+            positive_loss_mask, positive_remove_mask, negative_remove_mask
+        )
 
-            current_weight[remove_mask] = 0
+        total_elements = current_weight.numel()
+        num_elements_to_prune = int(total_elements * sparsity_ratio)
+        current_pruned_elements = torch.sum(remove_mask).item()
+
+        if current_pruned_elements < num_elements_to_prune:
+            # Not enough elements to prune, relax the threshold
+            while current_pruned_elements < num_elements_to_prune:
+                lower_z += 0.1
+                upper_z += 0.1
+                positive_remove_mask = torch.where(
+                    positive_mean < positive_median.values,
+                    positive_scores <= lower_z,
+                    torch.logical_and(
+                        positive_scores >= lower_z, positive_scores < upper_z
+                    ),
+                )
+                negative_remove_mask = torch.where(
+                    negative_mean < negative_median.values,
+                    torch.logical_and(
+                        negative_scores < -lower_z, negative_scores >= -upper_z
+                    ),
+                    negative_scores >= -upper_z,
+                )
+                remove_mask = torch.where(
+                    ~positive_loss_mask, positive_remove_mask, negative_remove_mask
+                )
+                current_pruned_elements = torch.sum(remove_mask).item()
+
+        current_weight[remove_mask] = 0
 
     for handle in ref_handle_list + target_handle_list:
         handle.remove()
+
+
+def recover_tangling_identification(
+    model, sparsity_ratio=0.4, include_layers=None, exclude_layers=None
+):
+    pass
 
 
 def prune_wanda(
