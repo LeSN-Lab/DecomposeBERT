@@ -39,7 +39,7 @@
       "path": "albertmartinez/OSDG",
       "config_name": "2024-01-01",
       "text_column": "text",
-      "label_column": "label",
+      "label_column": "labels",
       "cache_dir": "Datasets/OSDG",
       "task_type": "classification"
     },

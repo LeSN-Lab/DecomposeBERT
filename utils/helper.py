@@ -86,13 +86,11 @@ class DataConfig:
         self.text_column = self.config["text_column"]
         self.label_column = self.config["label_column"]
         self.task_type = self.config["task_type"]
-        if self.config["path"] == "code_search_net":
-            self.dataset_args = {
-                "path": self.config["path"],
-                "config_name": self.config["config_name"],
-            }
-        else:
-            self.dataset_args = {"path": self.config["path"]}
+        self.dataset_args = {
+            "path": self.config["path"],
+            "name": self.config["config_name"],
+            "cache_dir": self.config["cache_dir"],
+        }
         self.max_length = max_length
         self.batch_size = batch_size
         self.valid_size = valid_size
@@ -152,4 +150,3 @@ def color_print(data):
 def set_parameters(layer, weight, bias):
     layer.weight = torch.nn.Parameter(weight)
     layer.bias = torch.nn.Parameter(bias)
-
