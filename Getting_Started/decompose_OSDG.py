@@ -1,46 +1,36 @@
 import copy
-from utils.model_utils.evaluate import evaluate_model
+import torch
+from datetime import datetime
+from utils.helper import ModelConfig, color_print
+from utils.dataset_utils.load_dataset import (
+    load_data, convert_dataset_labels_to_binary,
+)
 from utils.model_utils.load_model import load_model
-from utils.helper import ModelConfig
-from utils.dataset_utils.load_dataset import load_data
+from utils.model_utils.evaluate import evaluate_model, get_sparsity
+from utils.model_utils.save_module import save_module
 from utils.decompose_utils.weight_remover import WeightRemoverBert
 from utils.decompose_utils.concern_identification import ConcernIdentificationBert
 from utils.decompose_utils.tangling_identification import TanglingIdentification
-from utils.model_utils.save_module import save_module
-from datetime import datetime
 from utils.decompose_utils.concern_modularization import ConcernModularizationBert
 from utils.decompose_utils.sampling import sampling_class
-from utils.dataset_utils.load_dataset import (
-    convert_dataset_labels_to_binary,
-)
-import torch
+from utils.prune_utils.prune import prune_concern_identification, prune_magnitude
 
-model_name = "sadickam/sdg-classification-bert"
-task_type = "classification"
-architectures = "bert"
-dataset_name = "OSDG"
-num_labels = 16
-
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+name= "OSDG"
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 checkpoint = None
-model_config = ModelConfig(
-    model_name=model_name,
-    task_type=task_type,
-    dataset_name=dataset_name,
-    checkpoint=checkpoint,
-    device=device,
-)
+model_config = ModelConfig(name, device)
+num_labels = model_config.config["num_labels"]
 
 for i in range(num_labels):
     model, tokenizer, checkpoint = load_model(model_config)
 
     train_dataloader, valid_dataloader, test_dataloader = load_data(
-        model_config, batch_size=32
+        name, batch_size=64
     )
 
-    print("Start Time:" + datetime.now().strftime("%H:%M:%S"))
-    print("#Module " + str(i) + " in progress....")
+    color_print("Start Time:" + datetime.now().strftime("%H:%M:%S"))
+    color_print("#Module " + str(i) + " in progress....")
     num_samples = 64
 
     positive_samples = sampling_class(
@@ -55,7 +45,7 @@ for i in range(num_labels):
     )
 
     print("origin")
-    evaluate_model(model, model_config, test_dataloader)
+    # evaluate_model(model, model_config, test_dataloader)
 
     module = copy.deepcopy(model)
     wr = WeightRemoverBert(model, p=0.9)
@@ -63,23 +53,20 @@ for i in range(num_labels):
     ti = TanglingIdentification(model, p=0.5)
 
     print("Start Positive CI sparse")
-
-    eval_step = 5
-    for idx, batch in enumerate(all_samples):
-        input_ids, attn_mask, _, total_sampled = batch
-        with torch.no_grad():
-            wr.propagate(module, input_ids)
-        # if idx % eval_step:
-        #     evaluate_model(module, model_config, test_dataloader)
-
+    prune_magnitude(module, sparsity_ratio=0.1)
+    print(get_sparsity(module)[0])
     print("Start Positive CI after sparse")
 
-    for idx, batch in enumerate(positive_samples):
-        input_ids, attn_mask, _, total_sampled = batch
-        with torch.no_grad():
-            ci.propagate(module, input_ids)
+    prune_concern_identification(model, module, positive_samples, include_layers=["attention", "intermediate", "output"], sparsity_ratio=0.6)
+
+    # for idx, batch in enumerate(positive_samples):
+    #     input_ids, attn_mask, _, total_sampled = batch
+    #     with torch.no_grad():
+    #         ci.propagate(module, input_ids)
         # if idx % eval_step:
-        #     evaluate_model(module, model_config, test_dataloader)
+    print(get_sparsity(module))
+
+    result = evaluate_model(module, model_config, test_dataloader)
 
     print("Start Negative TI")
 
@@ -89,15 +76,5 @@ for i in range(num_labels):
             ti.propagate(module, input_ids)
         # if idx % eval_step:
         #     evaluate_model(module, model_config, test_dataloader)
-
-    ConcernModularizationBert.channeling(
-        module, ci.active_node, ti.dead_node, i, model_config.device
-    )
-    binary_module = ConcernModularizationBert.convert2binary(model_config, module)
-
-    converted_test_dataloader = convert_dataset_labels_to_binary(
-        test_dataloader, i, True
-    )
-
-    result = evaluate_model(module, model_config, converted_test_dataloader)
-    save_module(binary_module, model_config.module_dir, model_config.model_name)
+    result = evaluate_model(module, model_config, test_dataloader)
+    print(get_sparsity(module))
