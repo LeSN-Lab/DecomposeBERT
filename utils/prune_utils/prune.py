@@ -167,7 +167,6 @@ def prune_concern_identification(
         target_handle_list.append(target_handle)
 
     for batch in dataloader:
-        input_ids, attn_mask, _ = batch
         input_ids = batch["input_ids"].to(device)
         attn_mask = batch["attention_mask"].to(device)
         with torch.no_grad():
@@ -247,7 +246,6 @@ def recover_tangling_identification(
         target_handle_list.append(target_handle)
 
     for batch in dataloader:
-        input_ids, attn_mask, _ = batch
         input_ids = batch["input_ids"].to(device)
         attn_mask = batch["attention_mask"].to(device)
         with torch.no_grad():
@@ -354,7 +352,6 @@ def prune_wanda(
         handle_list.append(handle)
 
     for batch in dataloader:
-        input_ids, attn_mask, _ = batch
         input_ids = batch["input_ids"].to(device)
         attn_mask = batch["attention_mask"].to(device)
 
@@ -390,3 +387,6 @@ def prune_wanda(
         indices = sort_res[1][:, : int(W_metric.shape[1] * sparsity_ratio)]
         W_mask.scatter_(1, indices, True)
         current_weight[W_mask] = 0
+
+def head_prune():
+    pass
