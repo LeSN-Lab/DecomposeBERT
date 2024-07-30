@@ -65,16 +65,16 @@ def load_dataloader(dataset, tokenizer, data_config, shuffle=False, is_valid=Fal
         )
 
         train_dataloader = DataLoader(
-            train_dataset, batch_size=data_config.batch_size, shuffle=True
+            train_dataset, batch_size=data_config.batch_size, shuffle=True, num_workers=data_config.num_workers
         )
         valid_dataloader = DataLoader(
-            valid_dataset, batch_size=data_config.batch_size, shuffle=False
+            valid_dataset, batch_size=data_config.batch_size, shuffle=False, num_workers=data_config.num_workers
         )
         return train_dataloader, valid_dataloader
     else:
         tokenized_dataset = tokenize_dataset(dataset, tokenizer, data_config)
         dataloader = DataLoader(
-            tokenized_dataset, batch_size=data_config.batch_size, shuffle=shuffle
+            tokenized_dataset, batch_size=data_config.batch_size, shuffle=shuffle, num_workers=data_config.num_workers
         )
         return dataloader
 
@@ -126,12 +126,14 @@ def load_cached_dataset(data_config):
     return train_dataloader, valid_dataloader, test_dataloader
 
 
-def load_data(dataset_name, batch_size=32, valid_size=0.1, seed=42, do_cache=True):
+def load_data(dataset_name, batch_size=32, valid_size=0.1, num_workers=4, pin_memory=True, seed=42, do_cache=True):
     data_config = DataConfig(
         dataset_name=dataset_name,
         max_length=512,
         batch_size=batch_size,
         valid_size=valid_size,
+        num_workers=num_workers,
+        pin_memory=True,
         seed=seed,
         do_cache=do_cache,
     )

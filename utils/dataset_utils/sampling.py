@@ -9,8 +9,8 @@ class SamplingDataset(IterableDataset):
         target_class,
         num_samples,
         num_class,
-        batch_size,
         positive_sample=True,
+        batch_size=4,
         device="cuda",
     ):
         self.dataloader = dataloader
@@ -51,6 +51,9 @@ class SamplingDataset(IterableDataset):
                 selected_labels = b_labels[mask]
 
                 num_selected = selected_labels.size(0)
+                if num_selected == 0:
+                    continue
+
                 selected = num_selected + class_counts[class_id]
                 if selected > samples_per_class:
                     num_selected = samples_per_class - class_counts[class_id]
@@ -61,9 +64,10 @@ class SamplingDataset(IterableDataset):
                 class_counts[class_id] += num_selected
                 total_sampled += num_selected
 
-                sampled_ids.append(selected_input_ids)
-                sampled_masks.append(selected_attention_masks)
-                sampled_labels.append(selected_labels)
+                if num_selected > 0:
+                    sampled_ids.append(selected_input_ids)
+                    sampled_masks.append(selected_attention_masks)
+                    sampled_labels.append(selected_labels)
 
                 while sum(len(ids) for ids in sampled_ids) >= self.batch_size:
                     # Determine the size of the batch to yield
@@ -93,11 +97,12 @@ class SamplingDataset(IterableDataset):
                             sampled_masks[0] = masks[take:]
                             sampled_labels[0] = labels[take:]
 
-                    yield {
-                        "input_ids": torch.cat(batch_input_ids),
-                        "attention_mask": torch.cat(batch_masks),
-                        "labels": torch.cat(batch_labels),
-                    }
+                    if batch_input_ids:
+                        yield {
+                            "input_ids": torch.cat(batch_input_ids),
+                            "attention_mask": torch.cat(batch_masks),
+                            "labels": torch.cat(batch_labels),
+                        }
 
             if all(count >= samples_per_class for count in class_counts.values()):
                 break

@@ -18,3 +18,4 @@ dependencies:
   - pip:
     - datasets
     - colorama
+    - pyrootutils
