@@ -77,6 +77,7 @@ def main():
         default=None,
         help="Layers to exclude for pruning",
     )
+    parser.add_argument("--log_dir", type=str, help="Path to the log file.")
 
     args = parser.parse_args()
 
@@ -86,13 +87,18 @@ def main():
     num_labels = model_config.config["num_labels"]
 
     i = args.concern
+
+    if args.log_dir:
+        sys.stdout = open(f"Logs/{args.log_dir}", 'a')
+        sys.stderr = open(f"Logs/{args.log_dir}", 'a')
+
+    color_print("Start Time:" + datetime.now().strftime("%H:%M:%S"))
     model, tokenizer, checkpoint = load_model(model_config)
 
     train_dataloader, valid_dataloader, test_dataloader = load_data(
         args.name, batch_size=args.batch_size, num_workers=args.num_workers
     )
 
-    color_print("Start Time:" + datetime.now().strftime("%H:%M:%S"))
     color_print("#Module " + str(i) + " in progress....")
 
     positive_samples = SamplingDataset(
@@ -112,7 +118,7 @@ def main():
     )
 
     print("Evaluate the original model")
-    result = evaluate_model(model, model_config, test_dataloader)
+    # result = evaluate_model(model, model_config, test_dataloader)
 
     module = copy.deepcopy(model)
     prune_magnitude(
@@ -133,7 +139,7 @@ def main():
     )
 
     print(get_sparsity(module)[0])
-    result = evaluate_model(module, model_config, test_dataloader)
+    # result = evaluate_model(module, model_config, test_dataloader)
     recover_tangling_identification(
         model,
         module,
@@ -144,6 +150,7 @@ def main():
     )
     print(get_sparsity(module)[0])
     result = evaluate_model(module, model_config, test_dataloader)
+    # save_module(module, "Modules/", "module.pt")
     torch.cuda.empty_cache()
 
 

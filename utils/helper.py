@@ -20,6 +20,7 @@ class Paths:
         self.Datasets = Paths.get_dir("Datasets")
         self.Models = Paths.get_dir("Models")
         self.Modules = Paths.get_dir("Modules")
+        self.Logs = Paths.get_dir("Logs")
         self.Checkpoints = Paths.get_dir("Checkpoint")
 
     @staticmethod

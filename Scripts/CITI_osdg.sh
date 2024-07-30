@@ -15,6 +15,7 @@ CI_SPARSITY_RATIO=0.6
 TI_RECOVERY_RATIO=0.1
 INCLUDE_LAYERS="attention intermediate output"
 EXCLUDE_LAYERS=None
+LOG_DIR=""
 
 # Parsing command-line arguments
 while [[ "$#" -gt 0 ]]; do
@@ -30,15 +31,25 @@ while [[ "$#" -gt 0 ]]; do
         --ti_recovery_ratio) TI_RECOVERY_RATIO="$2"; shift ;;
         --include_layers) INCLUDE_LAYERS="$2"; shift ;;
         --exclude_layers) EXCLUDE_LAYERS="$2"; shift ;;
+        --log_dir) LOG_DIR="$2"; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
 done
-cd ../Getting_Started
 
+TORCHTEST_OUTPUT=$(python3 ../utils/torchtest.py $DEVICE)
+if [[ $? -ne 0 ]]; then
+    echo "torchtest.py encountered an error."
+    echo "$TORCHTEST_OUTPUT"
+    exit 1
+fi
+echo "torchtest.py output:"
+echo "$TORCHTEST_OUTPUT"
+
+cd ../Getting_Started
 echo "Running Python script"
 
-for CONCERN in {0..15}; do
+for CONCERN in {0..9}; do
     python3 ./CITI.py \
         --name "$NAME" \
         --device "$DEVICE" \
@@ -51,6 +62,7 @@ for CONCERN in {0..15}; do
         --ci_ratio "$CI_SPARSITY_RATIO" \
         --ti_ratio "$TI_RECOVERY_RATIO" \
         --include_layers $INCLUDE_LAYERS \
-        --exclude_layers $EXCLUDE_LAYERS
+        --exclude_layers $EXCLUDE_LAYERS \
+        --log_dir $LOG_DIR
 done
 echo "Python script finished"

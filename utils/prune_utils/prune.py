@@ -1,10 +1,14 @@
+from select import select
+
 import torch
 import torch.nn as nn
 from scipy.stats import norm
 from typing import *
 from torch import Tensor
 from torch.nn import Module
+
 from utils.dataset_utils.sampling import SamplingDataset
+import gc
 
 
 class LayerWrapper:
@@ -18,9 +22,10 @@ class LayerWrapper:
         self.shape: torch.Size = layer.weight.shape
         self.inputs: Union[List[Tensor], Tensor] = []
         self.outputs: Union[List[Tensor], Tensor] = []
-        self.scaler_row: Tensor = torch.zeros(self.shape[1], device=layer.weight.device)
+        self.device = layer.weight.device
+        self.scaler_row: Tensor = torch.zeros(self.shape[1], device=self.device)
         self.scaler_column: Tensor = torch.zeros(
-            self.shape[0], device=layer.weight.device
+            self.shape[0], device=self.device
         )
         self.nsamples: int = 0
 
@@ -33,6 +38,9 @@ class LayerWrapper:
             self.inputs = torch.cat(self.inputs, dim=0)
         if isinstance(self.outputs, list):
             self.outputs = torch.cat(self.outputs, dim=0)
+        self.inputs = self.inputs.to(self.device)
+        self.outputs = self.outputs.to(self.device)
+
 
 
 def find_layers(
@@ -191,7 +199,7 @@ def prune_concern_identification(
             (-1, output_loss.shape[-1])
         )  # (batch_size * seq_dim, output_dim)
 
-        output_loss = output_loss.t().to(device)  # (output_dim, batch_size * seq_dim)
+        output_loss = output_loss.t()  # (output_dim, batch_size * seq_dim)
         importance_score = torch.norm(output_loss, p=p, dim=1)  # (output_dim)
 
         importance_score = torch.abs(current_weight) * importance_score.reshape(
@@ -203,6 +211,14 @@ def prune_concern_identification(
         indices = sort_res[1][: int(importance_score.shape[0] * sparsity_ratio), :]
         W_mask.scatter_(0, indices, True)
         current_weight[W_mask] = 0
+
+        del ref_outputs
+        del target_outputs
+        del output_loss
+        del importance_score
+        del wrapper_pair["ref"]
+        del wrapper_pair["target"]
+        gc.collect()
 
 
 def recover_tangling_identification(
@@ -269,10 +285,10 @@ def recover_tangling_identification(
         current_weight = wrapper_pair["target"].layer.weight.data
 
         output_loss = target_outputs - ref_outputs
-        output_loss = output_loss.to(device).reshape(
+        output_loss = output_loss.reshape(
             (-1, output_loss.shape[-1])
         )  # (batch_size * seq_dim, output_dim)
-        inputs_flat = inputs.to(device).reshape(
+        inputs_flat = inputs.reshape(
             (-1, inputs.shape[-1])
         )  # (batch_size * seq_dim, input_dim
 
@@ -321,6 +337,19 @@ def recover_tangling_identification(
 
         # Reshape weights back to their original shape
         current_weight.copy_(flattened_current_weight.view_as(current_weight))
+
+        del ref_outputs
+        del target_outputs
+        del inputs
+        del output_loss
+        del inputs_flat
+        del inverse_inputs
+        del pseudo_weight_matrix
+        del importance_score
+        del flattened_importance_score
+        del wrapper_pair["ref"]
+        del wrapper_pair["target"]
+        gc.collect()
 
 
 def prune_wanda(
@@ -372,7 +401,7 @@ def prune_wanda(
         if len(X.shape) == 3:
             X = X.reshape((-1, X.shape[-1]))  # (batch_size * seq_dim, input_dim)
 
-        X = X.t().to(device)  # (input_dim, batch_size * seq_dim)
+        X = X.t()  # (input_dim, batch_size * seq_dim)
         wrapper.scaler_row *= wrapper.nsamples / (wrapper.nsamples + tmp)  # (input_dim)
         wrapper.nsamples += tmp
         wrapper.scaler_row += (
@@ -387,6 +416,7 @@ def prune_wanda(
         indices = sort_res[1][:, : int(W_metric.shape[1] * sparsity_ratio)]
         W_mask.scatter_(1, indices, True)
         current_weight[W_mask] = 0
+
 
 def head_prune():
     pass
