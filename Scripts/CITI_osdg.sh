@@ -38,16 +38,19 @@ cd ../Getting_Started
 
 echo "Running Python script"
 
-python3 ./CITI.py \
-    --name "$NAME" \
-    --device "$DEVICE" \
-    --checkpoint "$CHECKPOINT" \
-    --batch_size "$BATCH_SIZE" \
-    --num_workers "$NUM_WORKERS" \
-    --num_samples "$NUM_SAMPLES" \
-    --magnitude_sparsity_ratio "$MAGNITUDE_SPARSITY_RATIO" \
-    --ci_sparsity_ratio "$CI_SPARSITY_RATIO" \
-    --ti_recovery_ratio "$TI_RECOVERY_RATIO" \
-    --include_layers $INCLUDE_LAYERS \
-    --exclude_layers $EXCLUDE_LAYERS \
+for CONCERN in {0..15}; do
+    python3 ./CITI.py \
+        --name "$NAME" \
+        --device "$DEVICE" \
+        --checkpoint "$CHECKPOINT" \
+        --batch_size "$BATCH_SIZE" \
+        --num_workers "$NUM_WORKERS" \
+        --num_samples "$NUM_SAMPLES" \
+        --concern $CONCERN \
+        --magnitude_ratio "$MAGNITUDE_SPARSITY_RATIO" \
+        --ci_ratio "$CI_SPARSITY_RATIO" \
+        --ti_ratio "$TI_RECOVERY_RATIO" \
+        --include_layers $INCLUDE_LAYERS \
+        --exclude_layers $EXCLUDE_LAYERS
+done
 echo "Python script finished"
