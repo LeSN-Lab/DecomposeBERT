@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 from sklearn.metrics import classification_report, precision_recall_fscore_support
+from utils.prune_utils.prune import find_layers
 
 
 def compute_metrics(pred):
@@ -57,19 +58,21 @@ def evaluate_model(model, model_config, test_dataloader, is_binary=False):
 def calculate_sparsity(param):
     return (param == 0).sum().item() / param.numel()
 
-def get_sparsity(model):
+def get_sparsity(model, layer_types=None, include_layers=None, exclude_layers=None):
+    layers = find_layers(model, layer_types=layer_types, include_layers=include_layers, exclude_layers=exclude_layers)
     sparsity_dict = {}
     total_sparsity = 0
     total_params = 0
 
-    for name, param in model.named_parameters():
-        if param.requires_grad:
-            sparsity = calculate_sparsity(param.data)
-            sparsity_dict[name] = sparsity
-            total_sparsity += sparsity * param.numel()
-            total_params += param.numel()
+    for name, module in layers.items():
+        for param_name, param in module.named_parameters(recurse=False):
+            if param.requires_grad:
+                sparsity = calculate_sparsity(param.data)
+                sparsity_dict[f"{name}.{param_name}"] = sparsity
+                total_sparsity += sparsity * param.numel()
+                total_params += param.numel()
 
-    overall_sparsity = total_sparsity / total_params
+    overall_sparsity = total_sparsity / total_params if total_params != 0 else 0
     return overall_sparsity, sparsity_dict
     
     
