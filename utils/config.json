@@ -8,11 +8,11 @@
       "num_labels": 16,
       "cache_dir": "Models"
     },
-    "Yahoo": {
+    "YahooAnswersTopics": {
       "model_name": "fabriceyhc/bert-base-uncased-yahoo_answers_topics",
       "task_type": "classification",
       "architectures": "bert",
-      "dataset_name": "Yahoo",
+      "dataset_name": "YahooAnswersTopics",
       "num_labels": 10,
       "cache_dir": "Models"
     },
@@ -43,7 +43,7 @@
       "cache_dir": "Datasets/OSDG",
       "task_type": "classification"
     },
-    "Yahoo": {
+    "YahooAnswersTopics": {
       "dataset_name": "YahooAnswersTopics",
       "path": "yahoo_answers_topics",
       "config_name": "yahoo_answers_topics",
