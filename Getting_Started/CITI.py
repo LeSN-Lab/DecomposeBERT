@@ -77,7 +77,7 @@ def main():
         default=None,
         help="Layers to exclude for pruning",
     )
-    parser.add_argument("--log_dir", type=str, help="Path to the log file.")
+    parser.add_argument("--log_dir", type=str, help="Path to the log file.", default="")
 
     args = parser.parse_args()
 
@@ -89,8 +89,8 @@ def main():
     i = args.concern
 
     if args.log_dir:
-        sys.stdout = open(f"Logs/{args.log_dir}", 'a')
-        sys.stderr = open(f"Logs/{args.log_dir}", 'a')
+        sys.stdout = open(f"Logs/{args.log_dir}", "a")
+        sys.stderr = open(f"Logs/{args.log_dir}", "a")
 
     color_print("Start Time:" + datetime.now().strftime("%H:%M:%S"))
     model, tokenizer, checkpoint = load_model(model_config)

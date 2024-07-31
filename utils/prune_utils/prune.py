@@ -418,5 +418,53 @@ def prune_wanda(
         current_weight[W_mask] = 0
 
 
-def head_prune():
-    pass
+def head_prune(model, head_list, concern):
+    def get_sorted_indices(data):
+
+        data_np = np.array(data)
+        data_flattened = data_np.flatten()
+        sorted_indices = np.argsort(data_flattened)
+        row_indices = sorted_indices // 12
+        col_indices = sorted_indices % 12
+
+        result = []
+
+        for i in range(len(row_indices)):
+            result.append((row_indices[i], col_indices[i]))
+
+        return result
+
+    def get_sorted_indices_except_max(data):
+        data_np = np.array(data)
+        max_indices = np.argmin(data_np, axis=1)
+        data_flattened = data_np.flatten()
+        sorted_indices = np.argsort(data_flattened)[::-1]
+        row_indices = sorted_indices // 12
+        col_indices = sorted_indices % 12
+
+        result = []
+
+        for i in range(len(row_indices)):
+            # 각 행의 최대값 인덱스를 제외
+            if col_indices[i] != max_indices[row_indices[i]]:
+                result.append((row_indices[i], col_indices[i]))
+
+        return result
+    prune_head_index = get_sorted_indices_except_max(class_data)
+    prune_head_index = prune_head_index[:ablating_head_num_in_CI]
+    recovering_head_index = get_sorted_indices(class_neg_acc)
+
+    recovering_head_num_in_TI = r
+    actually_recovered_head_num = 0
+
+    for i in recovering_head_index:
+        recovering_head_num_in_TI -= 1
+        if i in prune_head_index:
+            prune_head_index.remove(i)
+            actually_recovered_head_num += 1
+
+        if recovering_head_num_in_TI == 0:
+            break
+
+    for layer_index, head_index in prune_head_index:  # 헤드를 제외하는 부분
+        model.bert.encoder.layer[layer_index].attention.prune_heads([head_index])
