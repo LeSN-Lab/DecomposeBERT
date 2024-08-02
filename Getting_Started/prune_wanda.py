@@ -1,3 +1,7 @@
+import os
+import sys
+
+sys.path.append("../")
 import copy
 import torch
 from datetime import datetime
@@ -50,4 +54,5 @@ for i in range(num_labels):
 
     result = evaluate_model(module, model_config, test_dataloader)
 
-
+if __name__ == "__main__":
+    main()

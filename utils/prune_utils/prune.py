@@ -292,16 +292,14 @@ def recover_tangling_identification(
             (-1, inputs.shape[-1])
         )  # (batch_size * seq_dim, input_dim
 
-        inverse_inputs = torch.linalg.pinv(
-            inputs_flat
-        )  # (input_dim, batch_size * seq_dim)
+        inverse_inputs = inputs_flat.T   # (input_dim, batch_size * seq_dim)
         pseudo_weight_matrix = torch.matmul(
             inverse_inputs, output_loss
         )  # (input_dim, output_dim)
 
         importance_score = torch.abs(
             pseudo_weight_matrix.T * current_weight
-        )  # (output_dim, input_dim)
+        ) /current_weight.sum(dim=1, keepdim=True) # (output_dim, input_dim)
 
         flattened_importance_score = importance_score.reshape(-1)
         flattened_original_weight = original_weight.reshape(-1)
@@ -351,6 +349,127 @@ def recover_tangling_identification(
         del wrapper_pair["target"]
         gc.collect()
 
+def recover_ti(
+    model: Module,
+    module: Module,
+    dataloader: SamplingDataset,
+    recovery_ratio: float = 0.4,
+    include_layers: Optional[List[str]] = None,
+    exclude_layers: Optional[List[str]] = None,
+):
+    ref_layers = find_layers(
+        model, include_layers=include_layers, exclude_layers=exclude_layers
+    )
+    target_layers = find_layers(
+        module, include_layers=include_layers, exclude_layers=exclude_layers
+    )
+    device = next(model.parameters()).device
+
+    wrappers = {}
+    ref_handle_list = []
+    target_handle_list = []
+
+    def get_hook(wrapper):
+        def hook(module, input, output):
+            wrapper.update(input, output)
+
+        return hook
+
+    for (ref_name, ref_layer), (target_name, target_layer) in zip(
+        ref_layers.items(), target_layers.items()
+    ):
+        ref_wrapper = LayerWrapper(ref_name, ref_layer)
+        target_wrapper = LayerWrapper(target_name, target_layer)
+
+        wrappers[ref_name] = {"ref": ref_wrapper, "target": target_wrapper}
+
+        ref_handle = ref_layer.register_forward_hook(get_hook(ref_wrapper))
+        target_handle = target_layer.register_forward_hook(get_hook(target_wrapper))
+
+        ref_handle_list.append(ref_handle)
+        target_handle_list.append(target_handle)
+
+    for batch in dataloader:
+        input_ids = batch["input_ids"].to(device)
+        attn_mask = batch["attention_mask"].to(device)
+        with torch.no_grad():
+            model(input_ids, attention_mask=attn_mask)
+            module(input_ids, attention_mask=attn_mask)
+
+    for handle in ref_handle_list + target_handle_list:
+        handle.remove()
+
+    for name, wrapper_pair in wrappers.items():
+        wrapper_pair["ref"].update_batch()
+        wrapper_pair["target"].update_batch()
+
+        ref_outputs = wrapper_pair["ref"].outputs
+        target_outputs = wrapper_pair[
+            "target"
+        ].outputs  # (batch_size, seq_dim, output_dim)
+        inputs = wrapper_pair["target"].inputs  # (batch_size, seq_dim, input_dim)
+
+        original_weight = wrapper_pair["ref"].layer.weight.data
+        current_weight = wrapper_pair["target"].layer.weight.data
+
+        output_loss = target_outputs - ref_outputs
+        output_loss = output_loss.reshape(
+            (-1, output_loss.shape[-1])
+        )  # (batch_size * seq_dim, output_dim)
+        inputs_flat = inputs.reshape(
+            (-1, inputs.shape[-1])
+        )  # (batch_size * seq_dim, input_dim
+
+        switch = (current_weight != original_weight).to(torch.float32)
+        importance_score =  torch.abs(current_weight - original_weight)  * torch.norm(output_loss, dim=0).reshape((-1, 1))
+
+        # best
+        # importance_score = torch.abs(current_weight - original_weight) * torch.norm(output_loss, dim=0).reshape((-1, 1))
+        flattened_importance_score = importance_score.reshape(-1)
+        flattened_original_weight = original_weight.reshape(-1)
+        flattened_current_weight = current_weight.reshape(-1)
+
+        # Sort importance scores in descending order
+        sort_res = torch.sort(flattened_importance_score, descending=True)
+        sorted_indices = sort_res[1]
+
+        # Determine the number of elements to restore based on sparsity ratio
+        num_elements_to_restore = int(
+            flattened_importance_score.shape[0] * recovery_ratio
+        )
+
+        # Identify weights that are not included in the current model
+        not_included_mask = flattened_original_weight != flattened_current_weight
+
+        # Get the indices of not included weights from the sorted list
+        sorted_not_included_indices = sorted_indices[not_included_mask[sorted_indices]]
+
+        # Select top num_elements_to_restore indices from not included weights
+        if len(sorted_not_included_indices) > num_elements_to_restore:
+            restore_indices = sorted_not_included_indices[:num_elements_to_restore]
+        else:
+            restore_indices = sorted_not_included_indices
+
+        # Create mask for restoring weights
+        W_mask = torch.zeros_like(flattened_current_weight, dtype=torch.bool)
+        W_mask[restore_indices] = True
+
+        # Restore the weights based on the mask
+        flattened_current_weight[W_mask] = flattened_original_weight[W_mask]
+
+        # Reshape weights back to their original shape
+        current_weight.copy_(flattened_current_weight.view_as(current_weight))
+
+        del ref_outputs
+        del target_outputs
+        del inputs
+        del output_loss
+        del inputs_flat
+        del importance_score
+        # del flattened_importance_score
+        del wrapper_pair["ref"]
+        del wrapper_pair["target"]
+        gc.collect()
 
 def prune_wanda(
     model: Module,
@@ -418,53 +537,53 @@ def prune_wanda(
         current_weight[W_mask] = 0
 
 
-def head_prune(model, head_list, concern):
-    def get_sorted_indices(data):
-
-        data_np = np.array(data)
-        data_flattened = data_np.flatten()
-        sorted_indices = np.argsort(data_flattened)
-        row_indices = sorted_indices // 12
-        col_indices = sorted_indices % 12
-
-        result = []
-
-        for i in range(len(row_indices)):
-            result.append((row_indices[i], col_indices[i]))
-
-        return result
-
-    def get_sorted_indices_except_max(data):
-        data_np = np.array(data)
-        max_indices = np.argmin(data_np, axis=1)
-        data_flattened = data_np.flatten()
-        sorted_indices = np.argsort(data_flattened)[::-1]
-        row_indices = sorted_indices // 12
-        col_indices = sorted_indices % 12
-
-        result = []
-
-        for i in range(len(row_indices)):
-            # 각 행의 최대값 인덱스를 제외
-            if col_indices[i] != max_indices[row_indices[i]]:
-                result.append((row_indices[i], col_indices[i]))
-
-        return result
-    prune_head_index = get_sorted_indices_except_max(class_data)
-    prune_head_index = prune_head_index[:ablating_head_num_in_CI]
-    recovering_head_index = get_sorted_indices(class_neg_acc)
-
-    recovering_head_num_in_TI = r
-    actually_recovered_head_num = 0
-
-    for i in recovering_head_index:
-        recovering_head_num_in_TI -= 1
-        if i in prune_head_index:
-            prune_head_index.remove(i)
-            actually_recovered_head_num += 1
-
-        if recovering_head_num_in_TI == 0:
-            break
-
-    for layer_index, head_index in prune_head_index:  # 헤드를 제외하는 부분
-        model.bert.encoder.layer[layer_index].attention.prune_heads([head_index])
+# def head_prune(model, head_list, concern):
+#     def get_sorted_indices(data):
+#
+#         data_np = np.array(data)
+#         data_flattened = data_np.flatten()
+#         sorted_indices = np.argsort(data_flattened)
+#         row_indices = sorted_indices // 12
+#         col_indices = sorted_indices % 12
+#
+#         result = []
+#
+#         for i in range(len(row_indices)):
+#             result.append((row_indices[i], col_indices[i]))
+#
+#         return result
+#
+#     def get_sorted_indices_except_max(data):
+#         data_np = np.array(data)
+#         max_indices = np.argmin(data_np, axis=1)
+#         data_flattened = data_np.flatten()
+#         sorted_indices = np.argsort(data_flattened)[::-1]
+#         row_indices = sorted_indices // 12
+#         col_indices = sorted_indices % 12
+#
+#         result = []
+#
+#         for i in range(len(row_indices)):
+#             # 각 행의 최대값 인덱스를 제외
+#             if col_indices[i] != max_indices[row_indices[i]]:
+#                 result.append((row_indices[i], col_indices[i]))
+#
+#         return result
+#     prune_head_index = get_sorted_indices_except_max(class_data)
+#     prune_head_index = prune_head_index[:ablating_head_num_in_CI]
+#     recovering_head_index = get_sorted_indices(class_neg_acc)
+#
+#     recovering_head_num_in_TI = r
+#     actually_recovered_head_num = 0
+#
+#     for i in recovering_head_index:
+#         recovering_head_num_in_TI -= 1
+#         if i in prune_head_index:
+#             prune_head_index.remove(i)
+#             actually_recovered_head_num += 1
+#
+#         if recovering_head_num_in_TI == 0:
+#             break
+#
+#     for layer_index, head_index in prune_head_index:  # 헤드를 제외하는 부분
+#         model.bert.encoder.layer[layer_index].attention.prune_heads([head_index])
