@@ -11,6 +11,7 @@ from utils.helper import ModelConfig, color_print
 from utils.dataset_utils.load_dataset import (
     load_data,
 )
+from utils.model_utils.save_module import save_module
 from utils.model_utils.load_model import load_model
 from utils.model_utils.evaluate import evaluate_model, get_sparsity
 from utils.dataset_utils.sampling import SamplingDataset
@@ -132,7 +133,9 @@ def main():
     prune_concern_identification(
         model,
         module,
+        model_config,
         positive_samples,
+        negative_samples,
         include_layers=args.include_layers,
         exclude_layers=args.exclude_layers,
         sparsity_ratio=args.ci_ratio,
