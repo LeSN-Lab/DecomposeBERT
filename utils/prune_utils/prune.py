@@ -205,11 +205,10 @@ def prune_concern_identification(
         ).reshape(1, -1)
 
         coefficient = concern_norm + cosine_similarity * (
-            concern_norm - non_concern_norm
+                concern_norm - non_concern_norm
         )
 
-
-        importance_score = torch.abs(current_weight) * coefficient
+        importance_score = torch.abs(current_weight) * torch.abs(coefficient)
 
         W_mask = torch.zeros_like(importance_score) == 1
         sort_res = torch.sort(importance_score, dim=-1, stable=True)
@@ -224,7 +223,6 @@ def prune_concern_identification(
         # current_weight[W_mask] = 0
 
         wrapper.free()
-        wrapper.free()
 
 
 def recover_tangling_identification(
@@ -232,6 +230,7 @@ def recover_tangling_identification(
     module: Module,
     model_config: ModelConfig,
     dominant_concern: SamplingDataset,
+    non_dominant_concern: SamplingDataset,
     recovery_ratio: float = 0.4,
     include_layers: Optional[List[str]] = None,
     exclude_layers: Optional[List[str]] = None,
@@ -268,32 +267,44 @@ def recover_tangling_identification(
         ref_handle_list.append(ref_handle)
         target_handle_list.append(target_handle)
 
-    propagate(model, dominant_concern, device)
     propagate(module, dominant_concern, device)
+    propagate(module, non_dominant_concern, device)
 
     for handle in ref_handle_list + target_handle_list:
         handle.remove()
 
     for name, wrapper_pair in wrappers.items():
-        wrapper_pair["ref"].update_batch()
         wrapper_pair["target"].update_batch()
-
-        ref_outputs = wrapper_pair["ref"].outputs
-        target_outputs = wrapper_pair[
-            "target"
-        ].outputs  # (batch_size, seq_dim, output_dim)
-
         original_weight = wrapper_pair["ref"].layer.weight.data
         current_weight = wrapper_pair["target"].layer.weight.data
+        X = wrapper_pair["target"].inputs
 
-        output_loss = target_outputs - ref_outputs
+        batch_size = X.shape[0] // 2
 
-        output_loss = output_loss.reshape(
-            (-1, output_loss.shape[-1])
-        )  # (batch_size * seq_dim, output_dim)
-        output_loss = torch.norm(output_loss, dim=0).reshape((-1, 1))
+        concern_inputs, non_concern_inputs = (
+            X[:batch_size],
+            X[batch_size:],
+        )
 
-        importance_score = torch.abs(current_weight - original_weight) * output_loss
+        calc_norm = lambda tensors, dim: torch.norm(
+            tensors.reshape((-1, tensors.shape[-1])), dim=dim
+        )
+
+        concern_norm = calc_norm(concern_inputs, dim=0).reshape((1, -1))
+        all_norm = calc_norm(X, dim=0).reshape((1, -1))
+        non_concern_norm = calc_norm(non_concern_inputs, dim=0).reshape((1, -1))
+
+        cosine_similarity = F.cosine_similarity(
+            concern_inputs.reshape((-1, concern_inputs.shape[-1])),
+            non_concern_inputs.reshape((-1, non_concern_inputs.shape[-1])),
+            dim=0,
+        ).reshape(1, -1)
+
+        coefficient = all_norm + cosine_similarity * (
+                non_concern_norm - concern_norm
+        )
+
+        importance_score = torch.abs(current_weight - original_weight) * torch.abs(coefficient)
 
         # best
         flattened_importance_score = importance_score.reshape(-1)

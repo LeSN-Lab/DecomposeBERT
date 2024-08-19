@@ -105,6 +105,7 @@ def similar(
     num_samples,
     num_labels,
     device: torch.device = torch.device("cpu"),
+    seed=44,
 ) -> None:
     positive_samples = SamplingDataset(
         dataloader,
@@ -115,6 +116,7 @@ def similar(
         4,
         device=device,
         resample=False,
+        seed=seed,
     )
     negative_samples = SamplingDataset(
         dataloader,
@@ -125,6 +127,7 @@ def similar(
         4,
         device=device,
         resample=False,
+        seed=seed,
     )
     concern_outputs1 = propagate(model, positive_samples, device)
     concern_outputs2 = propagate(module, positive_samples, device)

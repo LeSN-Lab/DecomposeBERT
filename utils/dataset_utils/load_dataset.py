@@ -1,5 +1,7 @@
 from os.path import join
 import torch
+import random
+import numpy as np
 from torch.utils.data import DataLoader, Dataset, random_split
 from datasets import load_dataset
 from utils.helper import DataConfig, ModelConfig, color_print, Paths
@@ -82,6 +84,10 @@ def load_dataloader(dataset, tokenizer, data_config, shuffle=False, is_valid=Fal
 def load_cached_dataset(data_config):
     model_config = ModelConfig(data_config.dataset_name, data_config.device)
 
+    torch.manual_seed(data_config.seed)
+    np.random.seed(data_config.seed)
+    random.seed(data_config.seed)
+
     tokenizer = AutoTokenizer.from_pretrained(model_config.model_name, cache_dir=model_config.cache_dir)
     cached_dataset_path = data_config.cache_dir
 
@@ -93,6 +99,16 @@ def load_cached_dataset(data_config):
 
         train_dataset = dataset["train"]
         test_dataset = dataset["test"]
+
+        if data_config.dataset_name == "YahooAnswersTopics":
+            train_size = len(train_dataset)
+            test_size = len(test_dataset)
+
+            train_size //= 2
+            test_size //= 2
+            train_dataset, _ = random_split(train_dataset, [train_size, len(train_dataset) - train_size], generator=torch.Generator().manual_seed(data_config.seed))
+            test_dataset, _ = random_split(test_dataset, [test_size, len(test_dataset) - test_size], generator=torch.Generator().manual_seed(data_config.seed))
+
         if "validation" in dataset:
             valid_dataset = dataset["validation"]
             train_dataloader = load_dataloader(

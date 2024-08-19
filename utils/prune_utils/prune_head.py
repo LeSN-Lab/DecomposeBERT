@@ -193,7 +193,7 @@ def total_preprocess_prunehead(arr):
 
 
 def head_importance_prunning(
-    model, model_config, dataloader, num_steps,per_class_head_importance_list
+    model, model_config, dataloader, num_steps, per_class_head_importance_list
 ):
     for class_index in range(model_config.num_labels):
         temp_model = copy.deepcopy(model)
@@ -208,7 +208,7 @@ def head_importance_prunning(
 
 
 def total_head_importance_prunning(
-    model, model_config, dataloader, num_steps,temp_head_importance_score
+    model, model_config, dataloader, num_steps, temp_head_importance_score
 ):
     temp_model = copy.deepcopy(model)
     for num in range(num_steps):
@@ -218,21 +218,35 @@ def total_head_importance_prunning(
         temp_model = prune_head(temp_model, prune_list)
     evaluate_model(temp_model, model_config, dataloader)
 
+
 def prune_heads(layer, heads):
     if len(heads) == 0:
         return
     heads, index = find_pruneable_heads_and_indices(
-        heads, layer.self.num_attention_heads, layer.self.attention_head_size, layer.pruned_heads
+        heads,
+        layer.self.num_attention_heads,
+        layer.self.attention_head_size,
+        layer.pruned_heads,
     )
 
     # Zero out weights in linear layers instead of pruning
-    layer.self.query = zero_out_head_weights(layer.self.query, heads, layer.self.attention_head_size)
-    layer.self.key = zero_out_head_weights(layer.self.key, heads, layer.self.attention_head_size)
-    layer.self.value = zero_out_head_weights(layer.self.value, heads, layer.self.attention_head_size)
-    layer.output.dense = zero_out_head_weights(layer.output.dense, heads, layer.self.attention_head_size, dim=1)
+    layer.self.query = zero_out_head_weights(
+        layer.self.query, heads, layer.self.attention_head_size
+    )
+    layer.self.key = zero_out_head_weights(
+        layer.self.key, heads, layer.self.attention_head_size
+    )
+    layer.self.value = zero_out_head_weights(
+        layer.self.value, heads, layer.self.attention_head_size
+    )
+    layer.output.dense = zero_out_head_weights(
+        layer.output.dense, heads, layer.self.attention_head_size, dim=1
+    )
 
 
-def zero_out_head_weights(layer: nn.Linear, heads: Set[int], head_size: int, dim: int = 0) -> nn.Linear:
+def zero_out_head_weights(
+    layer: nn.Linear, heads: Set[int], head_size: int, dim: int = 0
+) -> nn.Linear:
     """
     Zero out the weights of the specified heads in the linear layer.
 
