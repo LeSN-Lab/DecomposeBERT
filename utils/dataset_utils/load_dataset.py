@@ -2,14 +2,14 @@ from os.path import join
 import torch
 import random
 import numpy as np
-from torch.utils.data import DataLoader, Dataset, random_split
+import torch.utils.data as data_utils
 from datasets import load_dataset
 from utils.helper import DataConfig, ModelConfig, color_print, Paths
 from transformers import AutoTokenizer
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 
-class CustomDataset(Dataset):
+class CustomDataset(data_utils.Dataset):
     def __init__(self, data, data_config):
         self.data = data
         self.data_config = data_config
@@ -62,20 +62,20 @@ def load_dataloader(dataset, tokenizer, data_config, shuffle=False, is_valid=Fal
         tokenized_dataset = tokenize_dataset(dataset, tokenizer, data_config)
         valid_size = int(len(tokenized_dataset) * data_config.valid_size)
         train_size = len(tokenized_dataset) - valid_size
-        train_dataset, valid_dataset = random_split(
+        train_dataset, valid_dataset = data_utils.random_split(
             tokenized_dataset, [train_size, valid_size]
         )
 
-        train_dataloader = DataLoader(
+        train_dataloader = data_utils.DataLoader(
             train_dataset, batch_size=data_config.batch_size, shuffle=True, num_workers=data_config.num_workers
         )
-        valid_dataloader = DataLoader(
+        valid_dataloader = data_utils.DataLoader(
             valid_dataset, batch_size=data_config.batch_size, shuffle=False, num_workers=data_config.num_workers
         )
         return train_dataloader, valid_dataloader
     else:
         tokenized_dataset = tokenize_dataset(dataset, tokenizer, data_config)
-        dataloader = DataLoader(
+        dataloader = data_utils.DataLoader(
             tokenized_dataset, batch_size=data_config.batch_size, shuffle=shuffle, num_workers=data_config.num_workers
         )
         return dataloader
@@ -92,7 +92,7 @@ def load_cached_dataset(data_config):
     cached_dataset_path = data_config.cache_dir
 
     if (
-        not data_config.is_cached() or not data_config.do_cache
+            not data_config.is_cached() or not data_config.do_cache
     ):  # If not cached, generate caches
         color_print(f"Downloading the Dataset {data_config.dataset_name}")
         dataset = load_dataset(**data_config.dataset_args)
@@ -106,8 +106,10 @@ def load_cached_dataset(data_config):
 
             train_size //= 20
             test_size //= 2
-            train_dataset, _ = random_split(train_dataset, [train_size, len(train_dataset) - train_size], generator=torch.Generator().manual_seed(data_config.seed))
-            test_dataset, _ = random_split(test_dataset, [test_size, len(test_dataset) - test_size], generator=torch.Generator().manual_seed(data_config.seed))
+            train_dataset, _ = data_utils.random_split(train_dataset, [train_size, len(train_dataset) - train_size],
+                                                       generator=torch.Generator().manual_seed(data_config.seed))
+            test_dataset, _ = data_utils.random_split(test_dataset, [test_size, len(test_dataset) - test_size],
+                                                      generator=torch.Generator().manual_seed(data_config.seed))
 
         if "validation" in dataset:
             valid_dataset = dataset["validation"]
@@ -135,21 +137,21 @@ def load_cached_dataset(data_config):
             color_print("Caching is completed.")
     else:
         color_print(f"Loading cached dataset {data_config.dataset_name}.")
-        train_dataloader = torch.load(join(cached_dataset_path, "train.pt"))
-        valid_dataloader = torch.load(join(cached_dataset_path, "valid.pt"))
-        test_dataloader = torch.load(join(cached_dataset_path, "test.pt"))
+        train_dataloader = torch.load(join(cached_dataset_path, "train.pt"), weights_only=True)
+        valid_dataloader = torch.load(join(cached_dataset_path, "valid.pt"), weights_only=True)
+        test_dataloader = torch.load(join(cached_dataset_path, "test.pt"), weights_only=True)
     color_print(f"The dataset {data_config.dataset_name} is loaded")
     return train_dataloader, valid_dataloader, test_dataloader
 
 
-def load_data(dataset_name, batch_size=32, valid_size=0.1, num_workers=4, pin_memory=True, seed=42, do_cache=True):
+def load_data(dataset_name, batch_size=32, valid_size=0.1, num_workers=4, pin_memory=True, seed=44, do_cache=True):
     data_config = DataConfig(
         dataset_name=dataset_name,
         max_length=512,
         batch_size=batch_size,
         valid_size=valid_size,
         num_workers=num_workers,
-        pin_memory=True,
+        pin_memory=pin_memory,
         seed=seed,
         do_cache=do_cache,
     )
@@ -157,75 +159,80 @@ def load_data(dataset_name, batch_size=32, valid_size=0.1, num_workers=4, pin_me
     return load_cached_dataset(data_config)
 
 
-def convert_dataset_labels_to_binary(dataloader, target_class, is_stratified=False):
-    input_ids, attention_masks, labels = [], [], []
-    for batch in dataloader:
-        input_ids.append(batch["input_ids"])
-        attention_masks.append(batch["attention_mask"])
+# def convert_dataset_labels_to_binary(dataloader, target_class, is_stratified=False):
+#     input_ids, attention_masks, labels = [], [], []
+#     for batch in dataloader:
+#         input_ids.append(batch["input_ids"])
+#         attention_masks.append(batch["attention_mask"])
+#
+#         binary_labels = (batch["labels"] == target_class).long()
+#         labels.append(binary_labels)
+#
+#     input_ids = torch.cat(input_ids)
+#     attention_masks = torch.cat(attention_masks)
+#     labels = torch.cat(labels)
+#
+#     if is_stratified:
+#         # Count the number of samples for each class
+#         class_0_indices = [i for i, label in enumerate(labels) if label == 0]
+#         class_1_indices = [i for i, label in enumerate(labels) if label == 1]
+#
+#         # Find the minimum class size
+#         min_class_size = min(len(class_0_indices), len(class_1_indices))
+#
+#         # Convert to tensors and shuffle
+#         class_0_indices = torch.tensor(class_0_indices)
+#         class_1_indices = torch.tensor(class_1_indices)
+#
+#         class_0_indices = class_0_indices[
+#             torch.randperm(len(class_0_indices))[:min_class_size]
+#         ]
+#         class_1_indices = class_1_indices[
+#             torch.randperm(len(class_1_indices))[:min_class_size]
+#         ]
+#
+#         # Combine indices and shuffle them
+#         balanced_indices = torch.cat([class_0_indices, class_1_indices]).long()
+#         balanced_indices = balanced_indices[torch.randperm(len(balanced_indices))]
+#
+#         # Subset the data to the balanced indices
+#         input_ids = input_ids[balanced_indices]
+#         attention_masks = attention_masks[balanced_indices]
+#         labels = labels[balanced_indices]
+#
+#     transformed_dataset = CustomDataset(input_ids, attention_masks, labels)
+#     transformed_dataloader = DataLoader(
+#         transformed_dataset, batch_size=dataloader.batch_size
+#     )
+#
+#     return transformed_dataloader
 
-        binary_labels = (batch["labels"] == target_class).long()
-        labels.append(binary_labels)
 
-    input_ids = torch.cat(input_ids)
-    attention_masks = torch.cat(attention_masks)
-    labels = torch.cat(labels)
-
-    if is_stratified:
-        # Count the number of samples for each class
-        class_0_indices = [i for i, label in enumerate(labels) if label == 0]
-        class_1_indices = [i for i, label in enumerate(labels) if label == 1]
-
-        # Find the minimum class size
-        min_class_size = min(len(class_0_indices), len(class_1_indices))
-
-        # Convert to tensors and shuffle
-        class_0_indices = torch.tensor(class_0_indices)
-        class_1_indices = torch.tensor(class_1_indices)
-
-        class_0_indices = class_0_indices[
-            torch.randperm(len(class_0_indices))[:min_class_size]
-        ]
-        class_1_indices = class_1_indices[
-            torch.randperm(len(class_1_indices))[:min_class_size]
-        ]
-
-        # Combine indices and shuffle them
-        balanced_indices = torch.cat([class_0_indices, class_1_indices]).long()
-        balanced_indices = balanced_indices[torch.randperm(len(balanced_indices))]
-
-        # Subset the data to the balanced indices
-        input_ids = input_ids[balanced_indices]
-        attention_masks = attention_masks[balanced_indices]
-        labels = labels[balanced_indices]
-
-    transformed_dataset = CustomDataset(input_ids, attention_masks, labels)
-    transformed_dataloader = DataLoader(
-        transformed_dataset, batch_size=dataloader.batch_size
-    )
-
-    return transformed_dataloader
+# def extract_and_convert_dataloader(dataloader, true_index, false_index):
+#     # Extract the data using the provided indices
+#
+#     input_ids, attention_masks, labels = [], [], []
+#
+#     for batch in dataloader:
+#         mask = (batch["labels"] == true_index) | (batch["labels"] == false_index)
+#         if mask.any():
+#             input_ids.append(batch["input_ids"][mask])
+#             attention_masks.append(batch["attention_mask"][mask])
+#             labels.append(batch["labels"][mask])
+#
+#     input_ids = torch.cat(input_ids, dim=0)
+#     attention_masks = torch.cat(attention_masks, dim=0)
+#     labels = torch.cat(labels, dim=0)
+#
+#     subset_dataset = CustomDataset(input_ids, attention_masks, labels)
+#     subset_dataloader = DataLoader(subset_dataset, batch_size=dataloader.batch_size)
+#
+#     # Apply convert_dataset_labels_to_binary
+#     binary_dataloader = convert_dataset_labels_to_binary(subset_dataloader, true_index)
+#
+#     return binary_dataloader
 
 
-def extract_and_convert_dataloader(dataloader, true_index, false_index):
-    # Extract the data using the provided indices
-
-    input_ids, attention_masks, labels = [], [], []
-
-    for batch in dataloader:
-        mask = (batch["labels"] == true_index) | (batch["labels"] == false_index)
-        if mask.any():
-            input_ids.append(batch["input_ids"][mask])
-            attention_masks.append(batch["attention_mask"][mask])
-            labels.append(batch["labels"][mask])
-
-    input_ids = torch.cat(input_ids, dim=0)
-    attention_masks = torch.cat(attention_masks, dim=0)
-    labels = torch.cat(labels, dim=0)
-
-    subset_dataset = CustomDataset(input_ids, attention_masks, labels)
-    subset_dataloader = DataLoader(subset_dataset, batch_size=dataloader.batch_size)
-
-    # Apply convert_dataset_labels_to_binary
-    binary_dataloader = convert_dataset_labels_to_binary(subset_dataloader, true_index)
-
-    return binary_dataloader
+torch.serialization.add_safe_globals(
+    [data_utils.DataLoader, data_utils.Subset, data_utils.RandomSampler, data_utils.BatchSampler,
+     data_utils.SequentialSampler, data_utils.default_collate, CustomDataset, DataConfig])

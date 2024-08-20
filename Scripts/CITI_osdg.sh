@@ -10,7 +10,6 @@ CHECKPOINT=None
 BATCH_SIZE=32
 NUM_WORKERS=16
 NUM_SAMPLES=64
-MAGNITUDE_SPARSITY_RATIO=0.1
 CI_SPARSITY_RATIO=0.6
 TI_RECOVERY_RATIO=0.1
 INCLUDE_LAYERS="attention intermediate output"
@@ -26,7 +25,6 @@ while [[ "$#" -gt 0 ]]; do
         --batch_size) BATCH_SIZE="$2"; shift ;;
         --num_workers) NUM_WORKERS="$2"; shift ;;
         --num_samples) NUM_SAMPLES="$2"; shift ;;
-        --magnitude_sparsity_ratio) MAGNITUDE_SPARSITY_RATIO="$2"; shift ;;
         --ci_sparsity_ratio) CI_SPARSITY_RATIO="$2"; shift ;;
         --ti_recovery_ratio) TI_RECOVERY_RATIO="$2"; shift ;;
         --include_layers) INCLUDE_LAYERS="$2"; shift ;;
@@ -58,7 +56,6 @@ for CONCERN in {0..9}; do
         --num_workers "$NUM_WORKERS" \
         --num_samples "$NUM_SAMPLES" \
         --concern $CONCERN \
-        --magnitude_ratio "$MAGNITUDE_SPARSITY_RATIO" \
         --ci_ratio "$CI_SPARSITY_RATIO" \
         --ti_ratio "$TI_RECOVERY_RATIO" \
         --include_layers $INCLUDE_LAYERS \

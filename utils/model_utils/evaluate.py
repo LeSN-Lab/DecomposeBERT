@@ -2,7 +2,7 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from sklearn.metrics import classification_report, precision_recall_fscore_support
 from typing import *
 from torch.nn import Module
@@ -30,7 +30,7 @@ def evaluate_model(model, model_config, test_dataloader, is_binary=False):
     model = model.to(model_config.device)
 
     for batch in tqdm(
-        test_dataloader, desc="Evaluating", dynamic_ncols=True, leave=True
+        test_dataloader, desc="Evaluating", dynamic_ncols=True
     ):
         input_ids = batch["input_ids"].to(model_config.device)
         attention_mask = batch["attention_mask"].to(model_config.device)

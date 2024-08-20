@@ -16,7 +16,6 @@ from utils.model_utils.load_model import load_model
 from utils.model_utils.evaluate import evaluate_model, get_sparsity
 from utils.dataset_utils.sampling import SamplingDataset
 from utils.prune_utils.prune import (
-    prune_magnitude,
     prune_concern_identification,
     recover_tangling_identification,
 )
@@ -47,12 +46,6 @@ def main():
         "--concern", type=int, default=0, help="Target Concern for decompose"
     )
     parser.add_argument(
-        "--magnitude_ratio",
-        type=float,
-        default=0.1,
-        help="Sparsity ratio for magnitude pruning",
-    )
-    parser.add_argument(
         "--ci_ratio",
         type=float,
         default=0.6,
@@ -78,6 +71,13 @@ def main():
         default=None,
         help="Layers to exclude for pruning",
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=44,
+        help="Random seed for reproducibility",
+    )
+
     parser.add_argument("--log_dir", type=str, help="Path to the log file.", default="")
 
     args = parser.parse_args()
@@ -87,8 +87,6 @@ def main():
     model_config = ModelConfig(args.name, device)
     num_labels = model_config.config["num_labels"]
 
-    i = args.concern
-
     if args.log_dir:
         sys.stdout = open(f"Logs/{args.log_dir}", "a")
         sys.stderr = open(f"Logs/{args.log_dir}", "a")
@@ -97,41 +95,27 @@ def main():
     model, tokenizer, checkpoint = load_model(model_config)
 
     train_dataloader, valid_dataloader, test_dataloader = load_data(
-        args.name, batch_size=args.batch_size, num_workers=args.num_workers
+        args.name, batch_size=args.batch_size, num_workers=args.num_workers, do_cache=True
     )
 
-    color_print("#Module " + str(i) + " in progress....")
+    color_print("#Module " + str(args.concern) + " in progress....")
 
     positive_samples = SamplingDataset(
-        train_dataloader, i, args.num_samples, num_labels, True, 4, device=device
+        train_dataloader, args.concern, args.num_samples, num_labels, True, 4, device=device, resample=False, seed=args.seed
     )
     negative_samples = SamplingDataset(
-        train_dataloader, i, args.num_samples, num_labels, False, 4, device=device
+        train_dataloader, args.concern, args.num_samples, num_labels, False, 4, device=device, resample=False, seed=args.seed
     )
     all_samples = SamplingDataset(
-        train_dataloader,
-        10000,
-        args.num_samples,
-        num_labels,
-        False,
-        4,
-        device=device,
+        train_dataloader, 200, args.num_samples, num_labels, False, 4, device=device, resample=False, seed=args.seed
     )
 
     print("Evaluate the original model")
     # result = evaluate_model(model, model_config, test_dataloader)
 
     module = copy.deepcopy(model)
-    prune_magnitude(
-        module,
-        include_layers=args.include_layers,
-        exclude_layers=args.exclude_layers,
-        sparsity_ratio=args.magnitude_ratio,
-    )
-    print(get_sparsity(module)[0])
 
     prune_concern_identification(
-        model,
         module,
         model_config,
         positive_samples,
@@ -146,6 +130,8 @@ def main():
     recover_tangling_identification(
         model,
         module,
+        model_config,
+        positive_samples,
         negative_samples,
         include_layers=args.include_layers,
         exclude_layers=args.exclude_layers,

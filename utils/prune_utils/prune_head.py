@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import copy
 from functools import partial
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from utils.model_utils.evaluate import evaluate_model
 import torch.nn as nn
 from transformers.pytorch_utils import find_pruneable_heads_and_indices
