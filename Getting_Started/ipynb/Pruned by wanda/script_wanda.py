@@ -1,7 +1,7 @@
-import os
-
 import papermill as pm
 from datetime import datetime
+import os
+os.chdir("../../../")
 
 file_list = [
     "Getting_Started/ipynb/Pruned by wanda/IMDB/Pruned by wanda(30%).ipynb",

@@ -1,5 +1,7 @@
 import papermill as pm
 from datetime import datetime
+import os
+os.chdir("../../../")
 
 file_list = [
     "Getting_Started/ipynb/Pruned by magnitude/IMDB/Prune by magnitude(30%).ipynb",

@@ -1,5 +1,7 @@
 import papermill as pm
 from datetime import datetime
+import os
+os.chdir("../../../")
 
 file_list = [
     "Getting_Started/ipynb/Pruned by CI + TI/IMDB/Prune by CITI(30%).ipynb",
@@ -15,6 +17,9 @@ file_list = [
     "Getting_Started/ipynb/Pruned by CI + TI/Yahoo/Prune by CITI(50%).ipynb",
     "Getting_Started/ipynb/Pruned by CI + TI/Yahoo/Prune by CITI(60%).ipynb",
 ]
+
+script_start_time = datetime.now()
+print(f"Script started at: {script_start_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
 for file in file_list:
     # Remove the .ipynb extension and add _saved.ipynb
