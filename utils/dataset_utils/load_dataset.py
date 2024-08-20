@@ -23,7 +23,7 @@ class CustomDataset(Dataset):
 
 def tokenize_dataset(raw_dataset, tokenizer, data_config):
     tokenized_datasets = {field: [] for field in data_config.return_fields}
-    for example in tqdm(raw_dataset, desc="Tokenizing dataset"):
+    for example in tqdm(raw_dataset, desc="Tokenizing dataset", ascii=True):
         if data_config.task_type == "seq2seq":
             inputs = tokenizer(
                 example[data_config.text_column],
