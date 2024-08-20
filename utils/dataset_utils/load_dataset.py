@@ -104,7 +104,7 @@ def load_cached_dataset(data_config):
             train_size = len(train_dataset)
             test_size = len(test_dataset)
 
-            train_size //= 2
+            train_size //= 20
             test_size //= 2
             train_dataset, _ = random_split(train_dataset, [train_size, len(train_dataset) - train_size], generator=torch.Generator().manual_seed(data_config.seed))
             test_dataset, _ = random_split(test_dataset, [test_size, len(test_dataset) - test_size], generator=torch.Generator().manual_seed(data_config.seed))
