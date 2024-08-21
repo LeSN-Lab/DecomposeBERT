@@ -207,7 +207,9 @@ def prune_concern_identification(
         coefficient = concern_norm + cosine_similarity * (
                 concern_norm - non_concern_norm
         )
-
+        print(concern_norm)
+        print("----------")
+        print(coefficient)
         importance_score = torch.abs(current_weight) * torch.abs(coefficient)
 
         W_mask = torch.zeros_like(importance_score) == 1

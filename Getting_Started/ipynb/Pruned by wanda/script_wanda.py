@@ -7,10 +7,10 @@ import os
 os.chdir("../../../")
 
 file_list = [
-    # "Getting_Started/ipynb/Pruned by wanda/IMDB/Prune by wanda(30%).ipynb",
-    # "Getting_Started/ipynb/Pruned by wanda/IMDB/Prune by wanda(40%).ipynb",
-    # "Getting_Started/ipynb/Pruned by wanda/IMDB/Prune by wanda(50%).ipynb",
-    # "Getting_Started/ipynb/Pruned by wanda/IMDB/Prune by wanda(60%).ipynb",
+    "Getting_Started/ipynb/Pruned by wanda/IMDB/Prune by wanda(30%).ipynb",
+    "Getting_Started/ipynb/Pruned by wanda/IMDB/Prune by wanda(40%).ipynb",
+    "Getting_Started/ipynb/Pruned by wanda/IMDB/Prune by wanda(50%).ipynb",
+    "Getting_Started/ipynb/Pruned by wanda/IMDB/Prune by wanda(60%).ipynb",
     "Getting_Started/ipynb/Pruned by wanda/OSDG/Prune by wanda(30%).ipynb",
     "Getting_Started/ipynb/Pruned by wanda/OSDG/Prune by wanda(40%).ipynb",
     "Getting_Started/ipynb/Pruned by wanda/OSDG/Prune by wanda(50%).ipynb",
@@ -30,23 +30,21 @@ for file in file_list:
 
     # Record the start time for this notebook
     notebook_start_time = datetime.now()
+    print(f"Start time: {notebook_start_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     # Read the notebook
     with open(file_path, 'r', encoding='utf-8') as f:
         nb = nbformat.read(f, as_version=4)
 
     # Remove the .ipynb extension and add _saved.ipynb
-    saved_file_name = file_path.with_name(file_path.stem + "_saved.ipynb")
 
     # Execute the notebook
-    pm.execute_notebook(str(file_path), str(saved_file_name))
+    pm.execute_notebook(str(file_path), str(file_path))
 
     # Record the end time and calculate duration
     notebook_end_time = datetime.now()
     duration = notebook_end_time - notebook_start_time
 
     # Output the time taken
-    print(f"{file_path} has been saved as {saved_file_name}.")
-    print(f"Start time: {notebook_start_time.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"End time: {notebook_end_time.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Duration: {duration}\n")

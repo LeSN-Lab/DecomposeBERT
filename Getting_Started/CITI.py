@@ -110,7 +110,7 @@ def main():
         train_dataloader, 200, args.num_samples, num_labels, False, 4, device=device, resample=False, seed=args.seed
     )
 
-    print("Evaluate the original model")
+    # print("Evaluate the original model")
     # result = evaluate_model(model, model_config, test_dataloader)
 
     module = copy.deepcopy(model)
