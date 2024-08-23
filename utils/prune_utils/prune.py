@@ -50,144 +50,35 @@ class LayerWrapper:
         self.outputs = []
 
 
-def find_layers(
-        model: Module,
-        layer_types: Optional[List[Type[Module]]] = None,
-        include_layers: Optional[List[str]] = None,
-        exclude_layers: Optional[List[str]] = None,
-        prefix: str = "",
-) -> Dict[str, Module]:
-    if layer_types is None:
-        layer_types = [nn.Linear]
-    if include_layers is None:
-        include_layers = []
-    if exclude_layers is None:
-        exclude_layers = []
-    layers_dict: Dict[str, Module] = {}
+class Methods:
+    def __init__(self, method_type: str, ratio: float) -> None:
+        self.method_type = method_type
+        self.ratio = ratio
 
-    def recursive_find(module: Module, prefix: str) -> None:
-        for name, layer in module.named_children():
-            layer_name = f"{prefix}.{name}" if prefix else name
-            if any(exclude in layer_name for exclude in exclude_layers):
-                continue
-            if include_layers and not any(
-                    include in layer_name for include in include_layers
-            ):
-                if not any(isinstance(layer, t) for t in layer_types):
-                    recursive_find(layer, layer_name)
-                continue
-            if isinstance(layer, tuple(layer_types)):
-                layers_dict[layer_name] = layer
-            else:
-                recursive_find(layer, layer_name)
-
-    recursive_find(model, prefix)
-
-    return layers_dict
-
-
-def propagate(model, dataloader, device, chunk_size=4):
-    all_outputs = []
-    chunk_outputs = []
-
-    model = model.to(device)
-    for batch in dataloader:
-        input_ids = batch["input_ids"].to(device)
-        attn_mask = batch["attention_mask"].to(device)
-        with torch.no_grad():
-            output = model(
-                input_ids, attention_mask=attn_mask, output_hidden_states=True
-            )
-            chunk_outputs.append(output.hidden_states[-1])
-            if len(chunk_outputs) == chunk_size:
-                all_outputs.append(torch.cat(chunk_outputs).cpu())
-                chunk_outputs = []
-    if chunk_outputs:
-        all_outputs.append(torch.cat(chunk_outputs).cpu())
-    all_outputs = torch.cat(all_outputs).detach().numpy()
-    return all_outputs
-
-
-def prune_magnitude(
-        model: Module,
-        sparsity_ratio: float = 0.6,
-        include_layers: Optional[List[str]] = None,
-        exclude_layers: Optional[List[str]] = None,
-) -> None:
-    layers = find_layers(
-        model, include_layers=include_layers, exclude_layers=exclude_layers
-    )
-    for _, layer in layers.items():
+    def wanda(self, layer, inputs, outputs):
         current_weight = layer.weight.data
-        threshold = torch.sort(torch.abs(current_weight).flatten())[0][
-            int(current_weight.numel() * sparsity_ratio)
-        ]
-        mask = torch.abs(current_weight) < threshold
-        layer.weight.data[mask] = 0
+        X = inputs[0]  # (batch_size, seq_dim, input_dim)
+        if len(X.shape) == 2:
+            X = X.unsqueeze(0)
+        nsamples = X.shape[0]  # (batch_size)
+        if len(X.shape) == 3:
+            X = X.reshape((-1, X.shape[-1]))  # (batch_size * seq_dim, input_dim)
 
+        X = X.t()  # (input_dim, batch_size * seq_dim)
+        scaler_row = torch.norm(X, p=2, dim=1) ** 2 / nsamples
 
-def prune_norm_distribution(
-        model: Module,
-        sparsity_ratio: float = 0.4,
-        include_layers: Optional[List[str]] = None,
-        exclude_layers: Optional[List[str]] = None,
-) -> None:
-    layers = find_layers(
-        model, include_layers=include_layers, exclude_layers=exclude_layers
-    )
-    for _, layer in layers.items():
-        current_weight = layer.weight.data
-        mean = torch.mean(current_weight, dim=1, keepdim=True)
-        std = torch.std(current_weight, dim=1, keepdim=True)
-        z_scores = (current_weight - mean) / std
-
-        lower_z, upper_z = norm.ppf(0.5 - sparsity_ratio / 2), norm.ppf(
-            0.5 + sparsity_ratio / 2
+        W_metric = torch.abs(current_weight) * torch.sqrt(
+            scaler_row.reshape((1, -1))
         )
-        mask = torch.logical_and(z_scores >= lower_z, z_scores < upper_z)
-        layer.weight.data[mask] = 0
+        W_mask = torch.zeros_like(W_metric) == 1
+        sort_res = torch.sort(W_metric, dim=-1, stable=True)
+        indices = sort_res[1][:, : int(W_metric.shape[1] * self.ratio)]
+        W_mask.scatter_(1, indices, True)
+        current_weight[W_mask] = 0
 
-
-def prune_concern_identification(
-        model: Module,
-        model_config: ModelConfig,
-        dominant_concern: SamplingDataset,
-        non_dominant_concern: SamplingDataset,
-        sparsity_ratio: float = 0.6,
-        include_layers: Optional[List[str]] = None,
-        exclude_layers: Optional[List[str]] = None,
-) -> None:
-    layers = find_layers(
-        model, include_layers=include_layers, exclude_layers=exclude_layers
-    )
-    device = model_config.device
-
-    wrappers = {}
-    handle_list = []
-
-    def get_hook(wrapper):
-        def hook(module, input, output):
-            wrapper.update(input, output)
-
-        return hook
-
-    for name, layer in layers.items():
-        wrapper = LayerWrapper(name, layer)
-        wrappers[name] = wrapper
-        handle = layer.register_forward_hook(get_hook(wrapper))
-        handle_list.append(handle)
-
-    propagate(model, dominant_concern, device)
-    propagate(model, non_dominant_concern, device)
-
-    for handle in handle_list:
-        handle.remove()
-
-    for name, wrapper in wrappers.items():
-        wrapper.update_batch()
-        wrapper.to(device)
-        current_weight = wrapper.layer.weight.data
-        X = wrapper.inputs
+    def ci(self, layer, inputs, outputs):
+        current_weight = layer.weight.data
+        X = inputs[0]
 
         batch_size = X.shape[0] // 2
 
@@ -211,34 +102,168 @@ def prune_concern_identification(
         ).reshape(1, -1)
 
         coefficient = concern_norm + cosine_similarity * (
-                concern_norm - non_concern_norm
+            concern_norm - non_concern_norm
         )
         importance_score = torch.abs(current_weight) * torch.abs(coefficient)
 
         W_mask = torch.zeros_like(importance_score) == 1
         sort_res = torch.sort(importance_score, dim=-1, stable=True)
-        indices = sort_res[1][:, : int(importance_score.shape[1] * sparsity_ratio)]
+        indices = sort_res[1][:, : int(importance_score.shape[1] * self.ratio)]
         W_mask.scatter_(1, indices, True)
         current_weight[W_mask] = 0
 
-        # W_mask = torch.zeros_like(importance_score) == 1
-        # sort_res = torch.sort(importance_score, dim=0, stable=True)
-        # indices = sort_res[1][: int(importance_score.shape[0] * sparsity_ratio), :]
-        # W_mask.scatter_(0, indices, True)
-        # current_weight[W_mask] = 0
 
-        wrapper.free()
+def find_layers(
+    model: Module,
+    layer_types: Optional[List[Type[Module]]] = None,
+    include_layers: Optional[List[str]] = None,
+    exclude_layers: Optional[List[str]] = None,
+    prefix: str = "",
+) -> Dict[str, Module]:
+    if layer_types is None:
+        layer_types = [nn.Linear]
+    if include_layers is None:
+        include_layers = []
+    if exclude_layers is None:
+        exclude_layers = []
+    layers_dict: Dict[str, Module] = {}
+
+    def recursive_find(module: Module, prefix: str) -> None:
+        for name, layer in module.named_children():
+            layer_name = f"{prefix}.{name}" if prefix else name
+            if any(exclude in layer_name for exclude in exclude_layers):
+                continue
+            if include_layers and not any(
+                include in layer_name for include in include_layers
+            ):
+                if not any(isinstance(layer, t) for t in layer_types):
+                    recursive_find(layer, layer_name)
+                continue
+            if isinstance(layer, tuple(layer_types)):
+                layers_dict[layer_name] = layer
+            else:
+                recursive_find(layer, layer_name)
+
+    recursive_find(model, prefix)
+
+    return layers_dict
+
+
+def get_hook(method):
+    def hook(module, input, output):
+        method(module, input, output)
+
+    return hook
+
+
+def propagate(model, dataloader, device, chunk_size=4):
+    all_outputs = []
+    chunk_outputs = []
+
+    model = model.to(device)
+    for batch in dataloader:
+        input_ids = batch["input_ids"].to(device)
+        attn_mask = batch["attention_mask"].to(device)
+        with torch.no_grad():
+            output = model(
+                input_ids, attention_mask=attn_mask, output_hidden_states=True
+            )
+            chunk_outputs.append(output.hidden_states[-1])
+            if len(chunk_outputs) == chunk_size:
+                all_outputs.append(torch.cat(chunk_outputs))
+                chunk_outputs = []
+    if chunk_outputs:
+        all_outputs.append(torch.cat(chunk_outputs))
+    all_outputs = torch.cat(all_outputs).cpu().detach().numpy()
+    return all_outputs
+
+
+def prune_magnitude(
+    model: Module,
+    sparsity_ratio: float = 0.6,
+    include_layers: Optional[List[str]] = None,
+    exclude_layers: Optional[List[str]] = None,
+) -> None:
+    layers = find_layers(
+        model, include_layers=include_layers, exclude_layers=exclude_layers
+    )
+    for _, layer in layers.items():
+        current_weight = layer.weight.data
+        threshold = torch.sort(torch.abs(current_weight).flatten())[0][
+            int(current_weight.numel() * sparsity_ratio)
+        ]
+        mask = torch.abs(current_weight) < threshold
+        layer.weight.data[mask] = 0
+
+
+def prune_norm_distribution(
+    model: Module,
+    sparsity_ratio: float = 0.4,
+    include_layers: Optional[List[str]] = None,
+    exclude_layers: Optional[List[str]] = None,
+) -> None:
+    layers = find_layers(
+        model, include_layers=include_layers, exclude_layers=exclude_layers
+    )
+    for _, layer in layers.items():
+        current_weight = layer.weight.data
+        mean = torch.mean(current_weight, dim=1, keepdim=True)
+        std = torch.std(current_weight, dim=1, keepdim=True)
+        z_scores = (current_weight - mean) / std
+
+        lower_z, upper_z = norm.ppf(0.5 - sparsity_ratio / 2), norm.ppf(
+            0.5 + sparsity_ratio / 2
+        )
+        mask = torch.logical_and(z_scores >= lower_z, z_scores < upper_z)
+        layer.weight.data[mask] = 0
+
+
+def prune_concern_identification(
+    model: Module,
+    model_config: ModelConfig,
+    dominant_concern: SamplingDataset,
+    non_dominant_concern: SamplingDataset,
+    sparsity_ratio: float = 0.6,
+    include_layers: Optional[List[str]] = None,
+    exclude_layers: Optional[List[str]] = None,
+) -> None:
+    layers = find_layers(
+        model, include_layers=include_layers, exclude_layers=exclude_layers
+    )
+    device = model_config.device
+    handle_list = []
+
+    method = Methods("ci", sparsity_ratio)
+    for name, layer in layers.items():
+        handle = layer.register_forward_hook(method.ci)
+        handle_list.append(handle)
+
+    dominant_batches = list(dominant_concern)
+    non_dominant_batches = list(non_dominant_concern)
+
+    if len(dominant_batches) != len(non_dominant_batches):
+        raise ValueError("Batch sizes of dominant_concern and non_dominant_concern does not match.")
+
+    combined_input_ids = torch.cat([batch["input_ids"] for batch in dominant_batches + non_dominant_batches])
+    combined_attn_mask = torch.cat([batch["attention_mask"] for batch in dominant_batches + non_dominant_batches])
+
+    combined_dataloader = [{"input_ids": combined_input_ids, "attention_mask": combined_attn_mask}]
+
+    propagate(model, combined_dataloader, device)
+
+    for handle in handle_list:
+        handle.remove()
 
 
 def recover_tangling_identification(
-        model: Module,
-        module: Module,
-        model_config: ModelConfig,
-        dominant_concern: SamplingDataset,
-        non_dominant_concern: SamplingDataset,
-        recovery_ratio: float = 0.4,
-        include_layers: Optional[List[str]] = None,
-        exclude_layers: Optional[List[str]] = None,
+    model: Module,
+    module: Module,
+    model_config: ModelConfig,
+    dominant_concern: SamplingDataset,
+    non_dominant_concern: SamplingDataset,
+    recovery_ratio: float = 0.4,
+    include_layers: Optional[List[str]] = None,
+    exclude_layers: Optional[List[str]] = None,
 ):
     ref_layers = find_layers(
         model, include_layers=include_layers, exclude_layers=exclude_layers
@@ -252,14 +277,8 @@ def recover_tangling_identification(
     ref_handle_list = []
     target_handle_list = []
 
-    def get_hook(wrapper):
-        def hook(module, input, output):
-            wrapper.update(input, output)
-
-        return hook
-
     for (ref_name, ref_layer), (target_name, target_layer) in zip(
-            ref_layers.items(), target_layers.items()
+        ref_layers.items(), target_layers.items()
     ):
         ref_wrapper = LayerWrapper(ref_name, ref_layer)
         target_wrapper = LayerWrapper(target_name, target_layer)
@@ -306,7 +325,7 @@ def recover_tangling_identification(
         ).reshape(1, -1)
 
         coefficient = all_norm + cosine_similarity * (
-                non_concern_norm - concern_norm
+            non_concern_norm - concern_norm
         )
 
         importance_score = torch.abs(current_weight - original_weight) * torch.abs(coefficient)
@@ -352,111 +371,24 @@ def recover_tangling_identification(
 
 
 def prune_wanda(
-        model: Module,
-        model_config: ModelConfig,
-        dataloader: SamplingDataset,
-        sparsity_ratio: float = 0.4,
-        include_layers: Optional[List[str]] = None,
-        exclude_layers: Optional[List[str]] = None,
-        p: int = 2,
+    model: Module,
+    model_config: ModelConfig,
+    dataloader: SamplingDataset,
+    sparsity_ratio: float = 0.4,
+    include_layers: Optional[List[str]] = None,
+    exclude_layers: Optional[List[str]] = None,
 ):
     layers = find_layers(
         model, include_layers=include_layers, exclude_layers=exclude_layers
     )
-
-    wrappers = {}
-    handle_list = []
     device = model_config.device
+    handle_list = []
 
-    def get_hook(wrapper):
-        def hook(module, input, output):
-            wrapper.update(input, output)
-
-        return hook
-
+    method = Methods("wanda", sparsity_ratio)
     for name, layer in layers.items():
-        wrapper = LayerWrapper(name, layer)
-        wrappers[name] = wrapper
-        handle = layer.register_forward_hook(get_hook(wrapper))
+        handle = layer.register_forward_hook(method.wanda)
         handle_list.append(handle)
     propagate(model, dataloader, device)
 
     for handle in handle_list:
         handle.remove()
-
-    for name, wrapper in wrappers.items():
-        wrapper.update_batch()
-        wrapper.to(device)
-        current_weight = wrapper.layer.weight.data
-        X = wrapper.inputs  # (batch_size, seq_dim, input_dim)
-        if len(X.shape) == 2:
-            X = X.unsqueeze(0)
-        tmp = X.shape[0]  # (batch_size)
-        if len(X.shape) == 3:
-            X = X.reshape((-1, X.shape[-1]))  # (batch_size * seq_dim, input_dim)
-
-        X = X.t()  # (input_dim, batch_size * seq_dim)
-        wrapper.scaler_row *= wrapper.nsamples / (wrapper.nsamples + tmp)  # (input_dim)
-        wrapper.nsamples += tmp
-        wrapper.scaler_row += torch.norm(X, p=p, dim=1) ** 2 / wrapper.nsamples
-
-        W_metric = torch.abs(current_weight) * torch.sqrt(
-            wrapper.scaler_row.reshape((1, -1))
-        )
-        W_mask = torch.zeros_like(W_metric) == 1
-        sort_res = torch.sort(W_metric, dim=-1, stable=True)
-        indices = sort_res[1][:, : int(W_metric.shape[1] * sparsity_ratio)]
-        W_mask.scatter_(1, indices, True)
-        current_weight[W_mask] = 0
-        wrapper.free()
-
-# def head_prune(model, head_list, concern):
-#     def get_sorted_indices(data):
-#
-#         data_np = np.array(data)
-#         data_flattened = data_np.flatten()
-#         sorted_indices = np.argsort(data_flattened)
-#         row_indices = sorted_indices // 12
-#         col_indices = sorted_indices % 12
-#
-#         result = []
-#
-#         for i in range(len(row_indices)):
-#             result.append((row_indices[i], col_indices[i]))
-#
-#         return result
-#
-#     def get_sorted_indices_except_max(data):
-#         data_np = np.array(data)
-#         max_indices = np.argmin(data_np, axis=1)
-#         data_flattened = data_np.flatten()
-#         sorted_indices = np.argsort(data_flattened)[::-1]
-#         row_indices = sorted_indices // 12
-#         col_indices = sorted_indices % 12
-#
-#         result = []
-#
-#         for i in range(len(row_indices)):
-#             # 각 행의 최대값 인덱스를 제외
-#             if col_indices[i] != max_indices[row_indices[i]]:
-#                 result.append((row_indices[i], col_indices[i]))
-#
-#         return result
-#     prune_head_index = get_sorted_indices_except_max(class_data)
-#     prune_head_index = prune_head_index[:ablating_head_num_in_CI]
-#     recovering_head_index = get_sorted_indices(class_neg_acc)
-#
-#     recovering_head_num_in_TI = r
-#     actually_recovered_head_num = 0
-#
-#     for i in recovering_head_index:
-#         recovering_head_num_in_TI -= 1
-#         if i in prune_head_index:
-#             prune_head_index.remove(i)
-#             actually_recovered_head_num += 1
-#
-#         if recovering_head_num_in_TI == 0:
-#             break
-#
-#     for layer_index, head_index in prune_head_index:  # 헤드를 제외하는 부분
-#         model.bert.encoder.layer[layer_index].attention.prune_heads([head_index])

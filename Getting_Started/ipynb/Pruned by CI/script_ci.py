@@ -7,18 +7,18 @@ import os
 os.chdir("../../../")
 
 file_list = [
-    "Getting_Started/ipynb/Pruned by CI/Yahoo/Prune by CI(30%).ipynb",
-    "Getting_Started/ipynb/Pruned by CI/Yahoo/Prune by CI(40%).ipynb",
-    "Getting_Started/ipynb/Pruned by CI/Yahoo/Prune by CI(50%).ipynb",
-    "Getting_Started/ipynb/Pruned by CI/Yahoo/Prune by CI(60%).ipynb",
-    "Getting_Started/ipynb/Pruned by CI/OSDG/Prune by CI(30%).ipynb",
-    "Getting_Started/ipynb/Pruned by CI/OSDG/Prune by CI(40%).ipynb",
-    "Getting_Started/ipynb/Pruned by CI/OSDG/Prune by CI(50%).ipynb",
-    "Getting_Started/ipynb/Pruned by CI/OSDG/Prune by CI(60%).ipynb",
     "Getting_Started/ipynb/Pruned by CI/IMDB/Prune by CI(30%).ipynb",
     "Getting_Started/ipynb/Pruned by CI/IMDB/Prune by CI(40%).ipynb",
     "Getting_Started/ipynb/Pruned by CI/IMDB/Prune by CI(50%).ipynb",
     "Getting_Started/ipynb/Pruned by CI/IMDB/Prune by CI(60%).ipynb",
+    "Getting_Started/ipynb/Pruned by CI/OSDG/Prune by CI(30%).ipynb",
+    "Getting_Started/ipynb/Pruned by CI/OSDG/Prune by CI(40%).ipynb",
+    "Getting_Started/ipynb/Pruned by CI/OSDG/Prune by CI(50%).ipynb",
+    "Getting_Started/ipynb/Pruned by CI/OSDG/Prune by CI(60%).ipynb",    
+    "Getting_Started/ipynb/Pruned by CI/Yahoo/Prune by CI(30%).ipynb",
+    "Getting_Started/ipynb/Pruned by CI/Yahoo/Prune by CI(40%).ipynb",
+    "Getting_Started/ipynb/Pruned by CI/Yahoo/Prune by CI(50%).ipynb",
+    "Getting_Started/ipynb/Pruned by CI/Yahoo/Prune by CI(60%).ipynb",
 ]
 
 script_start_time = datetime.now()
