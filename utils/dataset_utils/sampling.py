@@ -34,12 +34,9 @@ class SamplingDataset(IterableDataset):
         if torch.cuda.is_available():
             torch.cuda.manual_seed_all(seed)
 
-        self.sampled_data = None  # 샘플된 데이터를 저장할 공간
+        self.sampled_data = None
 
     def _sample_data(self) -> None:
-        # 샘플된 데이터를 초기화하여 이전 샘플을 제거
-        self.sampled_data = []
-
         sampled_ids = []
         sampled_masks = []
         sampled_labels = []
@@ -62,10 +59,11 @@ class SamplingDataset(IterableDataset):
 
         total_sampled = {class_id: 0 for class_id in class_sample_counts}
 
+        # Loop through batches and collect data
         for batch in self.dataloader:
-            b_input_ids = batch["input_ids"].to(self.device)
-            b_attention_masks = batch["attention_mask"].to(self.device)
-            b_labels = batch["labels"].to(self.device)
+            b_input_ids = batch["input_ids"]
+            b_attention_masks = batch["attention_mask"]
+            b_labels = batch["labels"]
 
             for class_id, target_count in class_sample_counts.items():
                 if total_sampled[class_id] >= target_count:
@@ -94,49 +92,33 @@ class SamplingDataset(IterableDataset):
                     sampled_masks.append(selected_attention_masks)
                     sampled_labels.append(selected_labels)
 
-                while sum(len(ids) for ids in sampled_ids) >= self.batch_size:
-                    current_batch_size = 0
-                    batch_input_ids, batch_masks, batch_labels = [], [], []
-                    while sampled_ids and current_batch_size < self.batch_size:
-                        ids = sampled_ids[0]
-                        masks = sampled_masks[0]
-                        labels = sampled_labels[0]
-
-                        take = min(len(ids), self.batch_size - current_batch_size)
-                        batch_input_ids.append(ids[:take])
-                        batch_masks.append(masks[:take])
-                        batch_labels.append(labels[:take])
-
-                        current_batch_size += take
-
-                        if take == len(ids):
-                            sampled_ids.pop(0)
-                            sampled_masks.pop(0)
-                            sampled_labels.pop(0)
-                        else:
-                            sampled_ids[0] = ids[take:]
-                            sampled_masks[0] = masks[take:]
-                            sampled_labels[0] = labels[take:]
-
-                    if batch_input_ids:
-                        sampled_batch = {
-                            "input_ids": torch.cat(batch_input_ids),
-                            "attention_mask": torch.cat(batch_masks),
-                            "labels": torch.cat(batch_labels),
-                        }
-                        self.sampled_data.append(sampled_batch)
-
-        for class_id, target_count in class_sample_counts.items():
-            if total_sampled[class_id] < target_count:
-                raise ValueError(
-                    f"Could only sample {total_sampled[class_id]} out of {target_count} requested samples for class {class_id}."
-                )
-
+        # Concatenate all collected data outside the loop
         if sampled_ids:
+            sampled_ids = torch.cat(sampled_ids)
+            sampled_masks = torch.cat(sampled_masks)
+            sampled_labels = torch.cat(sampled_labels)
+
+        self.sampled_data = []
+        num_batches = len(sampled_ids) // self.batch_size
+        for i in range(num_batches):
+            start_idx = i * self.batch_size
+            end_idx = start_idx + self.batch_size
+
+            batch_input_ids = sampled_ids[start_idx:end_idx]
+            batch_masks = sampled_masks[start_idx:end_idx]
+            batch_labels = sampled_labels[start_idx:end_idx]
+
+            self.sampled_data.append({
+                "input_ids": batch_input_ids,
+                "attention_mask": batch_masks,
+                "labels": batch_labels,
+            })
+
+        if len(sampled_ids) % self.batch_size != 0:
             remaining_batch = {
-                "input_ids": torch.cat(sampled_ids),
-                "attention_mask": torch.cat(sampled_masks),
-                "labels": torch.cat(sampled_labels),
+                "input_ids": sampled_ids[num_batches * self.batch_size:],
+                "attention_mask": sampled_masks[num_batches * self.batch_size:],
+                "labels": sampled_labels[num_batches * self.batch_size:],
             }
             self.sampled_data.append(remaining_batch)
 
