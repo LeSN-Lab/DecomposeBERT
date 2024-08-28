@@ -5,10 +5,8 @@ from typing import *
 from torch import Tensor
 from torch.nn import Module
 import torch.nn.functional as F
-from torch.nn.functional import cosine_similarity
 
 from utils.dataset_utils.sampling import SamplingDataset
-import gc
 
 from utils.helper import ModelConfig
 
@@ -145,11 +143,40 @@ class Methods:
 
         importance_score = torch.abs(current_weight - original_weight) * torch.abs(coefficient)
 
-        W_mask = torch.zeros_like(importance_score) == 1
-        sort_res = torch.sort(importance_score, dim=-1, descending=True, stable=True)
-        indices = sort_res[1][:, : int(importance_score.shape[1] * self.ratio)]
-        W_mask.scatter_(1, indices, True)
-        current_weight[W_mask] = 0
+        flattened_importance_score = importance_score.reshape(-1)
+        flattened_original_weight = original_weight.reshape(-1)
+        flattened_current_weight = current_weight.reshape(-1)
+
+        # Sort importance scores in descending order
+        sort_res = torch.sort(flattened_importance_score, descending=True)
+        sorted_indices = sort_res[1]
+
+        # Determine the number of elements to restore based on sparsity ratio
+        num_elements_to_restore = int(
+            flattened_importance_score.shape[0] * self.ratio
+        )
+
+        # Identify weights that are not included in the current model
+        not_included_mask = flattened_original_weight != flattened_current_weight
+
+        # Get the indices of not included weights from the sorted list
+        sorted_not_included_indices = sorted_indices[not_included_mask[sorted_indices]]
+
+        # Select top num_elements_to_restore indices from not included weights
+        if len(sorted_not_included_indices) > num_elements_to_restore:
+            restore_indices = sorted_not_included_indices[:num_elements_to_restore]
+        else:
+            restore_indices = sorted_not_included_indices
+
+        # Create mask for restoring weights
+        W_mask = torch.zeros_like(flattened_current_weight, dtype=torch.bool)
+        W_mask[restore_indices] = True
+
+        # Restore the weights based on the mask
+        flattened_current_weight[W_mask] = flattened_original_weight[W_mask]
+
+        # Reshape weights back to their original shape
+        current_weight.copy_(flattened_current_weight.view_as(current_weight))
 
 
 def find_layers(

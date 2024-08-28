@@ -3,12 +3,13 @@ import torch
 import copy
 from functools import partial
 from tqdm.auto import tqdm
-from utils.model_utils.evaluate import evaluate_model
 import torch.nn as nn
 from transformers.pytorch_utils import find_pruneable_heads_and_indices
 from typing import *
 
 import time
+
+
 def compute_heads_importance(model, model_config, dataloader):
     start_time = time.time()
 
@@ -146,13 +147,14 @@ def compute_heads_importance(model, model_config, dataloader):
 
     for i in range(model_config.num_labels):
         per_class_importance_list[i] = (
-            per_class_importance_list[i] - per_class_importance_list[i].min()
-        ) / (per_class_importance_list[i].max() - per_class_importance_list[i].min())
+                                           per_class_importance_list[i] - per_class_importance_list[i].min()
+                                       ) / (per_class_importance_list[i].max() - per_class_importance_list[i].min())
     remove_hooks(handles)
     for i in range(model_config.num_labels):
         per_class_importance_list[i] = per_class_importance_list[i].cpu().numpy()
 
     return attn_entropy, head_importance, preds, labels, per_class_importance_list
+
 
 def calculate_prune_head(arr, i):
     flattened_with_indices = [(value, index) for index, value in np.ndenumerate(arr)]
@@ -171,7 +173,7 @@ def prune_head(model, prune_list):
     return model
 
 
-def total_preprocess_prunehead(arr):
+def preprocess_prunehead(arr):
     layer_max = lambda arr: np.argmax(arr, axis=1)
 
     max_layer = layer_max(arr)
@@ -182,31 +184,15 @@ def total_preprocess_prunehead(arr):
 
 
 def head_importance_prunning(
-    model, model_config, num_steps, per_class_head_importance_list
+    model, concern, per_class_head_importance_list, sparsity_ratio
 ):
-    for class_index in range(model_config.num_labels):
-        temp_model = copy.deepcopy(model)
-        for num in range(num_steps):
-            print(f"Class {class_index} {(num + 1) * 12} prunning")
-            prune_list = calculate_prune_head(
-                per_class_head_importance_list[class_index], num
-            )
-
-            print(f"total prune number : {len(prune_list) * (num + 1)}")
-            print(f"prune head list")
-            print(prune_list)
-            temp_model = prune_head(temp_model, prune_list)
-
-
-def total_head_importance_prunning(
-    model, head_importance_score, sparsity_ratio
-):
+    preprocess_prunehead(per_class_head_importance_list)
     num_attention_heads = model.config.num_attention_heads
     num_hidden_layers = model.config.num_hidden_layers
 
     num = int(num_attention_heads * num_hidden_layers * sparsity_ratio)
     print(f"Total {num} prunning")
-    prune_list = calculate_prune_head(head_importance_score, num)
+    prune_list = calculate_prune_head(per_class_head_importance_list[concern], num)
     print(f"prune head list")
     print(prune_list)
     prune_head(model, prune_list)

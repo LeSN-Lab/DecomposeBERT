@@ -3,41 +3,75 @@ import sys
 
 sys.path.append("../")
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
-import logging
-
-from utils.helper import ModelConfig
-from utils.dataset_utils.load_dataset import load_data
+import argparse
+import copy
+import torch
+from datetime import datetime
+from utils.helper import ModelConfig, color_print
+from utils.dataset_utils.load_dataset import (
+    load_data,
+)
+from utils.model_utils.save_module import save_module
 from utils.model_utils.load_model import load_model
-from utils.model_utils.evaluate import evaluate_model
-from utils.prune_utils.prune_head import *
-
-logging.basicConfig(
-    filename="head_p.log", level=logging.INFO, format="%(asctime)s %(message)s"
+from utils.model_utils.evaluate import evaluate_model, get_sparsity
+from utils.dataset_utils.sampling import SamplingDataset
+from utils.prune_utils.prune_head import (
+    compute_heads_importance,
+    head_importance_prunning
 )
 
 
-# 설정 클래스 정의
-class Args:
-    def __init__(self):
-        self.device = torch.device("cuda:0")
-        self.compute_entropy = True
-        self.compute_importance = True
-        self.head_mask = None
-        self.num_pruning_steps = 8
-        self.name = "YahooAnswersTopics"
-        self.batch_size = 16
-        self.num_workers = 16
-
-
 def main():
-    # 모델과 토크나이저 로드
+    parser = argparse.ArgumentParser(description="Model Pruning and Evaluation")
+    parser.add_argument("--name", type=str, default="OSDG", help="Name of the dataset")
+    parser.add_argument(
+        "--device", type=str, default="cuda:0", help="Device to use for computation"
+    )
+    parser.add_argument(
+        "--checkpoint", type=str, default=None, help="Checkpoint to load model from"
+    )
+    parser.add_argument(
+        "--batch_size", type=int, default=32, help="Batch size for data loaders"
+    )
+    parser.add_argument(
+        "--num_workers", type=int, default=16, help="Number of workers for data loaders"
+    )
+    parser.add_argument(
+        "--num_samples",
+        type=int,
+        default=64,
+        help="Number of samples for sampling dataset",
+    )
+    parser.add_argument(
+        "--concern", type=int, default=0, help="Target Concern for decompose"
+    )
+    parser.add_argument(
+        "--head_pruning_ratio",
+        type=float,
+        default=0.6,
+        help="Sparsity ratio for concern identification pruning",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=44,
+        help="Random seed for reproducibility",
+    )
 
-    args = Args()
+    parser.add_argument("--log_dir", type=str, help="Path to the log file.", default="")
+
+    args = parser.parse_args()
+
+    device = torch.device(args.device if torch.cuda.is_available() else "cpu")
 
     model_config = ModelConfig(args.name, args.device)
     num_labels = model_config.config["num_labels"]
 
+    if args.log_dir:
+        sys.stdout = open(f"Logs/{args.log_dir}", "a")
+        sys.stderr = open(f"Logs/{args.log_dir}", "a")
+
+    color_print("Start Time:" + datetime.now().strftime("%H:%M:%S"))
     model, tokenizer, checkpoint = load_model(model_config)
 
     # 데이터셋 로드
@@ -45,7 +79,25 @@ def main():
         args.name, batch_size=args.batch_size, num_workers=args.num_workers
     )
 
-    # 헤드 중요도 및 엔트로피 계산
+    color_print("#Module " + str(args.concern) + " in progress....")
+
+    positive_samples = SamplingDataset(
+        train_dataloader, args.concern, args.num_samples, num_labels, True, 4, device=device, resample=False,
+        seed=args.seed
+    )
+    negative_samples = SamplingDataset(
+        train_dataloader, args.concern, args.num_samples, num_labels, False, 4, device=device, resample=False,
+        seed=args.seed
+    )
+    all_samples = SamplingDataset(
+        train_dataloader, 200, args.num_samples, num_labels, False, 4, device=device, resample=False, seed=args.seed
+    )
+
+    # print("Evaluate the original model")
+    # result = evaluate_model(model, model_config, test_dataloader)
+
+    module = copy.deepcopy(model)
+
     (
         attn_entropy,
         head_importance,
@@ -53,20 +105,19 @@ def main():
         labels,
         per_class_head_importance_list,
     ) = compute_heads_importance(
-        model,
+        module,
         model_config,
-        valid_dataloader,
+        positive_samples,
     )
 
     head_importance_prunning(
-        model, model_config, test_dataloader, args.num_pruning_steps, per_class_head_importance_list
+        module, args.concern, per_class_head_importance_list, args.head_pruning_ratio
     )
 
-    temp_head_importance_score = copy.deepcopy(head_importance).cpu().numpy()
-    temp_head_importance_score = total_preprocess_prunehead(temp_head_importance_score)
-    total_head_importance_prunning(
-        model, model_config, test_dataloader, args.num_pruning_steps, temp_head_importance_score
-    )
+    print(get_sparsity(module)[0])
+    result = evaluate_model(module, model_config, test_dataloader)
+    # save_module(module, "Modules/", "module.pt")
+    torch.cuda.empty_cache()
 
 
 # 메인 코드 실행 부분
