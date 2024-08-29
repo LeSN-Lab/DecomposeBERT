@@ -7,45 +7,7 @@ from torch.nn import Module
 import torch.nn.functional as F
 
 from utils.dataset_utils.sampling import SamplingDataset
-
 from utils.helper import ModelConfig
-
-
-class LayerWrapper:
-    """
-    This class is a wrapper for transformer layer.
-    """
-
-    def __init__(self, name: str, layer: Module):
-        self.name: str = name
-        self.layer: Module = layer
-        self.shape: torch.Size = layer.weight.shape
-        self.inputs: Union[List[Tensor], Tensor] = []
-        self.outputs: Union[List[Tensor], Tensor] = []
-        self.scaler_row: Tensor = torch.zeros(self.shape[1])
-        self.scaler_column: Tensor = torch.zeros(self.shape[0])
-        self.nsamples: int = 0
-
-    def update(self, input: Tensor, output: Tensor) -> None:
-        self.inputs.append(input[0].cpu())
-        self.outputs.append(output.cpu())
-
-    def update_batch(self) -> None:
-        if isinstance(self.inputs, list):
-            self.inputs = torch.cat(self.inputs, dim=0)
-        if isinstance(self.outputs, list):
-            self.outputs = torch.cat(self.outputs, dim=0)
-
-    def to(self, device):
-        self.layer = self.layer.to(device)
-        self.inputs = self.inputs.to(device)
-        self.outputs = self.outputs.to(device)
-        self.scaler_row = self.scaler_row.to(device)
-
-    def free(self):
-        self.layer = self.layer.to(torch.device("cpu"))
-        self.inputs = []
-        self.outputs = []
 
 
 class Methods:
@@ -99,9 +61,11 @@ class Methods:
             dim=0,
         ).reshape(1, -1)
 
-        coefficient = concern_norm - cosine_similarity * torch.abs(
-            concern_norm - non_concern_norm
-        )
+        sine_similarity = torch.sqrt(1 - cosine_similarity ** 2)
+        euclidean_distance = torch.sqrt(concern_norm ** 2 + non_concern_norm ** 2)
+        coefficient = concern_norm + sine_similarity * torch.abs(
+            concern_norm + non_concern_norm
+        ) / euclidean_distance
         importance_score = torch.abs(current_weight) * torch.abs(coefficient)
 
         W_mask = torch.zeros_like(importance_score) == 1
@@ -137,10 +101,11 @@ class Methods:
             dim=0,
         ).reshape(1, -1)
 
-        coefficient = all_norm - cosine_similarity * torch.abs(
-            concern_norm - non_concern_norm
-        )
-
+        sine_similarity = torch.sign(cosine_similarity) * torch.sqrt(1 - cosine_similarity ** 2)
+        euclidean_distance = torch.sqrt(concern_norm ** 2 + non_concern_norm ** 2)
+        coefficient = all_norm + sine_similarity * torch.abs(
+            all_norm + concern_norm
+        ) / euclidean_distance
         importance_score = torch.abs(current_weight - original_weight) * torch.abs(coefficient)
 
         flattened_importance_score = importance_score.reshape(-1)
@@ -180,11 +145,11 @@ class Methods:
 
 
 def find_layers(
-    model: Module,
-    layer_types: Optional[List[Type[Module]]] = None,
-    include_layers: Optional[List[str]] = None,
-    exclude_layers: Optional[List[str]] = None,
-    prefix: str = "",
+        model: Module,
+        layer_types: Optional[List[Type[Module]]] = None,
+        include_layers: Optional[List[str]] = None,
+        exclude_layers: Optional[List[str]] = None,
+        prefix: str = "",
 ) -> Dict[str, Module]:
     if layer_types is None:
         layer_types = [nn.Linear]
@@ -200,7 +165,7 @@ def find_layers(
             if any(exclude in layer_name for exclude in exclude_layers):
                 continue
             if include_layers and not any(
-                include in layer_name for include in include_layers
+                    include in layer_name for include in include_layers
             ):
                 if not any(isinstance(layer, t) for t in layer_types):
                     recursive_find(layer, layer_name)
@@ -245,10 +210,10 @@ def propagate(model, dataloader, device, chunk_size=4):
 
 
 def prune_magnitude(
-    model: Module,
-    sparsity_ratio: float = 0.6,
-    include_layers: Optional[List[str]] = None,
-    exclude_layers: Optional[List[str]] = None,
+        model: Module,
+        sparsity_ratio: float = 0.6,
+        include_layers: Optional[List[str]] = None,
+        exclude_layers: Optional[List[str]] = None,
 ) -> None:
     layers = find_layers(
         model, include_layers=include_layers, exclude_layers=exclude_layers
@@ -263,10 +228,10 @@ def prune_magnitude(
 
 
 def prune_norm_distribution(
-    model: Module,
-    sparsity_ratio: float = 0.4,
-    include_layers: Optional[List[str]] = None,
-    exclude_layers: Optional[List[str]] = None,
+        model: Module,
+        sparsity_ratio: float = 0.4,
+        include_layers: Optional[List[str]] = None,
+        exclude_layers: Optional[List[str]] = None,
 ) -> None:
     layers = find_layers(
         model, include_layers=include_layers, exclude_layers=exclude_layers
@@ -285,13 +250,13 @@ def prune_norm_distribution(
 
 
 def prune_concern_identification(
-    model: Module,
-    model_config: ModelConfig,
-    dominant_concern: SamplingDataset,
-    non_dominant_concern: SamplingDataset,
-    sparsity_ratio: float = 0.6,
-    include_layers: Optional[List[str]] = None,
-    exclude_layers: Optional[List[str]] = None,
+        model: Module,
+        model_config: ModelConfig,
+        dominant_concern: SamplingDataset,
+        non_dominant_concern: SamplingDataset,
+        sparsity_ratio: float = 0.6,
+        include_layers: Optional[List[str]] = None,
+        exclude_layers: Optional[List[str]] = None,
 ) -> None:
     layers = find_layers(
         model, include_layers=include_layers, exclude_layers=exclude_layers
@@ -322,14 +287,14 @@ def prune_concern_identification(
 
 
 def recover_tangling_identification(
-    model: Module,
-    module: Module,
-    model_config: ModelConfig,
-    dominant_concern: SamplingDataset,
-    non_dominant_concern: SamplingDataset,
-    recovery_ratio: float = 0.4,
-    include_layers: Optional[List[str]] = None,
-    exclude_layers: Optional[List[str]] = None,
+        model: Module,
+        module: Module,
+        model_config: ModelConfig,
+        dominant_concern: SamplingDataset,
+        non_dominant_concern: SamplingDataset,
+        recovery_ratio: float = 0.4,
+        include_layers: Optional[List[str]] = None,
+        exclude_layers: Optional[List[str]] = None,
 ):
     ref_layers = find_layers(
         model, include_layers=include_layers, exclude_layers=exclude_layers
@@ -343,7 +308,7 @@ def recover_tangling_identification(
 
     method = Methods("ti", recovery_ratio)
     for (ref_name, ref_layer), (target_name, target_layer) in zip(
-        ref_layers.items(), target_layers.items()
+            ref_layers.items(), target_layers.items()
     ):
         handle = target_layer.register_forward_hook(
             lambda module, input, output: method.ti(module, input, output, ref_layer)
@@ -368,12 +333,12 @@ def recover_tangling_identification(
 
 
 def prune_wanda(
-    model: Module,
-    model_config: ModelConfig,
-    dataloader: SamplingDataset,
-    sparsity_ratio: float = 0.4,
-    include_layers: Optional[List[str]] = None,
-    exclude_layers: Optional[List[str]] = None,
+        model: Module,
+        model_config: ModelConfig,
+        dataloader: SamplingDataset,
+        sparsity_ratio: float = 0.4,
+        include_layers: Optional[List[str]] = None,
+        exclude_layers: Optional[List[str]] = None,
 ):
     layers = find_layers(
         model, include_layers=include_layers, exclude_layers=exclude_layers

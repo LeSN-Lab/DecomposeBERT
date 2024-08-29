@@ -6,6 +6,7 @@ channels:
 dependencies:
   - python=3.8
   - pytorch
+  - pytorch-cuda=12.4
   - transformers
   - scipy
   - huggingface_hub
@@ -15,6 +16,7 @@ dependencies:
   - matplotlib
   - pip
   - tqdm
+  - papermill
   - pip:
     - datasets
     - colorama
