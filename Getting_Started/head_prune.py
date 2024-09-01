@@ -74,7 +74,6 @@ def main():
     color_print("Start Time:" + datetime.now().strftime("%H:%M:%S"))
     model, tokenizer, checkpoint = load_model(model_config)
 
-    # 데이터셋 로드
     train_dataloader, valid_dataloader, test_dataloader = load_data(
         args.name, batch_size=args.batch_size, num_workers=args.num_workers
     )
@@ -120,6 +119,5 @@ def main():
     torch.cuda.empty_cache()
 
 
-# 메인 코드 실행 부분
 if __name__ == "__main__":
     main()

@@ -66,8 +66,9 @@ class Methods:
         coefficient = concern_norm + sine_similarity * torch.abs(
             concern_norm + non_concern_norm
         ) / euclidean_distance
-        # importance_score = torch.abs(current_weight) * torch.abs(coefficient)
-        importance_score= torch.abs(current_weight)+torch.abs(coefficient)
+
+        importance_score = torch.abs(current_weight) * torch.abs(coefficient)
+
         W_mask = torch.zeros_like(importance_score) == 1
         sort_res = torch.sort(importance_score, dim=-1, stable=True)
         indices = sort_res[1][:, : int(importance_score.shape[1] * self.ratio)]

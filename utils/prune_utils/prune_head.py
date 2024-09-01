@@ -186,7 +186,7 @@ def preprocess_prunehead(arr):
 def head_importance_prunning(
     model, concern, per_class_head_importance_list, sparsity_ratio
 ):
-    preprocess_prunehead(per_class_head_importance_list)
+    preprocess_prunehead(per_class_head_importance_list[concern])
     num_attention_heads = model.config.num_attention_heads
     num_hidden_layers = model.config.num_hidden_layers
 
